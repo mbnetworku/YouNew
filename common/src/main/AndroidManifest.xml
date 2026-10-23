@@ -66,6 +66,10 @@
             android:name="com.liskovsoft.smartyoutubetv2.common.misc.BackgroundPlaybackService"
             android:enabled="true"/>
 
+        <!-- YouNew: "Who's watching?" account chooser -->
+        <activity android:name=".misc.AccountChooserActivity"
+            android:theme="@android:style/Theme.Black.NoTitleBar.Fullscreen"
+            android:exported="false" />
         <activity android:name=".misc.BackupReceiverActivity"
             android:exported="true">
             <intent-filter>

@@ -756,4 +756,7 @@
         <item quantity="one">%s second</item>
         <item quantity="other">%s seconds</item>
     </plurals>
+    <!-- YouNew account chooser -->
+    <string name="younew_add_account">Add account</string>
+    <string name="younew_watch_as_guest">Watch as guest</string>
 </resources>

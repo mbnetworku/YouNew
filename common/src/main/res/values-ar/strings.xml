@@ -748,4 +748,6 @@
         <item quantity="one">%s ثانية</item>
         <item quantity="other">%s ثانية</item>
     </plurals>
+    <string name="younew_add_account">إضافة حساب</string>
+    <string name="younew_watch_as_guest">المشاهدة كضيف</string>
 </resources>

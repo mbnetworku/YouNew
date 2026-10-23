@@ -57,13 +57,34 @@ public class AccountSelectionPresenter extends BasePresenter<Void> {
             return;
         }
 
-        GlideIconFetcher.fetchDrawables(getContext(),
-                Helpers.map(mSignInService.getAccounts(), Account::getAvatarImageUrl),
-                icons -> createAndShowDialog(mSignInService.getAccounts(), icons, force));
+        List<Account> accounts = mSignInService.getAccounts();
+
+        if ((accounts == null || accounts.size() <= 1) && !force) {
+            return; // nothing to choose
+        }
+
+        openChooser();
     }
 
+    /**
+     * YouNew: the account button opens the full-screen "Who's watching?" chooser (YouTube TV style)
+     * instead of silently switching to the next account.
+     */
     public void nextAccountOrDialog() {
-        MediaServiceManager.instance().loadAccounts(this::nextAccountOrDialog);
+        MediaServiceManager.instance().loadAccounts(accounts -> openChooser());
+    }
+
+    private void openChooser() {
+        if (getContext() == null) {
+            return;
+        }
+
+        android.content.Intent intent = new android.content.Intent(getContext(),
+                com.liskovsoft.smartyoutubetv2.common.misc.AccountChooserActivity.class);
+        if (!(getContext() instanceof android.app.Activity)) {
+            intent.addFlags(android.content.Intent.FLAG_ACTIVITY_NEW_TASK);
+        }
+        getContext().startActivity(intent);
     }
 
     public void unhold() {
