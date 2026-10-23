@@ -28,6 +28,7 @@ public class GridItemPresenter extends Presenter {
         view.setLayoutParams(new ViewGroup.LayoutParams(width, height));
         view.setFocusable(true);
         view.setFocusableInTouchMode(true);
+        com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil.enableSingleClick(view); // one mouse click
         view.setBackgroundColor(ContextCompat.getColor(parent.getContext(),
                 R.color.card_default_background));
         view.setTextColor(Color.WHITE);

@@ -194,6 +194,12 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
 
         mSearchOrbView = findViewById(R.id.title_orb);
 
+        // YouNew: the "Search" pill opens search, same as the round search button
+        View searchPill = findViewById(R.id.search_pill);
+        if (searchPill != null && mSearchOrbView != null) {
+            searchPill.setOnClickListener(v -> mSearchOrbView.performClick());
+        }
+
         mAccountView = findViewById(R.id.account_orb);
         mAccountView.setOnOrbClickedListener(v -> AccountSelectionPresenter.instance(getContext()).nextAccountOrDialog());
         mAccountView.setOnOrbLongClickedListener(v -> {

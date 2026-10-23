@@ -64,6 +64,9 @@ public class SettingsGridFragment extends GridFragment implements SettingsSectio
             grid.setItemAlignmentOffset(0);
             grid.setItemAlignmentOffsetPercent(VerticalGridView.ITEM_ALIGN_OFFSET_PERCENT_DISABLED); // align the row top, not its middle
             grid.setVerticalSpacing(0);
+            // start below the top bar (search pill and logo)
+            view.setPadding(view.getPaddingLeft(), (int) (100 * getResources().getDisplayMetrics().density), view.getPaddingRight(), view.getPaddingBottom());
+            grid.setClipToPadding(false);
             grid.setWindowAlignment(VerticalGridView.WINDOW_ALIGN_BOTH_EDGE);
             grid.setWindowAlignmentOffset(0);
             grid.setWindowAlignmentOffsetPercent(VerticalGridView.WINDOW_ALIGN_OFFSET_PERCENT_DISABLED);

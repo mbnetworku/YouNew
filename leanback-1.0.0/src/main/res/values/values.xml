@@ -1040,6 +1040,10 @@
         <item name="android:fontFamily">sans-serif-regular</item>
     </style>
     <style name="TextAppearance.Leanback.Row.Header" parent="TextAppearance.Leanback.Header">
+        <!-- YouNew: white bold row titles like YouTube TV -->
+        <item name="android:textColor">#F1F1F1</item>
+        <item name="android:textStyle">bold</item>
+        <item name="android:textSize">20sp</item>
     </style>
     <style name="TextAppearance.Leanback.Row.Header.Description" parent="TextAppearance.Leanback.Header">
         <item name="android:textSize">@dimen/lb_browse_header_description_text_size</item>

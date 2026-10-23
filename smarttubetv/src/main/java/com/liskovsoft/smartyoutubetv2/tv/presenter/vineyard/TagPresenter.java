@@ -40,6 +40,7 @@ public class TagPresenter extends LongClickPresenter {
 
         cardView.setFocusable(true);
         cardView.setFocusableInTouchMode(true);
+        com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil.enableSingleClick(cardView); // one mouse click
         updateCardBackgroundColor(cardView, false);
         updateCardTextColor(cardView, false);
         //if (VERSION.SDK_INT >= 23 && MainUIData.instance(parent.getContext()).isUiTweakEnabled(MainUIData.UI_TWEAK_ROUNDED_CORNERS)) {

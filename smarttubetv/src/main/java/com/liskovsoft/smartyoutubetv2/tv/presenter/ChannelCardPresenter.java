@@ -56,6 +56,7 @@ public class ChannelCardPresenter extends LongClickPresenter {
         @SuppressLint("InflateParams")
         View container = LayoutInflater.from(context).inflate(R.layout.channel_card, null);
         container.setBackgroundColor(mDefaultBackgroundColor);
+        com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil.enableSingleClick(container); // one mouse click
         //if (VERSION.SDK_INT >= 23 && MainUIData.instance(context).isUiTweakEnabled(MainUIData.UI_TWEAK_ROUNDED_CORNERS)) {
         //    container.setForeground(ContextCompat.getDrawable(context, R.drawable.lb_card_outline));
         //}

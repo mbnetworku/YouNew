@@ -7,6 +7,7 @@ import android.os.Build.VERSION;
 import android.text.Layout;
 import android.text.TextUtils.TruncateAt;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.view.ViewOutlineProvider;
@@ -30,6 +31,27 @@ import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.marqueetextviewcompat.Marque
 import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.speedmarquee.SpeedMarquee;
 
 public class ViewUtil {
+    /**
+     * YouNew: one mouse click opens an item. Without this the first click only focuses a card
+     * (it is focusable in touch mode) and a second click is needed to open it.
+     */
+    public static void enableSingleClick(View view) {
+        if (view == null) {
+            return;
+        }
+
+        view.setOnTouchListener((v, event) -> {
+            // short click only: a long press keeps opening the item menu
+            if (event.getAction() == MotionEvent.ACTION_UP && !v.isFocused()
+                    && event.getEventTime() - event.getDownTime() < android.view.ViewConfiguration.getLongPressTimeout()) {
+                v.requestFocus();
+                v.performClick();
+                return true;
+            }
+            return false;
+        });
+    }
+
     /**
      * Focused card zoom factor
      */

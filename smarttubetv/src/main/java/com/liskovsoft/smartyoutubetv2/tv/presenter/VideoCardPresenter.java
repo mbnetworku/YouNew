@@ -90,6 +90,7 @@ public class VideoCardPresenter extends LongClickPresenter {
         cardView.setTextScrollSpeed(cardTextScrollSpeed);
         cardView.setFocusable(true);
         cardView.setFocusableInTouchMode(true);
+        ViewUtil.enableSingleClick(cardView); // one mouse click plays the video
         cardView.enableBadge(isBadgeEnabled());
         cardView.enableTitle(isTitleEnabled());
         cardView.enableContent(isContentEnabled());

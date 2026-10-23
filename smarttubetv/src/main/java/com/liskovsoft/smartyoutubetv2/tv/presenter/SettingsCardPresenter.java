@@ -37,6 +37,7 @@ public class SettingsCardPresenter extends Presenter {
         imageView.setColorFilter(TEXT_NORMAL);
 
         ViewUtil.setTextScrollSpeed(textView, getCardTextScrollSpeed(context));
+        ViewUtil.enableSingleClick(container); // one mouse click opens the category
 
         container.setOnFocusChangeListener((v, hasFocus) -> {
             int color = hasFocus ? TEXT_FOCUSED : TEXT_NORMAL;

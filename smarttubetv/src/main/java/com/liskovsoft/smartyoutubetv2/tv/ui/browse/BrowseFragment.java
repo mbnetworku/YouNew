@@ -129,8 +129,9 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                     int newPosition = indexOf(headerId);
 
                     if (getHeadersSupportFragment().getSelectedPosition() != newPosition) {
-                        // touch screen support
-                        getHeadersSupportFragment().setSelectedPosition(newPosition);
+                        // YouNew: one mouse click opens the section, even from the collapsed rail
+                        // (before, the first click only moved the selection in the hidden menu)
+                        selectSection(newPosition, true);
                     } else {
                         // update section when clicked or pressed
                         mBrowsePresenter.onSectionFocused((int) headerId);
@@ -200,7 +201,7 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
         setBrandColor(ContextCompat.getColor(getContext(), brandColorRes));
 
         // Set search icon color.
-        setSearchAffordanceColor(ContextCompat.getColor(getContext(), brandAccentColorRes));
+        setSearchAffordanceColor(ContextCompat.getColor(getContext(), R.color.orb_color)); // grey round button like YouTube TV
 
         setHeaderPresenterSelector(new PresenterSelector() {
             private final Map<Integer, Presenter> mPresenterMap = new HashMap<>();
@@ -524,6 +525,6 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
         Drawable bridgeIcon = Utils.getDrawable(getContext(), splashPresenter.getBridgePackageName(), "app_icon");
 
         // Top right corner logo
-        setBadgeDrawable(null); // YouNew: no logo in the top right corner
+        setBadgeDrawable(ContextCompat.getDrawable(getContext(), R.mipmap.app_logo)); // YouNew logo top right, like YouTube TV
     }
 }
