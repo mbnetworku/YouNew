@@ -6,7 +6,6 @@
     android:layout_height="48dp"
     android:background="@drawable/header_item_bg"
     android:gravity="center_vertical"
-    android:paddingEnd="12dp"
     android:orientation="horizontal">
 
     <ImageView
