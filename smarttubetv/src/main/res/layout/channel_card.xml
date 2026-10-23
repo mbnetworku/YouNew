@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- NOTE: You can't set layout dimension for Presenter's container -->
+<!-- YouNew: one channel in the Subscriptions list (YouTube TV style): round picture + name.
+     NOTE: You can't set layout dimension for Presenter's container -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
              xmlns:tools="http://schemas.android.com/tools"
              android:focusableInTouchMode="true"
@@ -9,25 +10,29 @@
     <LinearLayout
                   android:id="@+id/channel_card_wrapper"
                   android:orientation="horizontal"
+                  android:gravity="center_vertical"
+                  android:paddingStart="12dp"
+                  android:paddingEnd="12dp"
+                  android:paddingTop="8dp"
+                  android:paddingBottom="8dp"
                   android:layout_width="@dimen/channel_card_width"
                   android:layout_height="wrap_content">
         <ImageView
             android:id="@+id/channel_image"
-            android:adjustViewBounds="true"
-            android:scaleType="fitCenter"
-            android:layout_width="wrap_content"
-            android:layout_height="match_parent"
-            android:layout_gravity="start"
+            android:scaleType="centerCrop"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:layout_marginEnd="14dp"
             android:visibility="invisible"
             tools:ignore="ContentDescription"/>
         <com.liskovsoft.smartyoutubetv2.tv.ui.widgets.marqueetextviewcompat.MarqueeTextViewCompat
             android:id="@+id/channel_title"
             android:singleLine="true"
             android:ellipsize="end"
-            android:layout_gravity="start|center_vertical"
-            android:layout_width="match_parent"
+            android:textSize="18sp"
+            android:layout_width="0dp"
+            android:layout_weight="1"
             android:layout_height="wrap_content"
-            android:padding="@dimen/lb_basic_card_info_padding"
-            android:textAlignment="textStart"/>
+            android:textAlignment="viewStart"/>
     </LinearLayout>
 </FrameLayout>

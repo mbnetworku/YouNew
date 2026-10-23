@@ -260,13 +260,13 @@ public class SidebarService implements ProfileChangeListener {
         mDefaultSections.put(R.string.header_shorts, MediaGroup.TYPE_SHORTS);
         mDefaultSections.put(R.string.header_news, MediaGroup.TYPE_NEWS);
         mDefaultSections.put(R.string.badge_live, MediaGroup.TYPE_LIVE);
-        mDefaultSections.put(R.string.header_subscriptions, MediaGroup.TYPE_SUBSCRIPTIONS);
+        mDefaultSections.put(R.string.header_channels, MediaGroup.TYPE_CHANNEL_UPLOADS); // YouNew: shown as "Subscriptions" (channels + their videos)
         mDefaultSections.put(R.string.header_music, MediaGroup.TYPE_MUSIC);
         mDefaultSections.put(R.string.header_gaming, MediaGroup.TYPE_GAMING);
         mDefaultSections.put(R.string.header_trending, MediaGroup.TYPE_TRENDING);
         mDefaultSections.put(R.string.header_kids_home, MediaGroup.TYPE_KIDS_HOME);
         mDefaultSections.put(R.string.header_sports, MediaGroup.TYPE_SPORTS);
-        mDefaultSections.put(R.string.header_channels, MediaGroup.TYPE_CHANNEL_UPLOADS);
+        mDefaultSections.put(R.string.header_subscriptions, MediaGroup.TYPE_SUBSCRIPTIONS);
         mDefaultSections.put(R.string.header_history, MediaGroup.TYPE_HISTORY);
         mDefaultSections.put(R.string.header_blocked_channels, MediaGroup.TYPE_BLOCKED_CHANNELS);
         mDefaultSections.put(R.string.header_playlists, MediaGroup.TYPE_USER_PLAYLISTS);
@@ -285,7 +285,7 @@ public class SidebarService implements ProfileChangeListener {
                     MediaGroup.TYPE_SHORTS,
                     MediaGroup.TYPE_NEWS,
                     MediaGroup.TYPE_LIVE,
-                    MediaGroup.TYPE_SUBSCRIPTIONS,
+                    MediaGroup.TYPE_CHANNEL_UPLOADS,
                     MediaGroup.TYPE_SETTINGS
             }));
         }

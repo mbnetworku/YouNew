@@ -27,6 +27,7 @@ import com.liskovsoft.smartyoutubetv2.tv.ui.browse.video.GridFragmentHelper;
 import com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil;
 
 public class ChannelCardPresenter extends LongClickPresenter {
+    private static final int CHANNEL_TEXT = 0xFFF1F1F1;
     private static final String TAG = VideoCardPresenter.class.getSimpleName();
     private int mDefaultBackgroundColor;
     private int mDefaultTextColor;
@@ -55,15 +56,13 @@ public class ChannelCardPresenter extends LongClickPresenter {
 
         @SuppressLint("InflateParams")
         View container = LayoutInflater.from(context).inflate(R.layout.channel_card, null);
-        container.setBackgroundColor(mDefaultBackgroundColor);
+        // YouNew: YouTube TV look - no card box, grey rounded highlight on the focused channel
+        container.setBackgroundColor(android.graphics.Color.TRANSPARENT);
         com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil.enableSingleClick(container); // one mouse click
-        //if (VERSION.SDK_INT >= 23 && MainUIData.instance(context).isUiTweakEnabled(MainUIData.UI_TWEAK_ROUNDED_CORNERS)) {
-        //    container.setForeground(ContextCompat.getDrawable(context, R.drawable.lb_card_outline));
-        //}
+        View wrapper = container.findViewById(R.id.channel_card_wrapper);
 
         TextView textView = container.findViewById(R.id.channel_title);
-        textView.setBackgroundColor(mDefaultBackgroundColor);
-        textView.setTextColor(mDefaultTextColor);
+        textView.setTextColor(CHANNEL_TEXT);
 
         boolean autoScrollEnabled = isCardTextAutoScrollEnabled(context);
         if (autoScrollEnabled) {
@@ -71,12 +70,7 @@ public class ChannelCardPresenter extends LongClickPresenter {
         }
 
         container.setOnFocusChangeListener((v, hasFocus) -> {
-            int backgroundColor = hasFocus ? mSelectedBackgroundColor :
-                    textView.getTag(R.id.channel_new_content) != null ? mNewContentBackgroundColor : mDefaultBackgroundColor;
-            int textColor = hasFocus ? mSelectedTextColor : mDefaultTextColor;
-            
-            textView.setBackgroundColor(backgroundColor);
-            textView.setTextColor(textColor);
+            wrapper.setBackgroundResource(hasFocus ? R.drawable.channel_row_focused : 0);
 
             if (!autoScrollEnabled) {
                 return;
@@ -105,7 +99,8 @@ public class ChannelCardPresenter extends LongClickPresenter {
         textView.setText(video.getTitle());
 
         // We should setup props each time because object may be reused by the underlying RecyclerView
-        textView.setBackgroundColor(video.hasNewContent ? mNewContentBackgroundColor : mDefaultBackgroundColor);
+        // Channels with new videos are shown in bold
+        textView.setTypeface(null, video.hasNewContent ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
         textView.setTag(R.id.channel_new_content, video.hasNewContent ? true : null);
 
 
@@ -115,6 +110,7 @@ public class ChannelCardPresenter extends LongClickPresenter {
         Glide.with(context)
                 .load(video.cardImageUrl)
                 .apply(ViewUtil.glideOptions())
+                .apply(com.bumptech.glide.request.RequestOptions.circleCropTransform()) // round picture
                 .listener(mErrorListener)
                 //.error(R.drawable.card_placeholder) // R.color.lb_grey
                 .into(imageView);
