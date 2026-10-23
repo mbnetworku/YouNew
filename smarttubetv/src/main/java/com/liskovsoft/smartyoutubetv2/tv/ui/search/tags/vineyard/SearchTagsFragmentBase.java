@@ -112,13 +112,13 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
 
         android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = start;
+        lp.leftMargin = (int) (400 * density); // keyboard on the right, like YouTube TV
         lp.topMargin = (int) (110 * density);
         searchFrame.addView(keyboard, lp);
 
-        // Results go to the right of the keyboard
+        // Results (suggestions and videos) go below the keyboard
         ViewGroup.MarginLayoutParams resultsLp = (ViewGroup.MarginLayoutParams) results.getLayoutParams();
-        resultsLp.leftMargin = start + OnScreenKeyboard.getWidthPx(getContext());
+        resultsLp.topMargin = (int) (160 * density); // the result rows have their own top offset
         results.setLayoutParams(resultsLp);
     }
 

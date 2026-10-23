@@ -3,6 +3,7 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.search.tags;
 import android.content.Context;
 import android.graphics.Color;
 import android.graphics.Typeface;
+import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
 import android.graphics.drawable.StateListDrawable;
 import android.view.Gravity;
@@ -11,9 +12,9 @@ import android.widget.LinearLayout;
 import android.widget.TextView;
 
 /**
- * YouNew: the YouTube TV style on-screen keyboard for the Search screen.
- * A plain grid of focusable keys (0-9, a-z, a few symbols) plus Backspace, Space, Clear and Search.
- * Works with the remote (D-pad) and with a mouse click. Keys never open the system keyboard.
+ * YouNew: YouTube TV style on-screen keyboard for the Search screen.
+ * Plain letters in 7 columns, Delete / Clear / &123 / Arabic down the right side, Space and Search below.
+ * Keys have no tile; the focused key turns into a white rounded box. Works with the remote and a mouse.
  */
 public class OnScreenKeyboard extends LinearLayout {
     /** What the keyboard asks the Search screen to do. */
@@ -22,25 +23,34 @@ public class OnScreenKeyboard extends LinearLayout {
         void onSearch(String text);
     }
 
-    private static final String[][] ROWS = {
-            {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"},
-            {"a", "b", "c", "d", "e", "f", "g", "h", "i", "j"},
-            {"k", "l", "m", "n", "o", "p", "q", "r", "s", "t"},
-            {"u", "v", "w", "x", "y", "z", "'", "-", ".", "@"}
+    private static final int MODE_EN = 0;
+    private static final int MODE_AR = 1;
+    private static final int MODE_NUM = 2;
+
+    private static final String[][] ROWS_EN = {
+            {"a", "b", "c", "d", "e", "f", "g"},
+            {"h", "i", "j", "k", "l", "m", "n"},
+            {"o", "p", "q", "r", "s", "t", "u"},
+            {"v", "w", "x", "y", "z", "-", "'"}
     };
     private static final String[][] ROWS_AR = {
-            {"1", "2", "3", "4", "5", "6", "7", "8", "9", "0"},
-            {"ا", "ب", "ت", "ث", "ج", "ح", "خ", "د", "ذ", "ر"},
-            {"ز", "س", "ش", "ص", "ض", "ط", "ظ", "ع", "غ", "ف"},
-            {"ق", "ك", "ل", "م", "ن", "ه", "و", "ي", "ة", "ء"},
-            {"أ", "إ", "آ", "ى", "ؤ", "ئ", "-", ".", "'", "@"}
+            {"ا", "ب", "ت", "ث", "ج", "ح", "خ"},
+            {"د", "ذ", "ر", "ز", "س", "ش", "ص"},
+            {"ض", "ط", "ظ", "ع", "غ", "ف", "ق"},
+            {"ك", "ل", "م", "ن", "ه", "و", "ي"},
+            {"ة", "ء", "أ", "إ", "آ", "ى", "ئ"}
     };
-    private static final int KEY_DP = 40;
-    private static final int GAP_DP = 6;
+    private static final String[][] ROWS_NUM = {
+            {"1", "2", "3", "4", "5", "6", "7"},
+            {"8", "9", "0", ".", "@", "_", "&"},
+            {"#", "!", "?", "+", "/", ":", "ؤ"}
+    };
+    private static final int KEY_DP = 44;
+    private static final int SIDE_DP = 110;
 
     private final Listener mListener;
     private final StringBuilder mText = new StringBuilder();
-    private boolean mArabic;
+    private int mMode = MODE_EN;
 
     public OnScreenKeyboard(Context context, Listener listener) {
         super(context);
@@ -49,46 +59,60 @@ public class OnScreenKeyboard extends LinearLayout {
         build();
     }
 
-    /** Keeps the keyboard in step when the text was changed elsewhere (voice search, a suggestion). */
-    public void setText(String text) {
-        mText.setLength(0);
-        if (text != null) {
-            mText.append(text);
-        }
+    /** Width of the keyboard in pixels. */
+    public static int getWidthPx(Context context) {
+        return dp(context, 7 * KEY_DP + SIDE_DP + 16);
     }
 
-    /** Width of the whole keyboard in pixels (so the results can be moved to its right). */
-    public static int getWidthPx(Context context) {
-        return dp(context, ROWS[0].length * (KEY_DP + GAP_DP));
+    /** Height of the keyboard in pixels (5 rows of keys + the Space/Search row). */
+    public static int getHeightPx(Context context) {
+        return dp(context, 6 * KEY_DP + 8);
     }
 
     private void build() {
         removeAllViews();
-        for (String[] row : mArabic ? ROWS_AR : ROWS) {
+        String[][] rows = mMode == MODE_AR ? ROWS_AR : mMode == MODE_NUM ? ROWS_NUM : ROWS_EN;
+        String[] side = {mMode == MODE_AR ? "حذف" : "DELETE", mMode == MODE_AR ? "مسح" : "CLEAR", mMode == MODE_NUM ? "ABC" : "&123", mMode == MODE_AR ? "ENG" : "عربي"};
+
+        for (int i = 0; i < Math.max(rows.length, side.length); i++) {
             LinearLayout line = newLine();
+            String[] row = i < rows.length ? rows[i] : new String[0];
             for (String key : row) {
-                line.addView(newKey(key, 1, v -> type(key)));
+                line.addView(newKey(mMode == MODE_EN ? key.toUpperCase() : key, KEY_DP, v -> type(key)));
+            }
+            for (int pad = row.length; pad < 7; pad++) {
+                line.addView(spacer(KEY_DP));
+            }
+            line.addView(spacer(16));
+            if (i < side.length) {
+                line.addView(newKey(side[i], SIDE_DP, sideAction(i)));
             }
             addView(line);
         }
 
-        LinearLayout controls = newLine();
-        controls.addView(newKey("←", 2, v -> backspace()));
-        controls.addView(newKey(mArabic ? "مسافة" : "Space", 2, v -> type(" ")));
-        controls.addView(newKey(mArabic ? "EN" : "عربي", 2, v -> switchLanguage()));
-        controls.addView(newKey(mArabic ? "مسح" : "Clear", 2, v -> clear()));
-        controls.addView(newKey(mArabic ? "بحث" : "Search", 2, v -> mListener.onSearch(mText.toString())));
-        addView(controls);
+        LinearLayout bottom = newLine();
+        bottom.addView(spacer(KEY_DP));
+        bottom.addView(newKey(mMode == MODE_AR ? "مسافة" : "SPACE", 2 * KEY_DP + 20, v -> type(" ")));
+        bottom.addView(spacer(8));
+        bottom.addView(newKey(mMode == MODE_AR ? "بحث" : "SEARCH", 2 * KEY_DP + 20, v -> mListener.onSearch(mText.toString())));
+        addView(bottom);
     }
 
-    // Arabic / English letters. Focus stays on the language key so it can be pressed again.
-    private void switchLanguage() {
-        mArabic = !mArabic;
-        build();
-        View last = getChildAt(getChildCount() - 1);
-        if (last instanceof LinearLayout && ((LinearLayout) last).getChildCount() > 2) {
-            ((LinearLayout) last).getChildAt(2).requestFocus();
+    private OnClickListener sideAction(int index) {
+        switch (index) {
+            case 0: return v -> backspace();
+            case 1: return v -> clear();
+            case 2: return v -> switchMode(mMode == MODE_NUM ? MODE_EN : MODE_NUM, 2);
+            default: return v -> switchMode(mMode == MODE_AR ? MODE_EN : MODE_AR, 3);
         }
+    }
+
+    // Changes the letters. Focus goes back to the same side key so it can be pressed again.
+    private void switchMode(int mode, int sideIndex) {
+        mMode = mode;
+        build();
+        LinearLayout line = (LinearLayout) getChildAt(sideIndex);
+        line.getChildAt(line.getChildCount() - 1).requestFocus();
     }
 
     private void type(String s) {
@@ -111,22 +135,24 @@ public class OnScreenKeyboard extends LinearLayout {
     private LinearLayout newLine() {
         LinearLayout line = new LinearLayout(getContext());
         line.setOrientation(HORIZONTAL);
-        LayoutParams lp = new LayoutParams(LayoutParams.WRAP_CONTENT, LayoutParams.WRAP_CONTENT);
-        lp.bottomMargin = dp(getContext(), GAP_DP);
-        line.setLayoutParams(lp);
         return line;
     }
 
-    /** One key: dark rounded tile, white when focused (dark text), like the YouTube TV keyboard. */
-    private TextView newKey(String label, int span, OnClickListener onClick) {
+    private View spacer(int widthDp) {
+        View space = new View(getContext());
+        space.setLayoutParams(new LayoutParams(dp(getContext(), widthDp), dp(getContext(), KEY_DP)));
+        return space;
+    }
+
+    /** One key: just the label; when focused, a white rounded box with dark text. */
+    private TextView newKey(String label, int widthDp, OnClickListener onClick) {
         Context context = getContext();
         TextView key = new TextView(context);
         key.setText(label);
         key.setGravity(Gravity.CENTER);
-        key.setTextSize(label.length() > 1 ? 15 : 18);
+        key.setTextSize(label.length() > 1 ? 17 : 22);
         key.setTypeface(Typeface.DEFAULT_BOLD);
         key.setFocusable(true);
-        key.setFocusableInTouchMode(false);
         key.setClickable(true);
         key.setOnClickListener(onClick);
         key.setBackground(keyBackground(context));
@@ -138,27 +164,19 @@ public class OnScreenKeyboard extends LinearLayout {
             v.requestFocus();
             return false;
         });
-
-        int width = dp(context, span * KEY_DP + (span - 1) * GAP_DP);
-        LayoutParams lp = new LayoutParams(width, dp(context, KEY_DP));
-        lp.rightMargin = dp(context, GAP_DP);
-        key.setLayoutParams(lp);
+        key.setLayoutParams(new LayoutParams(dp(context, widthDp), dp(context, KEY_DP)));
         return key;
     }
 
     private static StateListDrawable keyBackground(Context context) {
+        GradientDrawable focused = new GradientDrawable();
+        focused.setColor(Color.parseColor("#F1F1F1"));
+        focused.setCornerRadius(dp(context, 6));
         StateListDrawable states = new StateListDrawable();
-        states.addState(new int[]{android.R.attr.state_focused}, rounded(context, "#F1F1F1"));
-        states.addState(new int[]{android.R.attr.state_pressed}, rounded(context, "#F1F1F1"));
-        states.addState(new int[]{}, rounded(context, "#212121"));
+        states.addState(new int[]{android.R.attr.state_focused}, focused);
+        states.addState(new int[]{android.R.attr.state_pressed}, focused);
+        states.addState(new int[]{}, new ColorDrawable(Color.TRANSPARENT));
         return states;
-    }
-
-    private static GradientDrawable rounded(Context context, String color) {
-        GradientDrawable shape = new GradientDrawable();
-        shape.setColor(Color.parseColor(color));
-        shape.setCornerRadius(dp(context, 6));
-        return shape;
     }
 
     private static int dp(Context context, int value) {
