@@ -1267,6 +1267,8 @@
         <item name="android:textAppearance">@style/TextAppearance.Leanback.DetailsDescriptionTitle</item>
         <item name="android:maxLines">@integer/lb_details_description_title_max_lines</item>
         <item name="android:includeFontPadding">false</item>
+        <!-- YouNew: bold title in the player, like YouTube TV -->
+        <item name="android:textStyle">bold</item>
         <item name="android:ellipsize">end</item>
         <item name="resizeTrigger">maxLines</item>
         <item name="resizedTextSize">@dimen/lb_details_description_title_resized_text_size</item>

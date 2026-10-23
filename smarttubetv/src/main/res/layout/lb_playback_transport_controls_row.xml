@@ -96,10 +96,13 @@
         />
         -->
 
+        <!-- YouNew: YouTube TV style - buttons on one line (main buttons left, extra buttons right),
+             then the red progress bar, then current time (left) and total time (right). -->
         <RelativeLayout android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layoutDirection="ltr"
                         android:layout_marginLeft="@dimen/lb_playback_transport_controlbar_margin_start"
+                        android:layout_marginBottom="12dp"
                         tools:ignore="RtlHardcoded" >
 
             <FrameLayout
@@ -107,27 +110,32 @@
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:layout_alignParentStart="true"
+                android:layout_centerVertical="true"
             />
 
+            <FrameLayout
+                android:id="@+id/secondary_controls_dock"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_alignParentEnd="true"
+                android:layout_centerVertical="true" >
+            </FrameLayout>
+
+            <!-- Quality and clock: not shown in the YouTube TV look -->
             <RelativeLayout android:id="@+id/additional_info"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layoutDirection="ltr"
-                            android:layout_gravity="bottom"
-                            android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true"
+                            android:visibility="gone"
                             android:focusable="false" >
                 <TextView
                     android:id="@+id/quality_info"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
                     style="?attr/playbackControlsTimeStyle" />
                 <com.liskovsoft.smartyoutubetv2.tv.ui.widgets.time.DateTimeView
                     android:id="@+id/date_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
                     android:layout_below="@+id/quality_info"
                     style="?attr/playbackControlsTimeStyle" />
             </RelativeLayout>
@@ -140,68 +148,50 @@
             android:focusable="true"
             android:focusableInTouchMode="true" />
 
-        <RelativeLayout android:layout_width="match_parent"
+        <RelativeLayout android:id="@+id/time_info"
+                        android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layoutDirection="ltr"
                         android:layout_marginLeft="@dimen/lb_playback_transport_controlbar_margin_start"
+                        android:layout_marginTop="8dp"
+                        android:focusable="false"
                         tools:ignore="RtlHardcoded" >
-            <FrameLayout
-                android:id="@+id/secondary_controls_dock"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:layout_alignParentStart="true" >
-            </FrameLayout>
 
-            <RelativeLayout android:id="@+id/time_info"
-                            android:layout_width="wrap_content"
+            <RelativeLayout android:id="@+id/current_time_wrapper"
+                            android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:layoutDirection="ltr"
-                            android:layout_gravity="bottom"
-                            android:layout_alignParentEnd="true"
-                            android:layout_centerVertical="true"
                             android:focusable="false" >
+                <TextView
+                    android:id="@+id/current_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentStart="true"
+                    style="?attr/playbackControlsTimeStyle" />
+
+                <TextView
+                    android:id="@+id/separate_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/lb_playback_time_separator"
+                    android:visibility="gone"
+                    style="?attr/playbackControlsTimeStyle" />
+
                 <TextView
                     android:id="@+id/ending_time"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:layout_alignParentEnd="true"
+                    android:layout_centerHorizontal="true"
                     style="?attr/playbackControlsTimeStyle" />
 
-                <RelativeLayout android:id="@+id/current_time_wrapper"
-                                android:layout_width="wrap_content"
-                                android:layout_height="wrap_content"
-                                android:layoutDirection="ltr"
-                                android:layout_alignParentEnd="true"
-                                android:layout_below="@+id/ending_time"
-                                android:focusable="false" >
-                    <TextView
-                        android:id="@+id/current_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_toStartOf="@+id/separate_time"
-                        android:layout_marginStart="@dimen/lb_playback_transport_time_margin"
-                        style="?attr/playbackControlsTimeStyle" />
-
-                    <TextView
-                        android:id="@+id/separate_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:text="@string/lb_playback_time_separator"
-                        android:layout_toStartOf="@+id/total_time"
-                        android:layout_marginStart="@dimen/lb_playback_transport_time_margin"
-                        style="?attr/playbackControlsTimeStyle" />
-
-                    <TextView
-                        android:id="@+id/total_time"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        android:layout_alignParentEnd="true"
-                        android:layout_marginStart="@dimen/lb_playback_transport_time_margin"
-                        style="?attr/playbackControlsTimeStyle" />
-                </RelativeLayout>
+                <TextView
+                    android:id="@+id/total_time"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_alignParentEnd="true"
+                    style="?attr/playbackControlsTimeStyle" />
             </RelativeLayout>
         </RelativeLayout>
-
 
     </com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.playerglue.tweaks.PlaybackTransportRowView>
 </LinearLayout>

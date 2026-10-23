@@ -791,7 +791,7 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
         mSeekPreviewMode = Helpers.parseInt(split, 3, SEEK_PREVIEW_SINGLE);
         mIsSeekConfirmPauseEnabled = Helpers.parseBoolean(split, 4, false);
         mIsClockEnabled = Helpers.parseBoolean(split, 5, true);
-        mIsRemainingTimeEnabled = Helpers.parseBoolean(split, 6, true);
+        mIsRemainingTimeEnabled = Helpers.parseBoolean(split, 6, false); // YouNew: plain current/total time like YouTube TV
         mBackgroundMode = Helpers.parseInt(split, 7, PlayerEngine.BACKGROUND_MODE_DEFAULT);
         // afrData was there
         mVideoFormat = Helpers.firstNonNull(ExoFormatItem.from(Helpers.parseStr(split, 9)), getDefaultVideoFormat());

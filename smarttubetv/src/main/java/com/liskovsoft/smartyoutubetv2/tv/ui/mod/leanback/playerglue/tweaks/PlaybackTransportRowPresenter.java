@@ -630,7 +630,7 @@ public class PlaybackTransportRowPresenter extends PlaybackRowPresenter {
                     mControlsVh.view.setVisibility(View.VISIBLE);
                     mSecondaryControlsVh.view.setVisibility(View.VISIBLE);
                     mDescriptionViewHolder.view.setVisibility(View.VISIBLE);
-                    mAdditionalInfo.setVisibility(View.VISIBLE);
+                    mAdditionalInfo.setVisibility(View.GONE); // YouNew: no quality/clock text, like YouTube TV
                     //mTimeInfo.setVisibility(View.VISIBLE);
                     // Don't set to GONE or carousel will crash (can't properly calculate length)
                     mThumbsBarWrapper.setVisibility(View.INVISIBLE);
