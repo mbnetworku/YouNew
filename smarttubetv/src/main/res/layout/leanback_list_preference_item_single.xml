@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Library: androidx:leanback:leanback-preference:1.0.0 -->
+<!-- MOD (YouNew): list choices use the same rounded card as other settings options. -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/container"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:minHeight="64dp"
+    android:layout_marginTop="5dp"
+    android:layout_marginBottom="5dp"
+    android:layout_marginStart="12dp"
+    android:layout_marginEnd="12dp"
+    android:gravity="center_vertical"
+    android:background="@drawable/settings_option_bg"
+    android:clickable="true"
+    android:focusable="true"
+    android:descendantFocusability="blocksDescendants"
+    android:orientation="horizontal"
+    android:paddingStart="@dimen/lb_preference_item_padding_start"
+    android:paddingEnd="@dimen/lb_preference_item_padding_end" >
+
+    <RadioButton
+        android:id="@+id/button"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:focusable="false"
+        android:clickable="false"
+        android:layout_marginEnd="@dimen/lb_preference_item_icon_margin_end"
+        android:layout_gravity="center_vertical" />
+
+    <LinearLayout android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:orientation="vertical">
+        <Space android:layout_width="0dp" android:layout_height="@dimen/lb_preference_item_text_space_top" />
+        <TextView
+            android:id="@android:id/title"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/lb_preference_item_primary_text_margin_bottom"
+            android:fontFamily="sans-serif-medium"
+            android:textColor="@color/lb_preference_item_primary_text_color"
+            android:textSize="@dimen/lb_preference_item_primary_text_size"/>
+        <Space android:layout_width="0dp" android:layout_height="@dimen/lb_preference_item_text_space_bottom" />
+    </LinearLayout>
+
+</LinearLayout>

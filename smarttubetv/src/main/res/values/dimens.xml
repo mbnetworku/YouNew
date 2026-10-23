@@ -3,8 +3,8 @@
     <!-- Default, same as xhdpi -->
     <!-- 320dpi, Amazon Fire TV Stick -->
 
-    <dimen name="card_width">300dp</dimen>
-    <dimen name="card_height">169dp</dimen>
+    <dimen name="card_width">200dp</dimen>
+    <dimen name="card_height">113dp</dimen>
     <!-- text_badge_image_view.xml, default: 12sp -->
     <dimen name="card_badge_text_size">14sp</dimen>
 
@@ -134,4 +134,11 @@
     <dimen name="tooltip_vertical_padding_mod">6.5dp</dimen>
     <dimen name="tooltip_y_offset_non_touch_mod">0dp</dimen>
     <dimen name="tooltip_y_offset_touch_mod">16dp</dimen>
+    <!-- YouNew: settings dialog sizes (YouTube TV look) -->
+    <dimen name="lb_preference_item_primary_text_size">18sp</dimen>
+    <dimen name="lb_preference_item_secondary_text_size">14sp</dimen>
+    <dimen name="lb_preference_item_text_space_top">12dp</dimen>
+    <dimen name="lb_preference_item_text_space_bottom">12dp</dimen>
+    <dimen name="lb_preference_item_padding_start">24dp</dimen>
+    <dimen name="lb_preference_item_padding_end">24dp</dimen>
 </resources>

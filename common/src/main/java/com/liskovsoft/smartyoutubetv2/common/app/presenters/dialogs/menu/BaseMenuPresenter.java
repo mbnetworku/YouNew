@@ -506,7 +506,8 @@ public abstract class BaseMenuPresenter extends BasePresenter<Void> {
     }
 
     protected void appendUpdateCheckButton() {
-        if (!mIsUpdateCheckEnabled) {
+        // YouNew: updates are never offered (the old updater pointed at SmartTube's servers)
+        if (true || !mIsUpdateCheckEnabled) {
             return;
         }
 

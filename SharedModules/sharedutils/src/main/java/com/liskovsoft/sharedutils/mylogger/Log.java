@@ -9,10 +9,18 @@ public class Log {
     private static MyLogger sLogger = new SystemLogger();
 
     public static void d(String tag, Object msg, Object... formatArgs) {
+        if (!isVerbose()) {
+            return;
+        }
+
         sLogger.d(tag, formatMsg(msg, formatArgs));
     }
 
     public static void i(String tag, Object msg, Object... formatArgs) {
+        if (!isVerbose()) {
+            return;
+        }
+
         sLogger.i(tag, formatMsg(msg, formatArgs));
     }
 
@@ -70,6 +78,14 @@ public class Log {
         }
 
         return LOG_TYPE_SYSTEM;
+    }
+
+    /**
+     * YouNew: debug and info lines are only produced when file logging is on (for diagnostics).
+     * Formatting thousands of them costs real CPU time on a slow TV box, and nobody reads them in normal use.
+     */
+    private static boolean isVerbose() {
+        return !LOG_TYPE_SYSTEM.equals(sLogger.getLogType());
     }
 
     private static String formatMsg(Object msg, Object... formatArgs) {

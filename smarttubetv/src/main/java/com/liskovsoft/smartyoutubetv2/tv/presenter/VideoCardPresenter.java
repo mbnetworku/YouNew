@@ -187,6 +187,7 @@ public class VideoCardPresenter extends LongClickPresenter {
                 .apply(ViewUtil.glideOptions())
                 // improve image compression on low end devices
                 .override(mWidth, mHeight)
+                .skipMemoryCache(false) // YouNew: keep thumbnails in memory so scrolling back is instant
                 // com.liskovsoft.smartyoutubetv2.tv.util.CacheGlideModule
                 // Cache makes app crashing on old android versions
                 .diskCacheStrategy(VERSION.SDK_INT > 21 ? DiskCacheStrategy.ALL : DiskCacheStrategy.NONE)

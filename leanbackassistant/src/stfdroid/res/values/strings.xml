@@ -1,5 +1,5 @@
 <resources translatable="false">
-    <string name="search_label">SmartTube</string>
-    <string name="settings_description">SmartTube Videos</string>
-    <string name="search_authority">app.smarttube.fdroid.search_provider</string>
+    <string name="search_label">YouNew TV</string>
+    <string name="settings_description">YouNew TV Videos</string>
+    <string name="search_authority">com.younew.tv.search_provider</string>
 </resources>

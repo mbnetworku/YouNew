@@ -68,8 +68,8 @@
     <string name="subtitle_style">Subtitle style</string>
     <string name="subtitle_language">Subtitle language</string>
     <string name="action_search">Search</string>
-    <string name="settings_main_ui">User interface</string>
-    <string name="dialog_main_ui">User interface</string>
+    <string name="settings_main_ui">Appearance</string>
+    <string name="dialog_main_ui">Appearance</string>
     <string name="card_animated_previews">Animated previews</string>
     <string name="web_site">Web site</string>
     <string name="donation">Donation</string>
@@ -245,7 +245,7 @@
     <string name="unpin_group_from_sidebar">Remove the subscription group</string>
     <string name="unpinned_from_sidebar">Removed from the sidebar</string>
     <string name="dialog_select_country">Country</string>
-    <string name="settings_language_country">Language/Country</string>
+    <string name="settings_language_country">Language &amp; Location</string>
     <string name="share_embed_link">Share embed link</string>
     <string name="card_text_scroll_factor">Card text scroll speed</string>
     <string name="preferred_update_source">Select update source</string>
@@ -280,7 +280,7 @@
     <string name="option_disabled">Disabled</string>
     <string name="live_now_row_name">Live now</string>
     <string name="run_in_background">Background playback</string>
-    <string name="settings_remote_control">Remote control</string>
+    <string name="settings_remote_control">Link with TV Code</string>
     <string name="background_service_started">Background service started</string>
     <string name="dialog_add_to">Add to %s</string>
     <string name="dialog_remove_from">Remove from %s</string>

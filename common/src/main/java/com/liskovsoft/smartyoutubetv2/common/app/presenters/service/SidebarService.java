@@ -92,13 +92,10 @@ public class SidebarService implements ProfileChangeListener {
             Video item = new Video();
             item.sectionId = sectionId;
 
-            int index = getDefaultSectionIndex(sectionId);
-
-            if (index == -1 || index > mPinnedItems.size()) {
-                mPinnedItems.add(item);
-            } else {
-                mPinnedItems.add(index, item);
-            }
+            // YouNew: put the section back in its default order among the sections that are shown.
+            // (The old code used the position in the full default list, which counts hidden sections too,
+            // so e.g. Shorts came back below News.)
+            mPinnedItems.add(getInsertIndex(sectionId), item);
         } else {
             Helpers.removeIf(mPinnedItems, item -> item == null || item.sectionId == sectionId);
         }
@@ -108,6 +105,28 @@ public class SidebarService implements ProfileChangeListener {
 
     public Map<Integer, Integer> getDefaultSections() {
         return mDefaultSections;
+    }
+
+    /**
+     * Where a re-enabled default section goes: just before the first shown default section
+     * that comes after it in the default order (pinned channels and playlists are skipped).
+     */
+    private int getInsertIndex(int sectionId) {
+        int defaultIndex = getDefaultSectionIndex(sectionId);
+
+        for (int i = 0; i < mPinnedItems.size(); i++) {
+            Video pinned = mPinnedItems.get(i);
+
+            if (pinned == null || !mDefaultSections.containsValue(pinned.sectionId)) {
+                continue;
+            }
+
+            if (getDefaultSectionIndex(pinned.sectionId) > defaultIndex) {
+                return i;
+            }
+        }
+
+        return mPinnedItems.size();
     }
 
     private int getDefaultSectionIndex(int sectionId) {
@@ -239,15 +258,15 @@ public class SidebarService implements ProfileChangeListener {
         mDefaultSections.put(R.string.header_notifications, MediaGroup.TYPE_NOTIFICATIONS);
         mDefaultSections.put(R.string.header_home, MediaGroup.TYPE_HOME);
         mDefaultSections.put(R.string.header_shorts, MediaGroup.TYPE_SHORTS);
-        mDefaultSections.put(R.string.header_music, MediaGroup.TYPE_MUSIC);
-        mDefaultSections.put(R.string.header_gaming, MediaGroup.TYPE_GAMING);
         mDefaultSections.put(R.string.header_news, MediaGroup.TYPE_NEWS);
         mDefaultSections.put(R.string.badge_live, MediaGroup.TYPE_LIVE);
+        mDefaultSections.put(R.string.header_subscriptions, MediaGroup.TYPE_SUBSCRIPTIONS);
+        mDefaultSections.put(R.string.header_music, MediaGroup.TYPE_MUSIC);
+        mDefaultSections.put(R.string.header_gaming, MediaGroup.TYPE_GAMING);
         mDefaultSections.put(R.string.header_trending, MediaGroup.TYPE_TRENDING);
         mDefaultSections.put(R.string.header_kids_home, MediaGroup.TYPE_KIDS_HOME);
         mDefaultSections.put(R.string.header_sports, MediaGroup.TYPE_SPORTS);
         mDefaultSections.put(R.string.header_channels, MediaGroup.TYPE_CHANNEL_UPLOADS);
-        mDefaultSections.put(R.string.header_subscriptions, MediaGroup.TYPE_SUBSCRIPTIONS);
         mDefaultSections.put(R.string.header_history, MediaGroup.TYPE_HISTORY);
         mDefaultSections.put(R.string.header_blocked_channels, MediaGroup.TYPE_BLOCKED_CHANNELS);
         mDefaultSections.put(R.string.header_playlists, MediaGroup.TYPE_USER_PLAYLISTS);
@@ -258,18 +277,15 @@ public class SidebarService implements ProfileChangeListener {
 
     private void initPinnedItems() {
         for (int sectionId : mDefaultSections.values()) {
-            // YouNew: a short YouTube TV-style sidebar. Home, Shorts and the topic sections
-            // (Music, Gaming, News, Live) work without signing in; the rest needs an account.
+            // YouNew: a short sidebar: Home, Shorts, News, Live, Subscriptions and Settings.
+            // Home, Shorts, News and Live work without signing in. The other sections
+            // (Music, Gaming, History, Playlists...) can be switched on in Settings > General > Set-up sections.
             enableSection(sectionId, Helpers.equalsAny(sectionId, new int[] {
                     MediaGroup.TYPE_HOME,
                     MediaGroup.TYPE_SHORTS,
-                    MediaGroup.TYPE_MUSIC,
-                    MediaGroup.TYPE_GAMING,
                     MediaGroup.TYPE_NEWS,
                     MediaGroup.TYPE_LIVE,
                     MediaGroup.TYPE_SUBSCRIPTIONS,
-                    MediaGroup.TYPE_HISTORY,
-                    MediaGroup.TYPE_USER_PLAYLISTS,
                     MediaGroup.TYPE_SETTINGS
             }));
         }

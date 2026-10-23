@@ -47,6 +47,7 @@
         android:layout_alignParentEnd="true"
         android:layout_width="@dimen/lb_browse_header_fading_length"
         android:layout_height="match_parent"
+        android:visibility="gone"
         android:background="@drawable/lb_headers_right_fading" >
     </View>
 </RelativeLayout>

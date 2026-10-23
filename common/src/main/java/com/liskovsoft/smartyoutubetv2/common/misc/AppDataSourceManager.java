@@ -4,7 +4,6 @@ import android.content.Context;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.SettingsItem;
-import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AboutSimpleSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AccountSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AutoFrameRateSettingsPresenter;
@@ -41,40 +40,27 @@ public class AppDataSourceManager {
     public List<SettingsItem> getSettingItems(Context context) {
         List<SettingsItem> settingItems = new ArrayList<>();
 
+        // YouNew: a short settings list. Everything else (search, SponsorBlock, DeArrow, backup) is left out.
         settingItems.add(new SettingsItem(
                 context.getString(R.string.settings_accounts), () -> AccountSettingsPresenter.instance(context).show(), R.drawable.settings_account));
         settingItems.add(new SettingsItem(
-                context.getString(R.string.settings_remote_control), () -> RemoteControlSettingsPresenter.instance(context).show(), R.drawable.settings_cast));
+                context.getString(R.string.settings_general), () -> GeneralSettingsPresenter.instance(context).show(), R.drawable.settings_app));
+        settingItems.add(new SettingsItem(
+                context.getString(R.string.settings_player), () -> PlayerSettingsPresenter.instance(context).show(), R.drawable.settings_player));
         settingItems.add(new SettingsItem(
                 context.getString(R.string.settings_language_country), () -> LanguageSettingsPresenter.instance(context).show(), R.drawable.settings_language));
         settingItems.add(new SettingsItem(
-                context.getString(R.string.settings_general), () -> GeneralSettingsPresenter.instance(context).show(), R.drawable.settings_app));
+                context.getString(R.string.settings_remote_control), () -> RemoteControlSettingsPresenter.instance(context).show(), R.drawable.settings_cast));
         settingItems.add(new SettingsItem(
-                context.getString(R.string.settings_main_ui), () -> MainUISettingsPresenter.instance(context).show(), R.drawable.settings_main_ui));
-        settingItems.add(new SettingsItem(
-                context.getString(R.string.settings_player), () -> PlayerSettingsPresenter.instance(context).show(), R.drawable.settings_player));
+                context.getString(R.string.subtitle_category_title), () -> SubtitleSettingsPresenter.instance(context).show(), R.drawable.settings_subtitles));
         // Don't add afr support check here.
         // Users want even fake afr settings.
         settingItems.add(new SettingsItem(
                 context.getString(R.string.auto_frame_rate), () -> AutoFrameRateSettingsPresenter.instance(context).show(), R.drawable.settings_afr));
         settingItems.add(new SettingsItem(
-                context.getString(R.string.subtitle_category_title), () -> SubtitleSettingsPresenter.instance(context).show(), R.drawable.settings_subtitles));
+                context.getString(R.string.settings_main_ui), () -> MainUISettingsPresenter.instance(context).show(), R.drawable.settings_main_ui));
         settingItems.add(new SettingsItem(
-                context.getString(R.string.settings_search), () -> SearchSettingsPresenter.instance(context).show(), R.drawable.settings_search));
-        settingItems.add(new SettingsItem(
-                context.getString(R.string.content_block_provider), () -> SponsorBlockSettingsPresenter.instance(context).show(), R.drawable.settings_block));
-        settingItems.add(new SettingsItem(
-                context.getString(R.string.dearrow_provider), () -> DeArrowSettingsPresenter.instance(context).show(), R.drawable.settings_dearrow));
-        settingItems.add(new SettingsItem(
-                context.getString(R.string.app_backup_restore), () -> BackupSettingsPresenter.instance(context).show(), R.drawable.settings_backup));
-
-        if (Helpers.equalsAny(context.getPackageName(), Utils.KNOWN_PACKAGES)) {
-            settingItems.add(new SettingsItem(
-                    context.getString(R.string.settings_about), () -> AboutSettingsPresenter.instance(context).show(), R.drawable.settings_about));
-        } else {
-            settingItems.add(new SettingsItem(
-                    context.getString(R.string.settings_about), () -> AboutSimpleSettingsPresenter.instance(context).show(), R.drawable.settings_about));
-        }
+                context.getString(R.string.settings_about), () -> AboutSimpleSettingsPresenter.instance(context).show(), R.drawable.settings_about));
 
         return settingItems;
     }

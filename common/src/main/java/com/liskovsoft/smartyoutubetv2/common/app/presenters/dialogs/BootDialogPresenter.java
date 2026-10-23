@@ -6,6 +6,9 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
 
 /**
  * Shows boot dialogs one by one.
+ *
+ * YouNew: there are no boot dialogs. The old update check was removed on purpose,
+ * because it asked SmartTube's servers for updates and showed their release notes.
  */
 public class BootDialogPresenter extends BasePresenter<Void> {
     @SuppressLint("StaticFieldLeak")
@@ -25,35 +28,7 @@ public class BootDialogPresenter extends BasePresenter<Void> {
         return sInstance;
     }
 
-    //public void unhold() {
-    //    sInstance = null;
-    //}
-
     public void start() {
-        startUpdatePresenter();
+        // NOP: nothing to show at start-up
     }
-
-    private void startUpdatePresenter() {
-        AppUpdatePresenter updatePresenter = AppUpdatePresenter.instance(getContext());
-        //updatePresenter.setOnDone(this::startBridgePresenter);
-        updatePresenter.start(false);
-        //updatePresenter.unhold();
-    }
-
-    //private void startBackupPresenter() {
-    //    QuickRestorePresenter quickRestorePresenter = QuickRestorePresenter.instance(getContext());
-    //    quickRestorePresenter.setOnDone(this::startBridgePresenter);
-    //    quickRestorePresenter.start();
-    //    quickRestorePresenter.unhold();
-    //}
-
-    //private void startBridgePresenter() {
-    //    ATVBridgePresenter atvPresenter = ATVBridgePresenter.instance(getContext());
-    //    atvPresenter.start();
-    //    atvPresenter.unhold();
-    //
-    //    AmazonBridgePresenter amazonPresenter = AmazonBridgePresenter.instance(getContext());
-    //    amazonPresenter.start();
-    //    amazonPresenter.unhold();
-    //}
 }

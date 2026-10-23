@@ -15,7 +15,9 @@ import com.liskovsoft.mediaserviceinterfaces.SignInService;
 import com.liskovsoft.sharedutils.mylogger.Log;
 import com.liskovsoft.sharedutils.rx.RxHelper;
 import com.liskovsoft.youtubeapi.app.AppService;
+import com.liskovsoft.youtubeapi.app.PoTokenGate;
 import com.liskovsoft.youtubeapi.app.ReloadPlaybackGate;
+import com.liskovsoft.youtubeapi.common.helpers.AppClient;
 import com.liskovsoft.youtubeapi.channelgroups.ChannelGroupServiceImpl;
 import com.liskovsoft.googlecommon.common.locale.LocaleManager;
 import com.liskovsoft.youtubeapi.service.internal.FormatInfoWrapper;
@@ -26,6 +28,7 @@ import io.reactivex.disposables.Disposable;
 
 public class YouTubeServiceManager implements ServiceManager {
     private static final String TAG = YouTubeServiceManager.class.getSimpleName();
+    private static final long PO_TOKEN_WARM_UP_DELAY_MS = 5_000;
     private static YouTubeServiceManager sInstance;
     private Disposable mRefreshCoreDataAction;
 
@@ -130,7 +133,31 @@ public class YouTubeServiceManager implements ServiceManager {
         }
 
         mRefreshCoreDataAction =
-                RxHelper.execute(RxHelper.fromRunnable(() -> getAppService().refreshCacheIfNeeded(getVideoInfoService().getClient())));
+                RxHelper.execute(RxHelper.fromRunnable(() -> {
+                    AppClient client = getVideoInfoService().getClient();
+                    getAppService().refreshCacheIfNeeded(client);
+                    warmUpPoToken(client);
+                }));
+    }
+
+    /**
+     * YouNew: the "proof of device" token (PO token) takes about 3 seconds to create on a TV box.
+     * Creating it a few seconds after start-up, while the user is still looking at the Home screen,
+     * means the first video does not have to wait for it.
+     */
+    private static void warmUpPoToken(AppClient client) {
+        if (client == null) {
+            return;
+        }
+
+        try {
+            Thread.sleep(PO_TOKEN_WARM_UP_DELAY_MS); // let the Home screen load first
+            PoTokenGate.getPoToken(client);
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        } catch (Throwable e) {
+            Log.e(TAG, "PO token warm-up failed: %s", e.getMessage());
+        }
     }
 
     @NonNull

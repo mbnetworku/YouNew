@@ -219,6 +219,8 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
                 }
                 int top = (int) (96 * density);
                 grid.setPaddingRelative((int) (12 * density), top, (int) (12 * density), grid.getPaddingBottom());
+                grid.setClipToPadding(false); // the focused pill grows a little: let it draw outside the padding
+                grid.setClipChildren(false);
                 ViewGroup.LayoutParams gridLp = grid.getLayoutParams();
                 gridLp.width = width;
                 grid.setLayoutParams(gridLp);
@@ -291,7 +293,10 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
 
         @Override
         public View createWrapper(View root) {
-            return new NoOverlappingFrameLayout(root.getContext());
+            NoOverlappingFrameLayout wrapper = new NoOverlappingFrameLayout(root.getContext());
+            // YouNew: full-width rows, so the selected pill is as wide as the sidebar
+            wrapper.setLayoutParams(new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+            return wrapper;
         }
     };
     @Override
