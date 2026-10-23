@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.search.tags.vineyard;
 
+import com.liskovsoft.smartyoutubetv2.tv.ui.search.tags.OnScreenKeyboard;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
@@ -76,7 +77,49 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
 
         mProgressBarManager.setRootView((ViewGroup) root);
 
+        addOnScreenKeyboard(root);
+
         return root;
+    }
+
+    /**
+     * YouNew: YouTube TV style search - on-screen keyboard on the left, results on the right.
+     * Typing updates the suggestions; the Search key runs the search.
+     */
+    private void addOnScreenKeyboard(View root) {
+        android.widget.FrameLayout searchFrame = root.findViewById(androidx.leanback.R.id.lb_search_frame);
+        View results = root.findViewById(androidx.leanback.R.id.lb_results_frame);
+        if (searchFrame == null || results == null) {
+            return;
+        }
+
+        float density = getResources().getDisplayMetrics().density;
+        int start = (int) (48 * density);
+
+        OnScreenKeyboard keyboard = new OnScreenKeyboard(getContext(), new OnScreenKeyboard.Listener() {
+            @Override
+            public void onTextChanged(String text) {
+                setSearchQuery(text, false);
+            }
+
+            @Override
+            public void onSearch(String text) {
+                if (!text.trim().isEmpty()) {
+                    setSearchQuery(text, true);
+                }
+            }
+        });
+
+        android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.leftMargin = start;
+        lp.topMargin = (int) (110 * density);
+        searchFrame.addView(keyboard, lp);
+
+        // Results go to the right of the keyboard
+        ViewGroup.MarginLayoutParams resultsLp = (ViewGroup.MarginLayoutParams) results.getLayoutParams();
+        resultsLp.leftMargin = start + OnScreenKeyboard.getWidthPx(getContext());
+        results.setLayoutParams(resultsLp);
     }
 
     @Override
