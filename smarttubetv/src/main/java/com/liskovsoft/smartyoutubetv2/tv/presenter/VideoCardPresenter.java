@@ -84,7 +84,7 @@ public class VideoCardPresenter extends LongClickPresenter {
             }
         };
 
-        cardView.setTitleLinesNum(isCardMultilineTitleEnabled ? 2 : 1);
+        cardView.setTitleLinesNum(2); // YouTube TV: titles up to 2 lines
         cardView.setContentLinesNum(isCardMultilineSubtitleEnabled ? 2 : 1);
         cardView.enableTextAutoScroll(isCardTextAutoScrollEnabled);
         cardView.setTextScrollSpeed(cardTextScrollSpeed);
@@ -112,7 +112,7 @@ public class VideoCardPresenter extends LongClickPresenter {
 
         TextView titleText = view.findViewById(R.id.title_text);
         if (titleText != null) {
-            titleText.setTextColor(Color.WHITE);
+            titleText.setTextColor(selected ? Color.WHITE : 0xFFF1F1F1);
         }
         TextView contentText = view.findViewById(R.id.content_text);
         if (contentText != null) {

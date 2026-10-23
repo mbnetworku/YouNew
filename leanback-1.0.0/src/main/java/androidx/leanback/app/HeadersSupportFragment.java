@@ -207,8 +207,7 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
         // Rail mode: narrow the pane to an icon strip when collapsed, full width when expanded.
         if (getView() != null) {
             float density = getResources().getDisplayMetrics().density;
-            int width = enabled ? getResources().getDimensionPixelSize(R.dimen.lb_browse_headers_width)
-                    : (int) (72 * density);
+            int width = (int) ((enabled ? 240 : 72) * density);
             ViewGroup.LayoutParams rootLp = getView().getLayoutParams();
             rootLp.width = width;
             getView().setLayoutParams(rootLp);
@@ -218,11 +217,15 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
                     mGridPadStart = grid.getPaddingStart();
                     mGridPadEnd = grid.getPaddingEnd();
                 }
-                grid.setPaddingRelative(enabled ? mGridPadStart : 0, grid.getPaddingTop(),
-                        enabled ? mGridPadEnd : 0, grid.getPaddingBottom());
+                int top = (int) (96 * density);
+                grid.setPaddingRelative((int) (12 * density), top, (int) (12 * density), grid.getPaddingBottom());
                 ViewGroup.LayoutParams gridLp = grid.getLayoutParams();
                 gridLp.width = width;
                 grid.setLayoutParams(gridLp);
+            }
+            android.widget.TextView brand = (android.widget.TextView) getView().findViewById(R.id.younew_brand);
+            if (brand != null) {
+                brand.setText(enabled ? "YouNew" : "");
             }
         }
         final VerticalGridView grid = getVerticalGridView();
@@ -230,6 +233,19 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
             for (int i = 0; i < grid.getChildCount(); i++) {
                 applyRailState(grid.getChildAt(i));
             }
+        }
+    }
+
+    // Keep the short menu list at the top of the sidebar instead of scrolling the selected item to a fixed offset.
+    @Override
+    public void setAlignment(int windowAlignOffsetTop) {
+        VerticalGridView grid = getVerticalGridView();
+        if (grid != null) {
+            grid.setItemAlignmentOffset(0);
+            grid.setItemAlignmentOffsetPercent(VerticalGridView.ITEM_ALIGN_OFFSET_PERCENT_DISABLED);
+            grid.setWindowAlignmentOffset(0);
+            grid.setWindowAlignmentOffsetPercent(VerticalGridView.WINDOW_ALIGN_OFFSET_PERCENT_DISABLED);
+            grid.setWindowAlignment(VerticalGridView.WINDOW_ALIGN_BOTH_EDGE);
         }
     }
 
@@ -241,7 +257,7 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
     // Rail mode: only icons show; text labels appear when the header list is expanded.
     void applyRailState(View view) {
         if (view instanceof android.widget.TextView) {
-            view.setVisibility(mHeadersEnabled ? View.VISIBLE : View.GONE);
+            view.setVisibility(mHeadersEnabled ? View.VISIBLE : View.GONE); // collapsed sidebar = icons only
         } else if (view instanceof ViewGroup) {
             ViewGroup group = (ViewGroup) view;
             for (int i = 0; i < group.getChildCount(); i++) {

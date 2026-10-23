@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Red rounded badge with a white play triangle: the YouNew brand mark. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="32dp" android:height="22dp"
+    android:viewportWidth="32" android:viewportHeight="22">
+    <path android:fillColor="#FF0000" android:pathData="M6,0 H26 A6,6 0 0 1 32,6 V16 A6,6 0 0 1 26,22 H6 A6,6 0 0 1 0,16 V6 A6,6 0 0 1 6,0 Z" />
+    <path android:fillColor="#FFFFFF" android:pathData="M13,6 L22,11 L13,16 Z" />
+</vector>

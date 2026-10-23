@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Sidebar entry background: red pill while the entry has D-pad focus. -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true" android:drawable="@drawable/header_item_selected" />
+    <item android:drawable="@android:color/transparent" />
+</selector>

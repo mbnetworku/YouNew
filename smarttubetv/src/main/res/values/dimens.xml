@@ -3,8 +3,8 @@
     <!-- Default, same as xhdpi -->
     <!-- 320dpi, Amazon Fire TV Stick -->
 
-    <dimen name="card_width">250dp</dimen>
-    <dimen name="card_height">141dp</dimen>
+    <dimen name="card_width">300dp</dimen>
+    <dimen name="card_height">169dp</dimen>
     <!-- text_badge_image_view.xml, default: 12sp -->
     <dimen name="card_badge_text_size">14sp</dimen>
 
@@ -33,7 +33,7 @@
     <!-- Card view default size -->
     <!--
     <dimen name="lb_basic_card_title_text_size">14sp</dimen>
-    <dimen name="lb_basic_card_content_text_size">12sp</dimen>
+    <dimen name="lb_basic_card_content_text_size">14sp</dimen>
     -->
 
     <!-- Search items left margin (except first one). Original value: 70dp -->
@@ -109,8 +109,8 @@
     <dimen name="lb_basic_card_info_height">64dp</dimen>
     <dimen name="lb_basic_card_info_padding">8dp</dimen>
     <dimen name="lb_basic_card_info_text_margin">2dp</dimen>
-    <dimen name="lb_basic_card_title_text_size">17sp</dimen>
-    <dimen name="lb_basic_card_content_text_size">12sp</dimen>
+    <dimen name="lb_basic_card_title_text_size">16sp</dimen>
+    <dimen name="lb_basic_card_content_text_size">14sp</dimen>
     <dimen name="lb_basic_card_info_badge_size">16dp</dimen>
 
     <!-- Elements below aren't used in the app -->

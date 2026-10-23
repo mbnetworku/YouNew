@@ -19,8 +19,8 @@
     <color name="card_selected_background_grey">#343434</color>
     <color name="card_selected_text_black">#000000</color>
     <color name="card_selected_text_grey">#343434</color>
-    <color name="card_default_background">#272727</color>
-    <color name="card_default_background_dark">#272727</color>
+    <color name="card_default_background">#212121</color>
+    <color name="card_default_background_dark">#212121</color>
     <color name="card_default_text">#FFFFFF</color>
 
     <!-- Browse fragment colors -->
@@ -34,7 +34,7 @@
     <color name="scheme_grey_background">#0F0F0F</color>
     <color name="scheme_grey_background_dark">#0F0F0F</color>
     <color name="scheme_grey_shelf_background_dark">#0F0F0F</color>
-    <color name="scheme_grey_card_background_dark">#272727</color>
+    <color name="scheme_grey_card_background_dark">#212121</color>
 
     <!-- Red color scheme -->
     <color name="scheme_red_background">#0F0F0F</color>

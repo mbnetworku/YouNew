@@ -213,7 +213,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     }
 
     private void initRowAndGridMapping() {
-        mRowMapping.put(MediaGroup.TYPE_HOME, getContentService().getHomeObserve());
+        // YouNew: Home must work without signing in. YouTube's personal home feed is empty for
+        // signed-out users, so they get the public Music feed instead (all videos stay playable).
+        mRowMapping.put(MediaGroup.TYPE_HOME, Observable.defer(() ->
+                getSignInService().isSigned() ? getContentService().getHomeObserve() : getContentService().getMusicObserve()));
         mRowMapping.put(MediaGroup.TYPE_TRENDING, getContentService().getTrendingObserve());
         mRowMapping.put(MediaGroup.TYPE_KIDS_HOME, getContentService().getKidsHomeObserve());
         mRowMapping.put(MediaGroup.TYPE_SPORTS, getContentService().getSportsObserve());
@@ -305,9 +308,9 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
 
         int bootSectionId = getSidebarService().getBootSectionId();
 
-        // Empty Home on first run fix. Switch to something non-empty.
+        // YouNew: signed-out Home shows the public Music feed (see initRowAndGridMapping), so Home is never empty.
         if (!getSignInService().isSigned() && VideoStateService.instance(getContext()).isEmpty()) {
-            bootSectionId = MediaGroup.TYPE_MUSIC;
+            bootSectionId = MediaGroup.TYPE_HOME;
         }
 
         int index = 0;

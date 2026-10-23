@@ -28,6 +28,20 @@
         android:layout_width="@dimen/lb_browse_headers_width"
         android:layout_height="match_parent"
         style="?attr/headersVerticalGridStyle"/>
+    <!-- YouNew brand at the top of the sidebar -->
+    <TextView
+        android:id="@+id/younew_brand"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="20dp"
+        android:layout_marginTop="28dp"
+        android:drawableStart="@drawable/younew_badge"
+        android:drawablePadding="10dp"
+        android:gravity="center_vertical"
+        android:text="YouNew"
+        android:textColor="#FFFFFF"
+        android:textSize="22sp"
+        android:textStyle="bold" />
     <View
         android:id="@+id/fade_out_edge"
         android:layout_alignParentEnd="true"
