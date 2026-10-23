@@ -763,4 +763,5 @@
     <string name="younew_shorts_subscribed">Subscribed</string>
     <string name="younew_shorts_channel">Channel</string>
     <string name="younew_shorts_hint">▲ ▼  Next / previous Short</string>
+    <string name="younew_no_subscriptions">No subscriptions yet.\nOpen a video, press Subscribe, and the channel will appear here.\nNo Google account needed.</string>
 </resources>

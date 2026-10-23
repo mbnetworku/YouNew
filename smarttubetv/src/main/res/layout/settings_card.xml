@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- One settings category: icon + name in a 340dp x 56dp pill (focus = white pill, dark text). -->
+<!-- One settings category: name in a 340dp x 44dp pill (focus = white pill, dark text).
+     44dp + 2dp + 2dp per row so all 9 categories fit on a 1080p screen. -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
               xmlns:tools="http://schemas.android.com/tools"
               android:focusableInTouchMode="true"
@@ -8,9 +9,9 @@
               android:gravity="center_vertical"
               android:background="@drawable/settings_category_bg"
               android:layout_width="340dp"
-              android:layout_height="48dp"
-              android:layout_marginTop="3dp"
-              android:layout_marginBottom="3dp">
+              android:layout_height="44dp"
+              android:layout_marginTop="2dp"
+              android:layout_marginBottom="2dp">
     <ImageView
         android:id="@+id/settings_image"
         android:layout_width="28dp"

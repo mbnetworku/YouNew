@@ -62,6 +62,13 @@ public class YouTubeSignInService implements SignInService {
             return;
         }
 
+        // YouNew: watching without an account - there is no token to refresh.
+        // Without this check every request redid the whole update (one request at a time) and logged "Access token is null!".
+        if (mAccountManager.getSelectedAccount() == null && mCachedAuthorizationHeader == null
+                && RetrofitOkHttpHelper.getAuthHeaders().isEmpty()) {
+            return;
+        }
+
         updateAuthHeaders();
 
         mCacheUpdateTime = System.currentTimeMillis();

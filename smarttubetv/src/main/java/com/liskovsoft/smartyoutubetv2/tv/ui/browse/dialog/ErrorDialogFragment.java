@@ -13,6 +13,7 @@ import androidx.leanback.app.BrowseSupportFragment.MainFragmentAdapter;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.CategoryEmptyError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.ErrorFragmentData;
+import com.liskovsoft.smartyoutubetv2.common.app.models.errors.NoSubscriptionsError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.SignInError;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mod.fragments.ErrorSupportFragment;
@@ -52,6 +53,13 @@ public class ErrorDialogFragment extends ErrorSupportFragment implements BrowseS
     public void onStart() {
         super.onStart();
 
+        // YouNew: the main screen already shows the top bar (search button, "Search" pill, account).
+        // This screen's own copy of it showed up as a second "Search" pill when the sidebar was open.
+        View titleView = getTitleView();
+        if (titleView != null) {
+            titleView.setVisibility(View.GONE);
+        }
+
         setDialogContent();
     }
 
@@ -60,7 +68,7 @@ public class ErrorDialogFragment extends ErrorSupportFragment implements BrowseS
             return;
         }
 
-        if (mDialogData instanceof CategoryEmptyError || mDialogData instanceof SignInError) {
+        if (mDialogData instanceof CategoryEmptyError || mDialogData instanceof SignInError || mDialogData instanceof NoSubscriptionsError) {
             setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.lb_ic_sad_cloud));
         }
 

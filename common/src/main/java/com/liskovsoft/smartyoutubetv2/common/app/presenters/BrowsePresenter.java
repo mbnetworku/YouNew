@@ -21,6 +21,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.data.SettingsItem;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.CategoryEmptyError;
+import com.liskovsoft.smartyoutubetv2.common.app.models.errors.NoSubscriptionsError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.ErrorFragmentData;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.PasswordError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.SignInError;
@@ -1192,6 +1193,16 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         getView().showProgressBar(false);
 
         if (getView().isEmpty() || error != null) {
+            boolean isNothingFound = error == null || Helpers.containsAny(error.getMessage(), "fromNullable result is null");
+
+            // YouNew: no account and no saved subscriptions yet - explain how to subscribe instead of asking to sign in.
+            // No 30 sec retry here: the list only changes when you press Subscribe, and the section reloads when opened.
+            if (isNothingFound && !getSignInService().isSigned() &&
+                    (isSection(MediaGroup.TYPE_CHANNEL_UPLOADS) || isSection(MediaGroup.TYPE_SUBSCRIPTIONS))) {
+                getView().showError(new NoSubscriptionsError(getContext()));
+                return;
+            }
+
             ErrorFragmentData errorFragmentData;
             if (error != null && !Helpers.containsAny(error.getMessage(), "fromNullable result is null")) {
                 errorFragmentData = new CategoryEmptyError(getContext(), error);

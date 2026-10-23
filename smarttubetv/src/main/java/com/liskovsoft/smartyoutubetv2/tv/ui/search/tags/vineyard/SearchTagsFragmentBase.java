@@ -120,6 +120,28 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
         ViewGroup.MarginLayoutParams resultsLp = (ViewGroup.MarginLayoutParams) results.getLayoutParams();
         resultsLp.topMargin = (int) (160 * density); // the result rows have their own top offset
         results.setLayoutParams(resultsLp);
+
+        // When you move into the results they slide up over the keyboard's place, so hide the keyboard then.
+        // It comes back as soon as you go up to the search bar or the keys again.
+        root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
+            if (newFocus == null || !keyboard.isAttachedToWindow()) {
+                return;
+            }
+
+            boolean inResults = isInside(newFocus, results);
+            keyboard.setVisibility(inResults ? View.INVISIBLE : View.VISIBLE);
+        });
+    }
+
+    /** True if the view is the given parent or somewhere inside it. */
+    private static boolean isInside(View view, View parent) {
+        for (View current = view; current != null; current = current.getParent() instanceof View ? (View) current.getParent() : null) {
+            if (current == parent) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     @Override
