@@ -355,7 +355,9 @@ public class SearchSupportFragment extends Fragment {
                 SearchPresenter.instance(v.getContext()).disposeActions();
             }
 
-            if (mIsKeyboardAutoShowEnabled && focused) {
+            // YouNew: after a mouse click (touch mode) the field gets focus by itself, don't pop up the keyboard then.
+            // Clicking the field still opens the keyboard.
+            if (mIsKeyboardAutoShowEnabled && focused && !v.isInTouchMode()) {
                 Helpers.showKeyboardAlt(v.getContext(), v);
             }
         });

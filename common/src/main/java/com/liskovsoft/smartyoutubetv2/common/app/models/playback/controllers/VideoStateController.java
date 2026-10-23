@@ -82,7 +82,9 @@ public class VideoStateController extends BasePlayerController {
     @Override
     public boolean onPreviousClicked() {
         // Seek to the start on prev
-        if (getPlayer() != null && getPlayer().getPositionMs() > BEGIN_THRESHOLD_MS) {
+        // YouNew: Shorts go straight to the previous Short (like YouTube TV), they are not restarted
+        boolean isShort = getVideo() != null && (getVideo().isShorts || getVideo().belongsToShortsGroup());
+        if (!isShort && getPlayer() != null && getPlayer().getPositionMs() > BEGIN_THRESHOLD_MS) {
             saveState(); // in case the user wants to go to previous video
             getPlayer().setPositionMs(100);
             mIsRestoreActualLive = false;

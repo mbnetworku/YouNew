@@ -750,4 +750,7 @@
     </plurals>
     <string name="younew_add_account">إضافة حساب</string>
     <string name="younew_watch_as_guest">المشاهدة كضيف</string>
+    <string name="younew_shorts_subscribed">مشترك</string>
+    <string name="younew_shorts_channel">القناة</string>
+    <string name="younew_shorts_hint">▲ ▼  الفيديو القصير التالي / السابق</string>
 </resources>

@@ -759,4 +759,8 @@
     <!-- YouNew account chooser -->
     <string name="younew_add_account">Add account</string>
     <string name="younew_watch_as_guest">Watch as guest</string>
+    <!-- YouNew Shorts player -->
+    <string name="younew_shorts_subscribed">Subscribed</string>
+    <string name="younew_shorts_channel">Channel</string>
+    <string name="younew_shorts_hint">▲ ▼  Next / previous Short</string>
 </resources>

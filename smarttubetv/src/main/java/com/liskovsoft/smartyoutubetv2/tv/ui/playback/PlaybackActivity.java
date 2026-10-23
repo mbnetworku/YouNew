@@ -57,8 +57,9 @@ public class PlaybackActivity extends LeanbackActivity {
 
     @Override
     public boolean dispatchKeyEvent(KeyEvent event) {
-        if (mPlaybackFragment != null) {
-            mPlaybackFragment.onDispatchKeyEvent(event);
+        // YouNew: the Shorts screen uses its keys itself (Up/Down switch Shorts, OK pauses)
+        if (mPlaybackFragment != null && mPlaybackFragment.onDispatchKeyEvent(event)) {
+            return true;
         }
 
         return super.dispatchKeyEvent(event);
@@ -66,8 +67,8 @@ public class PlaybackActivity extends LeanbackActivity {
 
     @Override
     public boolean dispatchTouchEvent(MotionEvent event) {
-        if (mPlaybackFragment != null) {
-            mPlaybackFragment.onDispatchTouchEvent(event);
+        if (mPlaybackFragment != null && mPlaybackFragment.onDispatchTouchEvent(event)) {
+            return true;
         }
 
         return super.dispatchTouchEvent(event);
@@ -75,8 +76,8 @@ public class PlaybackActivity extends LeanbackActivity {
 
     @Override
     public boolean dispatchGenericMotionEvent(MotionEvent event) {
-        if (mPlaybackFragment != null) {
-            mPlaybackFragment.onDispatchGenericMotionEvent(event);
+        if (mPlaybackFragment != null && mPlaybackFragment.onDispatchGenericMotionEvent(event)) {
+            return true;
         }
 
         return super.dispatchGenericMotionEvent(event);

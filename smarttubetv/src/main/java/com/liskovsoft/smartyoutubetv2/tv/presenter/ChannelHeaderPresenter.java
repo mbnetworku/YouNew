@@ -114,7 +114,9 @@ public class ChannelHeaderPresenter extends RowPresenter {
         searchTextEditor.setOnFocusChangeListener((v, focused) -> {
             Log.d(TAG, "on search field focused");
 
-            if (mIsKeyboardAutoShowEnabled && focused) {
+            // YouNew: after a mouse click (touch mode) the field gets focus by itself, don't pop up the keyboard then.
+            // Clicking the field still opens the keyboard.
+            if (mIsKeyboardAutoShowEnabled && focused && !v.isInTouchMode()) {
                 Helpers.showKeyboardAlt(v.getContext(), v);
             }
         });

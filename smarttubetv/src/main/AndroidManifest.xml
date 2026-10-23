@@ -172,7 +172,11 @@
             android:name="com.liskovsoft.smartyoutubetv2.tv.ui.channel.ChannelActivity"
             android:launchMode="singleInstance"
             android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|layoutDirection"
+            android:windowSoftInputMode="stateAlwaysHidden"
             android:screenOrientation="unspecified"/>
+        <!-- YouNew: stateAlwaysHidden = the channel's search box must not open the keyboard by itself
+             when the channel is opened with a mouse click (clicking the box still opens it) -->
+
 
         <activity
             android:name="com.liskovsoft.smartyoutubetv2.tv.ui.channeluploads.ChannelUploadsActivity"

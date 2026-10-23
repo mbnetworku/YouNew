@@ -109,6 +109,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     private ListRowPresenter mRowPresenter;
     private VideoCardPresenter mCardPresenter;
     private ShortsCardPresenter mShortsPresenter;
+    private ShortsOverlayView mShortsOverlay;
+    private boolean mConsumeShortsBackUp;
+    private long mLastShortsWheelMs;
     private Map<Integer, VideoGroupObjectAdapter> mVideoGroupAdapters;
     private ExoPlayerController mExoPlayerController;
     private ExoPlayerInitializer mPlayerInitializer;
@@ -172,7 +175,215 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         // ProgressBar.setRootView already called at this moment.
         ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);
 
+        addShortsOverlay(root);
+
         return root;
+    }
+
+    /**
+     * YouNew: YouTube TV style Shorts screen (blue background, white frame, title on the right).
+     * Placed right above the video and below subtitles and player controls.
+     */
+    private void addShortsOverlay(View root) {
+        View surfaceRoot = root.findViewById(R.id.surface_root);
+        View subtitles = root.findViewById(R.id.leanback_subtitles);
+        if (surfaceRoot == null || !(surfaceRoot.getParent() instanceof ViewGroup)) {
+            return;
+        }
+
+        ViewGroup parent = (ViewGroup) surfaceRoot.getParent();
+        mShortsOverlay = new ShortsOverlayView(getContext());
+        mShortsOverlay.setVideoView(surfaceRoot);
+        mShortsOverlay.setHost(new ShortsOverlayView.Host() {
+            @Override
+            public void onShortsButtonClicked(int buttonId, int buttonState) {
+                mPlaybackPresenter.onButtonClicked(buttonId, buttonState);
+            }
+
+            @Override
+            public void onShortsTogglePlay() {
+                toggleShortsPlay();
+            }
+
+            @Override
+            public long getShortsPositionMs() {
+                return getPositionMs();
+            }
+
+            @Override
+            public long getShortsDurationMs() {
+                return getDurationMs();
+            }
+
+            @Override
+            public boolean isShortsPlaying() {
+                return getPlayWhenReady();
+            }
+        });
+        int index = subtitles != null && subtitles.getParent() == parent ? parent.indexOfChild(subtitles) : parent.indexOfChild(surfaceRoot) + 1;
+        parent.addView(mShortsOverlay, index, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    /**
+     * YouNew: true while a Short is playing. The player then works as a Shorts player:
+     * the normal controls never appear, Up/Down switch Shorts, OK pauses, Right goes to the buttons.
+     */
+    private boolean isShortsMode() {
+        return mShortsOverlay != null && mShortsOverlay.isActive();
+    }
+
+    private void updateShortsOverlay(Video video) {
+        if (mShortsOverlay == null || getView() == null) {
+            return;
+        }
+
+        boolean isShort = video != null && (video.isShorts || video.belongsToShorts());
+        View surfaceRoot = getView().findViewById(R.id.surface_root);
+
+        // Shorts: leave a little space above and below the video for the frame
+        if (surfaceRoot != null && surfaceRoot.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ViewGroup.MarginLayoutParams lp = (ViewGroup.MarginLayoutParams) surfaceRoot.getLayoutParams();
+            int margin = isShort ? (int) (24 * getResources().getDisplayMetrics().density) : 0;
+            if (lp.topMargin != margin) {
+                lp.topMargin = margin;
+                lp.bottomMargin = margin;
+                surfaceRoot.setLayoutParams(lp);
+            }
+        }
+
+        if (isShort) {
+            mShortsOverlay.show(video.getTitle(), video.getAuthor());
+            hideControlsOverlay(false); // the normal player controls are not used for Shorts
+        } else {
+            mShortsOverlay.hide();
+        }
+    }
+
+    private void toggleShortsPlay() {
+        boolean play = !getPlayWhenReady();
+        setPlayWhenReady(play);
+        mShortsOverlay.setPaused(!play);
+
+        if (play) {
+            mPlaybackPresenter.onPlayClicked();
+        } else {
+            mPlaybackPresenter.onPauseClicked();
+        }
+    }
+
+    /**
+     * YouNew: remote keys on the Shorts screen.
+     * Up/Down = previous/next Short (or move between the buttons when one is chosen),
+     * OK = pause/play (or press the chosen button), Right = go to the buttons, Left/Back = leave the buttons.
+     * Returns true when the key was used here, so the normal player never sees it.
+     */
+    private boolean onShortsKey(KeyEvent event) {
+        int keyCode = event.getKeyCode();
+        boolean isFirstDown = event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0;
+        boolean onButtons = mShortsOverlay.hasSelection();
+
+        switch (keyCode) {
+            case KeyEvent.KEYCODE_DPAD_UP:
+            case KeyEvent.KEYCODE_DPAD_DOWN:
+                if (isFirstDown) {
+                    boolean down = keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
+                    if (onButtons) {
+                        mShortsOverlay.moveSelection(down ? 1 : -1);
+                    } else {
+                        switchShort(down);
+                    }
+                }
+                return true;
+            case KeyEvent.KEYCODE_CHANNEL_UP:
+            case KeyEvent.KEYCODE_PAGE_UP:
+            case KeyEvent.KEYCODE_MEDIA_PREVIOUS:
+            case KeyEvent.KEYCODE_CHANNEL_DOWN:
+            case KeyEvent.KEYCODE_PAGE_DOWN:
+            case KeyEvent.KEYCODE_MEDIA_NEXT:
+                if (isFirstDown) {
+                    switchShort(keyCode == KeyEvent.KEYCODE_CHANNEL_DOWN || keyCode == KeyEvent.KEYCODE_PAGE_DOWN ||
+                            keyCode == KeyEvent.KEYCODE_MEDIA_NEXT);
+                }
+                return true;
+            case KeyEvent.KEYCODE_DPAD_RIGHT:
+                if (isFirstDown && !onButtons) {
+                    mShortsOverlay.select(0);
+                }
+                return true;
+            case KeyEvent.KEYCODE_DPAD_LEFT:
+                if (isFirstDown && onButtons) {
+                    mShortsOverlay.clearSelection();
+                }
+                return true;
+            case KeyEvent.KEYCODE_DPAD_CENTER:
+            case KeyEvent.KEYCODE_ENTER:
+            case KeyEvent.KEYCODE_NUMPAD_ENTER:
+            case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
+                if (isFirstDown) {
+                    if (onButtons && keyCode != KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
+                        mShortsOverlay.clickSelected();
+                    } else {
+                        toggleShortsPlay();
+                    }
+                }
+                return true;
+            case KeyEvent.KEYCODE_BACK:
+            case KeyEvent.KEYCODE_ESCAPE:
+                // Back leaves the buttons first, the second Back closes the player as usual
+                if (event.getAction() == KeyEvent.ACTION_DOWN && onButtons) {
+                    mShortsOverlay.clearSelection();
+                    mConsumeShortsBackUp = true;
+                    return true;
+                }
+                if (event.getAction() == KeyEvent.ACTION_UP && mConsumeShortsBackUp) {
+                    mConsumeShortsBackUp = false;
+                    return true;
+                }
+                return false;
+            default:
+                return false;
+        }
+    }
+
+    private void switchShort(boolean next) {
+        mShortsOverlay.clearSelection();
+
+        if (next) {
+            mPlaybackPresenter.onNextClicked();
+        } else {
+            mPlaybackPresenter.onPreviousClicked();
+        }
+    }
+
+    /**
+     * YouNew: mouse on the Shorts screen. Clicks go straight to the Shorts screen (the hidden
+     * player controls must not catch them), the pointer highlights the buttons and
+     * the wheel scrolls between Shorts.
+     */
+    private boolean onShortsMouse(MotionEvent event, boolean isTouch) {
+        if (!isTouch && event.getAction() == MotionEvent.ACTION_SCROLL) {
+            long now = System.currentTimeMillis();
+            float scroll = event.getAxisValue(MotionEvent.AXIS_VSCROLL);
+            if (scroll != 0 && now - mLastShortsWheelMs > 600) { // one Short per wheel turn
+                mLastShortsWheelMs = now;
+                switchShort(scroll < 0);
+            }
+            return true;
+        }
+
+        int[] loc = new int[2];
+        mShortsOverlay.getLocationInWindow(loc);
+        MotionEvent local = MotionEvent.obtain(event);
+        local.offsetLocation(-loc[0], -loc[1]);
+
+        if (isTouch) {
+            mShortsOverlay.dispatchTouchEvent(local);
+        } else if (event.getAction() == MotionEvent.ACTION_HOVER_MOVE) {
+            mShortsOverlay.onPointerMoved(local.getX(), local.getY());
+        }
+
+        local.recycle();
+        return true;
     }
 
     @Override
@@ -253,23 +464,42 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         //ExoPlayerInitializer.enableAudioFocus(mPlayer, false); // Disable focus in PIP
     }
 
-    public void onDispatchKeyEvent(KeyEvent event) {
-        // NOP
+    /**
+     * @return true if the key was used by the Shorts screen and must not go further
+     */
+    public boolean onDispatchKeyEvent(KeyEvent event) {
+        return isShortsMode() && onShortsKey(event);
     }
 
-    public void onDispatchTouchEvent(MotionEvent event) {
+    /**
+     * @return true if the touch/click was used by the Shorts screen and must not go further
+     */
+    public boolean onDispatchTouchEvent(MotionEvent event) {
+        if (isShortsMode()) {
+            return onShortsMouse(event, true);
+        }
+
         if (mDoubleTapPlayerAdapter != null && !isOverlayShown()) {
             boolean handled = mDoubleTapPlayerAdapter.onTouchEvent(event);
 
             if (handled)
-                return;
+                return false;
         }
 
         applyTickle(event);
+        return false;
     }
 
-    public void onDispatchGenericMotionEvent(MotionEvent event) {
+    /**
+     * @return true if the mouse event was used by the Shorts screen and must not go further
+     */
+    public boolean onDispatchGenericMotionEvent(MotionEvent event) {
+        if (isShortsMode()) {
+            return onShortsMouse(event, false);
+        }
+
         applyTickle(event);
+        return false;
     }
 
     private void applyTickle(MotionEvent event) {
@@ -842,6 +1072,8 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             mPlayerGlue.setSubtitle(video.getSecondTitleFull() != null ? createSubtitle(video) : "...");
             mPlayerGlue.setVideo(video);
         }
+
+        updateShortsOverlay(video);
     }
 
     @Override
@@ -1225,6 +1457,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public void showControlsOverlay(boolean runAnimation) {
+        if (isShortsMode()) {
+            return; // YouNew: Shorts have their own screen, the normal controls never show
+        }
+
         super.showControlsOverlay(mIsUIAnimationsEnabled);
 
         // Do throttle. Called so many times. Rely on boxing because initial state is unknown.
@@ -1322,12 +1558,20 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         if (mPlayerGlue != null) {
             mPlayerGlue.setButtonState(buttonId, buttonState);
         }
+
+        if (mShortsOverlay != null) {
+            mShortsOverlay.setButtonState(buttonId, buttonState); // same Like/Dislike/Subscribe state on the Shorts screen
+        }
     }
 
     @Override
     public void setChannelIcon(String iconUrl) {
         if (mPlayerGlue != null) {
             mPlayerGlue.setChannelIcon(iconUrl);
+        }
+
+        if (mShortsOverlay != null) {
+            mShortsOverlay.setChannelIcon(iconUrl);
         }
     }
 

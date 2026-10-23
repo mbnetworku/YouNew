@@ -745,7 +745,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
         mIsUnsafeAudioFormatsEnabled = Helpers.parseBoolean(split, 42, true);
         //mIsHighBitrateFormatsEnabled = Helpers.parseBoolean(split, 43, false);
         mIsLoopShortsEnabled = Helpers.parseBoolean(split, 44, true);
-        mIsQuickSkipShortsEnabled = Helpers.parseBoolean(split, 45, true);
+        mIsQuickSkipShortsEnabled = Helpers.parseBoolean(split, 45, false); // YouNew: Shorts use Up/Down (below), like YouTube TV
         mIsRememberPositionOfLiveVideosEnabled = Helpers.parseBoolean(split, 46, true);
         mIsOculusQuestFixEnabled = Helpers.parseBoolean(split, 47, Utils.isOculusQuest());
         // mPlayerDataSource was here
@@ -759,7 +759,7 @@ public class PlayerTweaksData implements ProfileChangeListener {
         mIsAudioFocusEnabled = Helpers.parseBoolean(split, 54, true);
         mIsDontResizeVideoToFitDialogEnabled = Helpers.parseBoolean(split, 55, false);
         mIsSuggestionsHorizontallyScrolled = Helpers.parseBoolean(split, 56, false);
-        mIsQuickSkipShortsAltEnabled = Helpers.parseBoolean(split, 57, false);
+        mIsQuickSkipShortsAltEnabled = Helpers.parseBoolean(split, 57, true); // YouNew: Up = previous Short, Down = next Short
         mIsQuickSkipVideosAltEnabled = Helpers.parseBoolean(split, 58, false);
         mIsAudioTimeStretchingEnabled = Helpers.parseBoolean(split, 59, true);
         mIsQueueRespectsPlaybackMode = Helpers.parseBoolean(split, 60, false);
