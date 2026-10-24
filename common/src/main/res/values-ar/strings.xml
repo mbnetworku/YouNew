@@ -118,7 +118,7 @@
   <string name="subtitle_white_black">بيضاء على خلفية سوداء</string>
   <string name="player_seek_preview">معاينة أثناء التنقل في الفيديو</string>
   <string name="color_scheme_dark_grey_oled">رمادي داكن (OLED)</string>
-  <string name="channels_section_sorting">فرز قسم القنوات</string>
+  <string name="channels_section_sorting">فرز الاشتراكات</string>
   <string name="sorting_by_new_content">محتوى جديد</string>
   <string name="sorting_alphabetically">أبجديًا</string>
   <string name="sorting_last_viewed">أخر ماتم مشاهدته</string>
