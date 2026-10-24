@@ -111,8 +111,9 @@ public class GeneralData implements ProfileChangeListener {
         persistState();
     }
 
+    /** YouNew: always one Back press (no "press Back twice"), even if an older version saved the double-back choice. */
     public int getAppExitShortcut() {
-        return mAppExitShortcut;
+        return EXIT_SINGLE_BACK;
     }
 
     public void setAppExitShortcut(int type) {
@@ -121,7 +122,7 @@ public class GeneralData implements ProfileChangeListener {
     }
 
     public int getPlayerExitShortcut() {
-        return mPlayerExitShortcut;
+        return EXIT_SINGLE_BACK; // YouNew: one Back press
     }
 
     public void setPlayerExitShortcut(int type) {
@@ -130,7 +131,7 @@ public class GeneralData implements ProfileChangeListener {
     }
 
     public int getSearchExitShortcut() {
-        return mSearchExitShortcut;
+        return EXIT_SINGLE_BACK; // YouNew: one Back press
     }
 
     public void setSearchExitShortcut(int type) {

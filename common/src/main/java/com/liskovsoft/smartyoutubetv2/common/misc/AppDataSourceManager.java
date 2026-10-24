@@ -49,14 +49,9 @@ public class AppDataSourceManager {
                 context.getString(R.string.settings_player), () -> PlayerSettingsPresenter.instance(context).show(), R.drawable.settings_player));
         settingItems.add(new SettingsItem(
                 context.getString(R.string.settings_language_country), () -> LanguageSettingsPresenter.instance(context).show(), R.drawable.settings_language));
-        settingItems.add(new SettingsItem(
-                context.getString(R.string.settings_remote_control), () -> RemoteControlSettingsPresenter.instance(context).show(), R.drawable.settings_cast));
+        // YouNew: "Link with TV Code" and "Auto Frame Rate" are left out (rarely needed, fewer pages = simpler)
         settingItems.add(new SettingsItem(
                 context.getString(R.string.subtitle_category_title), () -> SubtitleSettingsPresenter.instance(context).show(), R.drawable.settings_subtitles));
-        // Don't add afr support check here.
-        // Users want even fake afr settings.
-        settingItems.add(new SettingsItem(
-                context.getString(R.string.auto_frame_rate), () -> AutoFrameRateSettingsPresenter.instance(context).show(), R.drawable.settings_afr));
         settingItems.add(new SettingsItem(
                 context.getString(R.string.settings_main_ui), () -> MainUISettingsPresenter.instance(context).show(), R.drawable.settings_main_ui));
         settingItems.add(new SettingsItem(

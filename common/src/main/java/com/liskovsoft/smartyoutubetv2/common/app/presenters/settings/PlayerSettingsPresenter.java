@@ -60,26 +60,26 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
         appendPlaybackModeCategory(settingsPresenter);
         appendVideoPresetsCategory(settingsPresenter);
         appendPlayerButtonsCategory(settingsPresenter);
-        appendNetworkEngineCategory(settingsPresenter);
-        appendVideoBufferCategory(settingsPresenter);
-        appendVideoZoomCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendNetworkEngineCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendVideoBufferCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendVideoZoomCategory(settingsPresenter);
         appendVideoSpeedCategory(settingsPresenter);
         appendAudioLanguageCategory(settingsPresenter);
         appendAudioDelayCategory(settingsPresenter);
         appendMasterVolumeCategory(settingsPresenter);
         appendOKButtonCategory(settingsPresenter);
         appendUIAutoHideCategory(settingsPresenter);
-        appendSeekTypeCategory(settingsPresenter);
-        appendSeekingPreviewCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendSeekTypeCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendSeekingPreviewCategory(settingsPresenter);
         AppDialogUtil.appendSeekIntervalDialogItems(getContext(), settingsPresenter, mPlayerData, false);
         //appendRememberSpeedCategory(settingsPresenter);
         //appendScreenOffTimeoutCategory(settingsPresenter);
-        appendEndingTimeCategory(settingsPresenter);
-        appendPixelRatioCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendEndingTimeCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendPixelRatioCategory(settingsPresenter);
         //appendPlayerExitCategory(settingsPresenter);
         appendSleepTimerCategory(settingsPresenter);
-        appendMiscCategory(settingsPresenter);
-        appendDeveloperCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendMiscCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendDeveloperCategory(settingsPresenter);
 
         settingsPresenter.showDialog(getContext().getString(R.string.settings_player), mOnFinish);
     }

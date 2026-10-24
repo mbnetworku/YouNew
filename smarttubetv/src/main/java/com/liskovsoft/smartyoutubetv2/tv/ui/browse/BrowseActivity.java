@@ -21,6 +21,23 @@ public class BrowseActivity extends LeanbackActivity {
         }
     }
 
+    /**
+     * YouNew: one Back press leaves the app (back to your TV's home screen).
+     * Before, the first Back from the videos only opened the sidebar and the second Back left.
+     * Use Left to reach the sidebar.
+     */
+    @Override
+    public void onBackPressed() {
+        androidx.fragment.app.Fragment fragment = getSupportFragmentManager().findFragmentById(R.id.main_frame);
+
+        if (fragment instanceof BrowseFragment) {
+            finish();
+            return;
+        }
+
+        super.onBackPressed();
+    }
+
     @Override
     protected void initTheme() {
         int browseThemeResId = MainUIData.instance(this).getColorScheme().browseThemeResId;

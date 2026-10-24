@@ -76,15 +76,15 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
 
         appendBootToSection(settingsPresenter);
         appendEnabledSections(settingsPresenter);
-        appendContextMenuItemsCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendContextMenuItemsCategory(settingsPresenter);
         appendHideContent(settingsPresenter);
-        appendAppExitCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendAppExitCategory(settingsPresenter);
         appendBackgroundPlaybackCategory(settingsPresenter);
-        appendScreenDimmingCategory(settingsPresenter);
-        appendKeyRemappingCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendScreenDimmingCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendKeyRemappingCategory(settingsPresenter);
         appendInternetCensorship(settingsPresenter);
         appendHistoryCategory(settingsPresenter);
-        appendMiscCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendMiscCategory(settingsPresenter);
 
         settingsPresenter.showDialog(getContext().getString(R.string.settings_general), mOnFinish);
     }

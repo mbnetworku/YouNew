@@ -51,10 +51,10 @@ public class MainUISettingsPresenter extends BasePresenter<Void> {
         appendTopButtonsCategory(settingsPresenter);
         appendColorScheme(settingsPresenter);
         if (Build.VERSION.SDK_INT > 19) {
-            appendCardTextScrollSpeed(settingsPresenter);
+            // YouNew: hidden (fewer settings) - appendCardTextScrollSpeed(settingsPresenter);
         }
-        appendCardPreviews(settingsPresenter);
-        appendCardStyle(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendCardPreviews(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendCardStyle(settingsPresenter);
         appendThumbSource(settingsPresenter);
         //appendCardTitleLines(settingsPresenter);
         appendChannelSortingCategory(settingsPresenter);
@@ -64,7 +64,7 @@ public class MainUISettingsPresenter extends BasePresenter<Void> {
             appendVideoGridScale(settingsPresenter);
         }
         //appendTimeFormatCategory(settingsPresenter);
-        appendMiscCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendMiscCategory(settingsPresenter);
 
         settingsPresenter.showDialog(getContext().getString(R.string.dialog_main_ui), mOnFinish);
     }
