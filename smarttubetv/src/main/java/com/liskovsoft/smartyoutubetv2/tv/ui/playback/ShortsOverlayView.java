@@ -74,6 +74,10 @@ public class ShortsOverlayView extends FrameLayout {
     private int mRailSelected = -1;
 
     private final Paint mBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
+    private final Paint mAmbientPaint = new Paint(Paint.FILTER_BITMAP_FLAG); // smooth stretching = blur
+    private final RectF mAmbientRect = new RectF();
+    private android.graphics.Bitmap mAmbient;
+    private String mAmbientUrl;
     private final Paint mFramePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mTrackPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mProgressPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -356,6 +360,33 @@ public class ShortsOverlayView extends FrameLayout {
         }
     }
 
+    /**
+     * YouNew: background colours from the Short's picture. The picture is loaded very small (24 px wide),
+     * then stretched over the screen: that gives a smooth blur with almost no work for the box.
+     */
+    public void setAmbientImage(String imageUrl) {
+        mAmbientUrl = imageUrl;
+        if (imageUrl == null) {
+            mAmbient = null;
+            invalidate();
+            return;
+        }
+
+        Glide.with(getContext())
+                .asBitmap()
+                .load(imageUrl)
+                .override(24, 42)
+                .into(new SimpleTarget<android.graphics.Bitmap>() {
+                    @Override
+                    public void onResourceReady(@NonNull android.graphics.Bitmap resource, @Nullable Transition<? super android.graphics.Bitmap> transition) {
+                        if (imageUrl.equals(mAmbientUrl)) { // ignore a late picture from the previous Short
+                            mAmbient = resource;
+                            invalidate();
+                        }
+                    }
+                });
+    }
+
     public void hide() {
         setVisibility(View.GONE);
         removeCallbacks(mTicker);
@@ -565,6 +596,21 @@ public class ShortsOverlayView extends FrameLayout {
         mPath.addRect(0, 0, getWidth(), getHeight(), Path.Direction.CW);
         mPath.addRoundRect(mHole, radius, radius, Path.Direction.CW);
         canvas.drawPath(mPath, mBackgroundPaint);
+
+        // YouNew: the Short's own picture, very blurred and darkened, over the blue background,
+        // so the colours around the video follow the Short (like YouTube TV)
+        if (mAmbient != null) {
+            canvas.save();
+            canvas.clipPath(mPath);
+            mAmbientRect.set(0, 0, getWidth(), getHeight());
+            float scale = Math.max(getWidth() / (float) mAmbient.getWidth(), getHeight() / (float) mAmbient.getHeight());
+            float w = mAmbient.getWidth() * scale;
+            float h = mAmbient.getHeight() * scale;
+            mAmbientRect.set((getWidth() - w) / 2, (getHeight() - h) / 2, (getWidth() + w) / 2, (getHeight() + h) / 2);
+            canvas.drawBitmap(mAmbient, null, mAmbientRect, mAmbientPaint); // tiny picture stretched = soft blur
+            canvas.drawColor(Color.parseColor("#99000000")); // darken so the text stays readable
+            canvas.restore();
+        }
 
         // Progress line along the bottom of the video
         float lineLeft = mHole.left + radius;

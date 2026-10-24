@@ -263,6 +263,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
         if (isShort) {
             mShortsOverlay.show(video.getTitle(), video.getAuthor());
+            mShortsOverlay.setAmbientImage(video.cardImageUrl); // background colours from this Short
             hideControlsOverlay(false); // the normal player controls are not used for Shorts
         } else {
             mShortsOverlay.hide();
