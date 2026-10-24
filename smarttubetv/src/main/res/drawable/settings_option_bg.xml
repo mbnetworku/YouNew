@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Settings option card: dark rounded card; focused = lighter card with a 2dp white ring. -->
+<!-- Settings option: plain row (no card) like YouTube TV; focused = card with a 2dp white ring.
+     YouNew: no card on other rows, so a row half-scrolled under the title no longer shows as an empty strip. -->
 <selector xmlns:android="http://schemas.android.com/apk/res/android">
     <item android:state_focused="true">
         <layer-list>
@@ -19,7 +20,7 @@
     </item>
     <item>
         <shape android:shape="rectangle">
-            <solid android:color="#1E1E1E" />
+            <solid android:color="#00000000" />
             <corners android:radius="12dp" />
         </shape>
     </item>
