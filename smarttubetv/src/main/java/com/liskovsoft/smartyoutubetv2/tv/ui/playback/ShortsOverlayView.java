@@ -56,7 +56,22 @@ public class ShortsOverlayView extends FrameLayout {
         long getShortsPositionMs();
         long getShortsDurationMs();
         boolean isShortsPlaying();
+        void onShortsSectionClicked(int sectionId);
     }
+
+    // Sidebar on the left, same icons and order as the main screen's sidebar (Shorts is the current one)
+    private static final int[] RAIL_SECTIONS = {
+            com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_HOME,
+            com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_SHORTS,
+            com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_NEWS,
+            com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_LIVE,
+            com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_CHANNEL_UPLOADS,
+            com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_SETTINGS};
+    private static final int[] RAIL_ICONS = {R.drawable.icon_home, R.drawable.icon_shorts, R.drawable.icon_news,
+            R.drawable.icon_live, R.drawable.icon_subscriptions, R.drawable.icon_settings};
+    private static final int RAIL_CURRENT = 1; // Shorts
+    private final List<ImageView> mRailIcons = new ArrayList<>();
+    private int mRailSelected = -1;
 
     private final Paint mBackgroundPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mFramePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -109,7 +124,7 @@ public class ShortsOverlayView extends FrameLayout {
             view.setOrientation(LinearLayout.HORIZONTAL);
             view.setGravity(Gravity.CENTER_VERTICAL);
             view.setLayoutDirection(View.LAYOUT_DIRECTION_LTR); // icon always next to the video
-            view.setPadding(0, dp(5), 0, dp(5));
+            view.setPadding(0, dp(3), 0, dp(3)); // YouNew: compact, so all four buttons always fit on screen
             view.setClickable(true);
             view.setOnClickListener(v -> click(mButtons.indexOf(this)));
 
@@ -117,9 +132,9 @@ public class ShortsOverlayView extends FrameLayout {
             icon = new ImageView(context);
             icon.setBackground(circle);
             icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
-            icon.setPadding(dp(12), dp(12), dp(12), dp(12));
+            icon.setPadding(dp(10), dp(10), dp(10), dp(10));
             icon.setImageDrawable(ContextCompat.getDrawable(context, iconResId));
-            view.addView(icon, new LinearLayout.LayoutParams(dp(50), dp(50)));
+            view.addView(icon, new LinearLayout.LayoutParams(dp(44), dp(44)));
 
             label = new TextView(context);
             label.setTextSize(16);
@@ -141,7 +156,7 @@ public class ShortsOverlayView extends FrameLayout {
         void resetPicture() {
             isPicture = false;
             pictureUrl = null;
-            icon.setPadding(dp(12), dp(12), dp(12), dp(12));
+            icon.setPadding(dp(10), dp(10), dp(10), dp(10));
             icon.setImageDrawable(ContextCompat.getDrawable(getContext(), iconResId));
             refresh(mButtons.indexOf(this) == mSelected);
         }
@@ -185,7 +200,7 @@ public class ShortsOverlayView extends FrameLayout {
         mTitle.setTextColor(Color.WHITE);
         mTitle.setTextSize(22);
         mTitle.setTypeface(Typeface.DEFAULT_BOLD);
-        mTitle.setMaxLines(3);
+        mTitle.setMaxLines(2); // YouNew: 2 lines max, long titles must not push the buttons off screen
         mTitle.setEllipsize(TextUtils.TruncateAt.END);
         mInfo.addView(mTitle);
 
@@ -205,13 +220,15 @@ public class ShortsOverlayView extends FrameLayout {
         TextView hint = new TextView(context);
         hint.setTextColor(Color.parseColor("#AAAAAA"));
         hint.setTextSize(14);
-        hint.setPadding(0, dp(20), 0, 0);
+        hint.setPadding(0, dp(12), 0, 0);
         hint.setText(R.string.younew_shorts_hint);
         mInfo.addView(hint);
 
         LayoutParams infoParams = new LayoutParams(dp(300), LayoutParams.WRAP_CONTENT);
         infoParams.gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
         addView(mInfo, infoParams);
+
+        addRail(context);
 
         // A click anywhere else (the video or the background) pauses or resumes
         setOnClickListener(v -> {
@@ -228,6 +245,90 @@ public class ShortsOverlayView extends FrameLayout {
         mButtons.add(row);
         mInfo.addView(row.view, new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT));
         row.refresh(false);
+    }
+
+    /**
+     * YouNew: the main sidebar icons (Home, Shorts, News, Live, Subscriptions, Settings) stay visible
+     * on the left while watching Shorts, like YouTube TV. Click one, or press Left and OK, to go there.
+     */
+    private void addRail(Context context) {
+        LinearLayout rail = new LinearLayout(context);
+        rail.setOrientation(LinearLayout.VERTICAL);
+        rail.setGravity(Gravity.CENTER_HORIZONTAL);
+        rail.setPadding(0, dp(96), 0, 0); // same height as the main screen's sidebar icons
+        rail.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
+
+        for (int i = 0; i < RAIL_ICONS.length; i++) {
+            ImageView icon = new ImageView(context);
+            icon.setImageDrawable(ContextCompat.getDrawable(context, RAIL_ICONS[i]));
+            icon.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            icon.setPadding(dp(10), dp(10), dp(10), dp(10));
+            icon.setClickable(true);
+            final int index = i;
+            icon.setOnClickListener(v -> openRailSection(index));
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(48), dp(48));
+            lp.topMargin = dp(5);
+            lp.bottomMargin = dp(5);
+            rail.addView(icon, lp);
+            mRailIcons.add(icon);
+        }
+
+        LayoutParams railParams = new LayoutParams(dp(72), LayoutParams.MATCH_PARENT);
+        railParams.gravity = Gravity.LEFT;
+        addView(rail, railParams);
+        refreshRail();
+    }
+
+    public boolean hasRailSelection() {
+        return mRailSelected >= 0;
+    }
+
+    /** Left on the remote: go to the sidebar, starting on Shorts (the current section). */
+    public void selectRail() {
+        clearSelection();
+        mRailSelected = RAIL_CURRENT;
+        refreshRail();
+    }
+
+    public void moveRail(int delta) {
+        if (hasRailSelection()) {
+            mRailSelected = Math.max(0, Math.min(mRailSelected + delta, mRailIcons.size() - 1));
+            refreshRail();
+        }
+    }
+
+    public void clearRail() {
+        mRailSelected = -1;
+        refreshRail();
+    }
+
+    public void clickRail() {
+        openRailSection(mRailSelected);
+    }
+
+    private void openRailSection(int index) {
+        if (index < 0 || index >= RAIL_SECTIONS.length || mHost == null) {
+            return;
+        }
+
+        mHost.onShortsSectionClicked(RAIL_SECTIONS[index]);
+    }
+
+    private void refreshRail() {
+        for (int i = 0; i < mRailIcons.size(); i++) {
+            ImageView icon = mRailIcons.get(i);
+            boolean selected = i == mRailSelected;
+            if (selected) {
+                GradientDrawable pill = new GradientDrawable();
+                pill.setColor(Color.parseColor("#CC0000")); // same red highlight as the main sidebar
+                pill.setCornerRadius(dp(12));
+                icon.setBackground(pill);
+            } else {
+                icon.setBackground(null);
+            }
+            // White for the chosen one and the current section (Shorts), grey for the others
+            icon.setColorFilter(selected || i == RAIL_CURRENT ? Color.WHITE : Color.parseColor("#AAAAAA"), PorterDuff.Mode.SRC_IN);
+        }
     }
 
     public void setHost(Host host) {
@@ -259,6 +360,7 @@ public class ShortsOverlayView extends FrameLayout {
         setVisibility(View.GONE);
         removeCallbacks(mTicker);
         clearSelection();
+        clearRail();
     }
 
     public boolean isActive() {
@@ -272,6 +374,9 @@ public class ShortsOverlayView extends FrameLayout {
     }
 
     public void select(int index) {
+        if (mRailSelected >= 0) {
+            clearRail();
+        }
         mSelected = Math.max(0, Math.min(index, mButtons.size() - 1));
         mSelectedByMouse = false;
         refreshButtons();

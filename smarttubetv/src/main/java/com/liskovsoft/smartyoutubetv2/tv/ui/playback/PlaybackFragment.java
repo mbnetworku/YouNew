@@ -219,6 +219,12 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             public boolean isShortsPlaying() {
                 return getPlayWhenReady();
             }
+
+            @Override
+            public void onShortsSectionClicked(int sectionId) {
+                // Open the main screen on that section (Home, News, Settings...); the Short stops there
+                com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter.instance(getContext()).selectSection(sectionId);
+            }
         });
         int index = subtitles != null && subtitles.getParent() == parent ? parent.indexOfChild(subtitles) : parent.indexOfChild(surfaceRoot) + 1;
         parent.addView(mShortsOverlay, index, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
@@ -281,13 +287,16 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         int keyCode = event.getKeyCode();
         boolean isFirstDown = event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0;
         boolean onButtons = mShortsOverlay.hasSelection();
+        boolean onRail = mShortsOverlay.hasRailSelection(); // the sidebar on the left
 
         switch (keyCode) {
             case KeyEvent.KEYCODE_DPAD_UP:
             case KeyEvent.KEYCODE_DPAD_DOWN:
                 if (isFirstDown) {
                     boolean down = keyCode == KeyEvent.KEYCODE_DPAD_DOWN;
-                    if (onButtons) {
+                    if (onRail) {
+                        mShortsOverlay.moveRail(down ? 1 : -1);
+                    } else if (onButtons) {
                         mShortsOverlay.moveSelection(down ? 1 : -1);
                     } else {
                         switchShort(down);
@@ -306,13 +315,21 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
                 }
                 return true;
             case KeyEvent.KEYCODE_DPAD_RIGHT:
-                if (isFirstDown && !onButtons) {
-                    mShortsOverlay.select(0);
+                if (isFirstDown) {
+                    if (onRail) {
+                        mShortsOverlay.clearRail(); // back to the video
+                    } else if (!onButtons) {
+                        mShortsOverlay.select(0);
+                    }
                 }
                 return true;
             case KeyEvent.KEYCODE_DPAD_LEFT:
-                if (isFirstDown && onButtons) {
-                    mShortsOverlay.clearSelection();
+                if (isFirstDown) {
+                    if (onButtons) {
+                        mShortsOverlay.clearSelection(); // back to the video
+                    } else if (!onRail) {
+                        mShortsOverlay.selectRail(); // go to the sidebar
+                    }
                 }
                 return true;
             case KeyEvent.KEYCODE_DPAD_CENTER:
@@ -320,7 +337,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             case KeyEvent.KEYCODE_NUMPAD_ENTER:
             case KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE:
                 if (isFirstDown) {
-                    if (onButtons && keyCode != KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
+                    if (onRail && keyCode != KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
+                        mShortsOverlay.clickRail();
+                    } else if (onButtons && keyCode != KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE) {
                         mShortsOverlay.clickSelected();
                     } else {
                         toggleShortsPlay();
@@ -330,8 +349,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             case KeyEvent.KEYCODE_BACK:
             case KeyEvent.KEYCODE_ESCAPE:
                 // Back leaves the buttons first, the second Back closes the player as usual
-                if (event.getAction() == KeyEvent.ACTION_DOWN && onButtons) {
+                if (event.getAction() == KeyEvent.ACTION_DOWN && (onButtons || onRail)) {
                     mShortsOverlay.clearSelection();
+                    mShortsOverlay.clearRail();
                     mConsumeShortsBackUp = true;
                     return true;
                 }
