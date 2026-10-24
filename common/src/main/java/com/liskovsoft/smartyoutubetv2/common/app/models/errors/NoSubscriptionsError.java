@@ -2,11 +2,14 @@ package com.liskovsoft.smartyoutubetv2.common.app.models.errors;
 
 import android.content.Context;
 import com.liskovsoft.smartyoutubetv2.common.R;
+import com.liskovsoft.smartyoutubetv2.common.app.presenters.SearchPresenter;
 
 /**
  * YouNew: shown on Subscriptions when you watch without a Google account and haven't subscribed to anything yet.
  * Subscriptions work without an account (they are saved on the box), so this screen explains how to add
  * a channel instead of asking you to sign in.
+ * The "Search for videos" button opens Search, where you find channels to subscribe to.
+ * (The screen needs a button anyway: without one, Right on the remote had nothing to go to.)
  */
 public class NoSubscriptionsError implements ErrorFragmentData {
     private final Context mContext;
@@ -17,7 +20,7 @@ public class NoSubscriptionsError implements ErrorFragmentData {
 
     @Override
     public void onAction() {
-        // No button
+        SearchPresenter.instance(mContext).startSearch(null);
     }
 
     @Override
@@ -27,6 +30,6 @@ public class NoSubscriptionsError implements ErrorFragmentData {
 
     @Override
     public String getActionText() {
-        return null; // no Sign in button: an account isn't needed
+        return mContext.getString(R.string.younew_search_videos);
     }
 }

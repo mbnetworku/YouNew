@@ -121,16 +121,33 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
         resultsLp.topMargin = (int) (160 * density); // the result rows have their own top offset
         results.setLayoutParams(resultsLp);
 
-        // When you move into the results they slide up over the keyboard's place, so hide the keyboard then.
-        // It comes back as soon as you go up to the search bar or the keys again.
+        // When you move down into the video rows they slide up over the keyboard's place, so hide the keyboard then.
+        // The first row (suggestions like "cat tv", "cat") stays below the keyboard, so the keyboard shows there,
+        // and on the search bar and the keys.
         root.getViewTreeObserver().addOnGlobalFocusChangeListener((oldFocus, newFocus) -> {
             if (newFocus == null || !keyboard.isAttachedToWindow()) {
                 return;
             }
 
-            boolean inResults = isInside(newFocus, results);
-            keyboard.setVisibility(inResults ? View.INVISIBLE : View.VISIBLE);
+            boolean inLowerRows = isInside(newFocus, results) && getResultsRow(newFocus) > 0;
+            keyboard.setVisibility(inLowerRows ? View.INVISIBLE : View.VISIBLE);
         });
+    }
+
+    /** Which results row (0 = first) holds the focused view, or -1 if it isn't in a row. */
+    private int getResultsRow(View focused) {
+        androidx.leanback.widget.VerticalGridView grid = getRowsSupportFragment() != null ? getRowsSupportFragment().getVerticalGridView() : null;
+        if (grid == null) {
+            return -1;
+        }
+
+        for (View current = focused; current != null && current.getParent() instanceof View; current = (View) current.getParent()) {
+            if (current.getParent() == grid) {
+                return grid.getChildAdapterPosition(current);
+            }
+        }
+
+        return -1;
     }
 
     /** True if the view is the given parent or somewhere inside it. */

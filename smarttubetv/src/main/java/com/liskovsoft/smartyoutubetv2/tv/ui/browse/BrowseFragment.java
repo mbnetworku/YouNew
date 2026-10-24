@@ -137,6 +137,10 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                         mBrowsePresenter.onSectionFocused((int) headerId);
                         startHeadersTransitionSafe(false);
                     }
+
+                    if (viewHolder != null && viewHolder.view.isInTouchMode()) {
+                        focusContentAfterMouseClick(10);
+                    }
                 }
         );
 
@@ -149,6 +153,36 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
         );
 
         setOnSearchClickedListener(view -> SearchPresenter.instance(getContext()).startSearch(null));
+    }
+
+    /**
+     * YouNew: after a mouse click Android is in "touch mode" and nothing keeps the focus, so the next
+     * remote key jumped to a default place (the first menu item, Home, or the search button).
+     * Once the clicked section has something to focus, give it the focus and leave touch mode,
+     * so the remote carries on inside that section. Tries every 0.3 s while the section loads (about 3 s).
+     */
+    private void focusContentAfterMouseClick(int triesLeft) {
+        View root = getView();
+        if (root == null) {
+            return;
+        }
+
+        root.postDelayed(() -> {
+            if (getView() == null || !getView().isInTouchMode()) {
+                return; // the remote was used meanwhile, or the screen is gone
+            }
+
+            Fragment mainFragment = getMainFragment();
+            View content = mainFragment != null ? mainFragment.getView() : null;
+
+            // Wait until the section has loaded something to focus: asking too early would leave
+            // touch mode with the focus on a default place (the search button)
+            if (content != null && content.hasFocusable()) {
+                content.requestFocusFromTouch();
+            } else if (triesLeft > 0) {
+                focusContentAfterMouseClick(triesLeft - 1);
+            }
+        }, 300);
     }
 
     private void setupFragmentFactory() {

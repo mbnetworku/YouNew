@@ -83,6 +83,15 @@ public class ErrorDialogFragment extends ErrorSupportFragment implements BrowseS
         if (mDialogData.getActionText() != null) {
             setButtonText(mDialogData.getActionText());
             setButtonClickListener(v -> mDialogData.onAction());
+
+            // YouNew: after a mouse click Android is in "touch mode", where a plain button can't hold the focus.
+            // Then the next remote key jumped to the first menu item (Home). Let the button keep the focus,
+            // and keep one mouse click enough to press it.
+            Button button = (Button) Helpers.getField(this, "mButton");
+            if (button != null) {
+                button.setFocusableInTouchMode(true);
+                com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil.enableSingleClick(button);
+            }
         } else {
             Button mButton = (Button) Helpers.getField(this, "mButton");
 
