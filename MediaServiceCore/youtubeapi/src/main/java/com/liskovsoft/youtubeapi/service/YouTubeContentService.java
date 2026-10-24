@@ -350,6 +350,79 @@ class YouTubeContentService implements ContentService {
         });
     }
 
+    /** Topics for the Home rows when there is no account. Mixed order every launch. */
+    private static final String[] HOME_TOPICS = {
+            "trending videos today", "funny videos", "football highlights", "cooking recipes", "travel vlog",
+            "gaming highlights", "tech reviews", "movie trailers", "documentary", "science experiments",
+            "cute animals", "cars", "news today", "podcasts", "workout at home", "diy projects",
+            "history documentary", "space and universe", "comedy sketches", "street food", "drawing and art",
+            "nature 4k", "motivation", "learn english", "أخبار اليوم", "كوميديا عربية", "طبخ", "سيارات"
+    };
+    private static final int HOME_TOPICS_MAX = 24;
+    private static final int HOME_TOPICS_FIRST = 2; // shown before the music rows, so the top of Home isn't only music
+
+    /**
+     * YouNew: Home without a Google account. YouTube gives no personal Home then, and the music feed alone
+     * is short and the same every time. So the rows are: a few topic rows, the music rows, then more topic rows.
+     * The topics are shuffled on every launch, so Home is different each time and doesn't run out quickly.
+     */
+    @Override
+    public Observable<List<MediaGroup>> getAnonymousHomeObserve() {
+        return RxHelper.create(emitter -> {
+            checkSigned();
+
+            List<String> topics = new ArrayList<>(java.util.Arrays.asList(HOME_TOPICS));
+            Collections.shuffle(topics);
+            topics = topics.subList(0, Math.min(HOME_TOPICS_MAX, topics.size()));
+
+            emitHomeTopics(emitter, topics.subList(0, Math.min(HOME_TOPICS_FIRST, topics.size())));
+
+            if (!emitter.isDisposed()) {
+                try {
+                    MediaGroup firstRow = getBrowseService2().getLikedMusic();
+                    if (firstRow != null && !firstRow.isEmpty()) {
+                        emitGroupsPartial(emitter, Collections.singletonList(firstRow));
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Home: liked music row failed: %s", e.getMessage());
+                }
+            }
+
+            if (!emitter.isDisposed()) {
+                emitGroupsPartial(emitter, getBrowseService2().getMusic());
+            }
+
+            emitHomeTopics(emitter, topics.subList(Math.min(HOME_TOPICS_FIRST, topics.size()), topics.size()));
+
+            emitter.onComplete();
+        });
+    }
+
+    /** One row per topic: the first result list of a search for it, titled with the topic. Stops when you leave Home. */
+    private void emitHomeTopics(ObservableEmitter<List<MediaGroup>> emitter, List<String> topics) {
+        for (String topic : topics) {
+            if (emitter.isDisposed()) {
+                return;
+            }
+
+            try {
+                List<MediaGroup> result = getSearchService2().getSearch(topic);
+
+                if (result != null) {
+                    for (MediaGroup group : result) {
+                        if (group != null && !group.isEmpty() && group instanceof BaseMediaGroup) {
+                            ((BaseMediaGroup) group).setTitle(topic);
+                            emitter.onNext(Collections.singletonList(group));
+                            break;
+                        }
+                    }
+                }
+            } catch (Exception e) {
+                Log.e(TAG, "Home: topic '%s' failed: %s", topic, e.getMessage()); // skip this row, go on
+            }
+        }
+    }
+
     @Override
     public Observable<List<MediaGroup>> getNewsObserve() {
         return RxHelper.create(emitter -> {

@@ -217,7 +217,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         // YouNew: Home must work without signing in. YouTube's personal home feed is empty for
         // signed-out users, so they get the public Music feed instead (all videos stay playable).
         mRowMapping.put(MediaGroup.TYPE_HOME, Observable.defer(() ->
-                getSignInService().isSigned() ? getContentService().getHomeObserve() : getContentService().getMusicObserve()));
+                getSignInService().isSigned() ? getContentService().getHomeObserve() : getContentService().getAnonymousHomeObserve()));
         mRowMapping.put(MediaGroup.TYPE_TRENDING, getContentService().getTrendingObserve());
         mRowMapping.put(MediaGroup.TYPE_KIDS_HOME, getContentService().getKidsHomeObserve());
         mRowMapping.put(MediaGroup.TYPE_SPORTS, getContentService().getSportsObserve());
