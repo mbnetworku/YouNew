@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- YouNew: Arabic text for the app module's own strings (most Arabic text lives in common/res/values-ar) -->
+<resources>
+    <!-- "Search" pill in the top bar -->
+    <string name="search_hint">البحث عن فيديوهات</string>
+</resources>

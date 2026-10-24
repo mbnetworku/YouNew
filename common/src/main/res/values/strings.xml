@@ -765,4 +765,5 @@
     <string name="younew_shorts_hint">▲ ▼  Next / previous Short</string>
     <string name="younew_no_subscriptions">No subscriptions yet.\nOpen a video and press Subscribe:\nthe channel will appear here.\nNo Google account needed.</string>
     <string name="younew_search_videos">Search for videos</string>
+    <string name="younew_subscriptions_feed">Subscriptions feed (Google account)</string>
 </resources>

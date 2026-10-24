@@ -755,4 +755,5 @@
     <string name="younew_shorts_hint">▲ ▼  الفيديو القصير التالي / السابق</string>
     <string name="younew_no_subscriptions">لا توجد اشتراكات بعد.\nافتح فيديو واضغط اشتراك:\nستظهر القناة هنا.\nلا حاجة لحساب Google.</string>
     <string name="younew_search_videos">البحث عن فيديوهات</string>
+    <string name="younew_subscriptions_feed">خلاصة الاشتراكات (حساب Google)</string>
 </resources>
