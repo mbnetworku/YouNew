@@ -325,14 +325,6 @@ public class AppDialogFragment extends LeanbackSettingsFragment implements AppDi
                 ViewUtil.enableTransparentDialog(getActivity(), view);
             }
 
-            // YouNew: when a long list scrolls, the item above showed as a thin empty strip under the title.
-            // Fade the top edge of the list so a half-hidden item fades out instead.
-            View list = view != null ? view.findViewById(android.R.id.list) : null;
-            if (list != null) {
-                list.setVerticalFadingEdgeEnabled(true);
-                list.setFadingEdgeLength((int) (56 * getResources().getDisplayMetrics().density));
-            }
-
             return view;
         }
 
