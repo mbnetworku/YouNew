@@ -111,6 +111,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     private ShortsCardPresenter mShortsPresenter;
     private ShortsOverlayView mShortsOverlay;
     private boolean mConsumeShortsBackUp;
+    private boolean mStayInShorts;
     private long mLastShortsWheelMs;
     private Map<Integer, VideoGroupObjectAdapter> mVideoGroupAdapters;
     private ExoPlayerController mExoPlayerController;
@@ -243,7 +244,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             return;
         }
 
-        boolean isShort = video != null && (video.isShorts || video.belongsToShorts());
+        boolean isShort = video != null && (video.isShorts || video.belongsToShorts()
+                // YouNew: once you scroll Shorts with Up/Down, stay in the Shorts player until you leave it.
+                // (A next item not marked as a Short used to switch to the normal player in the middle of scrolling.)
+                || mStayInShorts);
         View surfaceRoot = getView().findViewById(R.id.surface_root);
 
         // Shorts: leave a little space above and below the video for the frame
@@ -366,6 +370,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     }
 
     private void switchShort(boolean next) {
+        mStayInShorts = true;
         mShortsOverlay.clearSelection();
 
         if (next) {
@@ -447,6 +452,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     @Override
     public void onStop() {
         super.onStop();
+        mStayInShorts = false; // left the player: the next video decides for itself
 
         if (Util.SDK_INT > 23) {
             maybeReleasePlayer();
