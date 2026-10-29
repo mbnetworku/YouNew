@@ -431,6 +431,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         }
 
         mCurrentVideo = item;
+        com.liskovsoft.smartyoutubetv2.common.misc.VideoPrefetcher.onCardSelected(item); // YouNew: get the video data ready before OK
     }
 
     @Override

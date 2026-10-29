@@ -96,6 +96,7 @@ public class SearchPresenter extends BasePresenter<SearchView> implements VideoG
     @Override
     public void onVideoItemSelected(Video item) {
         mCurrentVideo = item;
+        com.liskovsoft.smartyoutubetv2.common.misc.VideoPrefetcher.onCardSelected(item); // YouNew: get the video data ready before OK
     }
 
     @Override

@@ -21,7 +21,8 @@ import com.liskovsoft.smartyoutubetv2.tv.R;
  */
 public final class ProgressBarManager {
     // Default delay for progress bar widget.
-    private static final long SHOW_DELAY_MS = 500;
+    // YouNew: show the loader sooner (was 500 ms), so the app answers at once when you open it or press OK
+    private static final long SHOW_DELAY_MS = 120;
     private static final long HIDE_DELAY_MS = 50;
     private long mHideTimeMs;
     
@@ -62,11 +63,8 @@ public final class ProgressBarManager {
     };
 
     private static View createProgressBar(ViewGroup rootView, int position) {
-        ProgressBar progressBarView = new ProgressBar(
-                rootView.getContext(), null, android.R.attr.progressBarStyleLarge);
-        progressBarView.setIndeterminate(true);
-        progressBarView.setIndeterminateDrawable(
-                ContextCompat.getDrawable(rootView.getContext(), R.drawable.progress_large_holo));
+        // YouNew: the YouNew badge with a turning red ring, instead of the plain grey spinner
+        View progressBarView = new com.liskovsoft.smartyoutubetv2.tv.ui.widgets.YouNewLoadingView(rootView.getContext());
 
         FrameLayout.LayoutParams progressBarParams = new FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.WRAP_CONTENT,
