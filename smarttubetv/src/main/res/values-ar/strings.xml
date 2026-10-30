@@ -3,4 +3,8 @@
 <resources>
     <!-- "Search" pill in the top bar -->
     <string name="search_hint">البحث عن فيديوهات</string>
+    <string name="topic_music">موسيقى</string>
+    <string name="topic_gaming">ألعاب</string>
+    <string name="topic_news">أخبار</string>
+    <string name="topic_sports">رياضة</string>
 </resources>

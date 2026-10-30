@@ -40,7 +40,7 @@
         <!-- YouNew: "Search" pill next to the search button, like YouTube TV -->
         <TextView
             android:id="@+id/search_pill"
-            android:layout_width="300dp"
+            android:layout_width="200dp"
             android:layout_height="44dp"
             android:layout_gravity="center_vertical"
             android:layout_marginStart="12dp"
@@ -62,12 +62,26 @@
             android:transitionGroup="true"
             android:layout_marginStart="@dimen/search_bar_right_items_margin"
             android:nextFocusLeft="@id/title_orb"
-            android:nextFocusRight="@id/language_orb"
+            android:nextFocusRight="@id/chip_music"
             app:searchOrbIcon="@drawable/browse_title_account"
             app:searchOrbColor="@color/orb_color"
             app:searchOrbBrightColor="@color/orb_bright_color"
             app:searchOrbIconColor="@color/orb_icon_color"
             android:visibility="gone" />
+
+        <!-- YouNew: topic buttons; each one opens a search for that topic -->
+        <TextView android:id="@+id/chip_music" style="@style/YouNewTopicChip"
+            android:text="@string/topic_music"
+            android:nextFocusLeft="@id/account_orb" android:nextFocusRight="@id/chip_gaming" />
+        <TextView android:id="@+id/chip_gaming" style="@style/YouNewTopicChip"
+            android:text="@string/topic_gaming"
+            android:nextFocusLeft="@id/chip_music" android:nextFocusRight="@id/chip_news" />
+        <TextView android:id="@+id/chip_news" style="@style/YouNewTopicChip"
+            android:text="@string/topic_news"
+            android:nextFocusLeft="@id/chip_gaming" android:nextFocusRight="@id/chip_sports" />
+        <TextView android:id="@+id/chip_sports" style="@style/YouNewTopicChip"
+            android:text="@string/topic_sports"
+            android:nextFocusLeft="@id/chip_news" />
 
         <androidx.leanback.widget.SearchOrbView
             android:id="@+id/language_orb"

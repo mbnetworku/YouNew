@@ -38,6 +38,10 @@
 
     <!-- The hint text that appears in the search box. -->
     <string name="search_hint">Search for videos</string>
+    <string name="topic_music">Music</string>
+    <string name="topic_gaming">Gaming</string>
+    <string name="topic_news">News</string>
+    <string name="topic_sports">Sports</string>
 
     <!-- The description that will show up in the search settings for this source.  -->
     <string name="settings_description">Leanback API Demo Videos</string>

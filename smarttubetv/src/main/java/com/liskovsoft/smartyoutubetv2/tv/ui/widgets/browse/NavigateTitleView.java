@@ -22,6 +22,7 @@ import com.liskovsoft.mediaserviceinterfaces.oauth.Account;
 import com.liskovsoft.sharedutils.locale.LocaleUtility;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.PlaybackPresenter;
+import com.liskovsoft.smartyoutubetv2.common.app.presenters.SearchPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.dialogs.AccountSelectionPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.AccountSettingsPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.settings.LanguageSettingsPresenter;
@@ -198,6 +199,20 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         View searchPill = findViewById(R.id.search_pill);
         if (searchPill != null && mSearchOrbView != null) {
             searchPill.setOnClickListener(v -> mSearchOrbView.performClick());
+        }
+
+        // YouNew: topic buttons (Music, Gaming, News, Sports) open a search for that topic
+        for (int chipId : new int[]{R.id.chip_music, R.id.chip_gaming, R.id.chip_news, R.id.chip_sports}) {
+            TextView chip = findViewById(chipId);
+            if (chip != null) {
+                chip.setOnClickListener(v -> {
+                    String topic = chip.getText().toString();
+                    SearchPresenter searchPresenter = SearchPresenter.instance(getContext());
+                    searchPresenter.startSearch(topic);
+                    // The search screen cancels a search sent while it is still opening, so send it again once it is ready
+                    Utils.postDelayed(() -> searchPresenter.onSearch(topic), 1_000);
+                });
+            }
         }
 
         mAccountView = findViewById(R.id.account_orb);

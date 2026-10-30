@@ -35,6 +35,7 @@ public class SearchPresenter extends BasePresenter<SearchView> implements VideoG
     private final BrowseProcessorManager mBrowseProcessor;
     private Disposable mScrollAction;
     private Disposable mLoadAction;
+    private boolean mInOnSearch;
     private String mSearchText;
     private boolean mIsVoice;
     private boolean mStartPlay;
@@ -157,16 +158,28 @@ public class SearchPresenter extends BasePresenter<SearchView> implements VideoG
     }
 
     public void onSearch(String searchText) {
-        // Restore the search in case the view unloaded from the memory
-        mSearchText = searchText;
-
-        if (getView() == null) {
-            Log.e(TAG, "Search view has been unloaded from the memory. Low RAM?");
-            startSearch(searchText);
+        // YouNew: when a topic button or a suggestion fills the search box, clearing the old results makes the
+        // screen submit the same text again while this call is still running. That inner call cancelled the real
+        // one and left the results empty, so it is ignored.
+        if (mInOnSearch) {
             return;
         }
 
-        loadSearchResult(searchText);
+        mInOnSearch = true;
+        try {
+            // Restore the search in case the view unloaded from the memory
+            mSearchText = searchText;
+
+            if (getView() == null) {
+                Log.e(TAG, "Search view has been unloaded from the memory. Low RAM?");
+                startSearch(searchText);
+                return;
+            }
+
+            loadSearchResult(searchText);
+        } finally {
+            mInOnSearch = false;
+        }
     }
 
     private void loadSearchResult(String searchText) {

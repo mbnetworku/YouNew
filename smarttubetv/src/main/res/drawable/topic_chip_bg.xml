@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Home top bar topic buttons (Music, Gaming...): dark grey pill, white when focused (YouTube TV style). -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <item android:state_focused="true"><shape android:shape="rectangle"><solid android:color="#F1F1F1"/><corners android:radius="20dp"/></shape></item>
+    <item><shape android:shape="rectangle"><solid android:color="#272727"/><corners android:radius="20dp"/></shape></item>
+</selector>
