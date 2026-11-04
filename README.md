@@ -7,6 +7,15 @@ a white focus ring, and a slim left icon menu that expands to labels.
 
 Needs JDK 17 and the Android SDK (platform 34, build-tools 30.0.3).
 
+On Windows, some file paths in this repo are longer than 260 characters once cloned into a deep
+folder, and git then skips those files without stopping. Turn on long paths and clone into a short
+folder, for example:
+
+```
+git config --global core.longpaths true
+git clone https://github.com/mbnetworku/YouNew.git C:\src\yn
+```
+
 ```
 ./gradlew assembleStfdroidRelease
 ```
