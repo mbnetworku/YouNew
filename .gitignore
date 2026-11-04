@@ -8,9 +8,10 @@
 # Java class files
 *.class
 
-# generated files
-bin/
-gen/
+# generated files (root only: source packages named "gen", such as
+# MediaServiceCore/youtubeapi/.../browse/v2/gen, are real code and must be committed)
+/bin/
+/gen/
 
 # Local configuration file (sdk path, etc)
 local.properties
