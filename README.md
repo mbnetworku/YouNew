@@ -96,6 +96,13 @@ keyAlias=...
 keyPassword=...
 ```
 
+## Technical documentation
+
+- [docs/TECHNICAL.md](docs/TECHNICAL.md): architecture (Settings panel, sidebar, updater), build, test and release
+  procedure, signing, known traps.
+- [docs/CLAUDE.md](docs/CLAUDE.md): rules and working notes for AI assistants and contributors.
+- [docs/AI_MEMORY.md](docs/AI_MEMORY.md): project memory: version timeline, decisions, lessons, open items.
+
 ## Licence and credits
 
 This project is based on [SmartTube](https://github.com/yuliskov/SmartTube) by Yurii Liskov
