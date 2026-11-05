@@ -49,6 +49,19 @@ if adb root > /dev/null 2>&1; then
     adb shell input keyevent KEYCODE_BACK || true
     sleep 2
   done
+  # Inline choice: open General, press OK on the first row (Boot to section) to unfold its list in the page,
+  # then move down, pick a choice and check that nothing crashes
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsScreenActivity" --ei page 1 || true
+  sleep 7
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 2
+  adb shell screencap -p /data/local/tmp/settings-choice-open.png && adb pull /data/local/tmp/settings-choice-open.png settings-choice-open.png || true
+  adb shell input keyevent KEYCODE_DPAD_DOWN || true
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 3
+  adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+  adb shell screencap -p /data/local/tmp/settings-choice-done.png && adb pull /data/local/tmp/settings-choice-done.png settings-choice-done.png || true
+  adb shell input keyevent KEYCODE_BACK || true
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"

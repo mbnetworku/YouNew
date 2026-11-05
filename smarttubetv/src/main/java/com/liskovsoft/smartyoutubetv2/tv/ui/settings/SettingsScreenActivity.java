@@ -1,6 +1,5 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.settings;
 
-import android.app.AlertDialog;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -16,7 +15,9 @@ import android.view.Gravity;
 import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.RadioButton;
 import android.widget.ScrollView;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -45,6 +46,9 @@ import java.util.List;
  * options in, and Back (or the arrow at the top) slides back to the list. Wide screens (TV, a phone held
  * sideways): both panes together. The screen rebuilds itself when the phone is turned.
  * <br>
+ * Choices open inside the page (no pop-up): a click on a choice row unfolds its list right under it.
+ * Every page and every setting has an icon.
+ * <br>
  * Animations: the options of a page glide in one after another, rows grow a little under the remote focus or the
  * mouse and shrink a little while pressed, and the panes slide in a narrow screen.
  * <br>
@@ -66,12 +70,14 @@ public class SettingsScreenActivity extends MotherActivity {
     private static final float PRESS_SCALE = 0.97f;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
-    private final List<TextView> mPageViews = new ArrayList<>();
+    private final List<View> mPageViews = new ArrayList<>();
     private final List<View> mRows = new ArrayList<>();
     private final List<Runnable> mOnFinish = new ArrayList<>();
     private List<SettingsItem> mPages = new ArrayList<>();
     private LinearLayout mContent;
     private ScrollView mScroll;
+    private int mPageIconRes;
+    private Runnable mCollapseOpenChoices;
     private LinearLayout mLeftPanel;
     private boolean mTwoPane;
     private boolean mShowingOptions;
@@ -197,15 +203,25 @@ public class SettingsScreenActivity extends MotherActivity {
 
         for (int i = 0; i < mPages.size(); i++) {
             final int index = i;
-            TextView item = text(mPages.get(i).title, 22, TEXT, false);
+            LinearLayout item = new LinearLayout(this);
+            item.setOrientation(LinearLayout.HORIZONTAL);
             item.setGravity(Gravity.CENTER_VERTICAL);
             item.setPadding(dp(20), 0, dp(20), 0);
-            item.setSingleLine(true);
             item.setFocusable(true);
             item.setClickable(true);
             item.setBackground(pageBackground());
-            item.setTextColor(new ColorStateList(
-                    new int[][]{{android.R.attr.state_selected}, {}}, new int[]{Color.BLACK, TEXT}));
+
+            ColorStateList onPill = new ColorStateList(
+                    new int[][]{{android.R.attr.state_selected}, {}}, new int[]{Color.BLACK, TEXT});
+            ImageView icon = icon(mPages.get(i).imageResId, 26);
+            icon.setImageTintList(onPill);
+            item.addView(icon);
+
+            TextView label = text(mPages.get(i).title, 22, TEXT, false);
+            label.setSingleLine(true);
+            label.setTextColor(onPill);
+            label.setPadding(dp(16), 0, 0, 0);
+            item.addView(label);
             item.setOnClickListener(v -> {
                 showPage(index);
                 showOptions(true, true); // narrow screen: slide the options in (nothing happens on a wide one)
@@ -395,6 +411,7 @@ public class SettingsScreenActivity extends MotherActivity {
     private void renderPage(int index, List<OptionCategory> categories, int focusRow) {
         mContent.removeAllViews();
         mRows.clear();
+        mCollapseOpenChoices = null;
 
         LinearLayout headingRow = new LinearLayout(this);
         headingRow.setOrientation(LinearLayout.HORIZONTAL);
@@ -405,8 +422,14 @@ public class SettingsScreenActivity extends MotherActivity {
             headingRow.addView(backArrow());
         }
 
+        mPageIconRes = mPages.get(index).imageResId;
+        ImageView headingIcon = icon(mPageIconRes, 32);
+        LinearLayout.LayoutParams headingIconParams = new LinearLayout.LayoutParams(dp(32), dp(32));
+        headingIconParams.setMarginStart(dp(mTwoPane ? 20 : 8));
+        headingRow.addView(headingIcon, headingIconParams);
+
         TextView heading = text(mPages.get(index).title, 30, TEXT, true);
-        heading.setPadding(dp(mTwoPane ? 20 : 8), 0, 0, 0);
+        heading.setPadding(dp(14), 0, 0, 0);
         headingRow.addView(heading);
         mContent.addView(headingRow);
 
@@ -475,7 +498,7 @@ public class SettingsScreenActivity extends MotherActivity {
     }
 
     private void addSwitchRow(OptionItem item) {
-        LinearLayout row = newRow();
+        LinearLayout row = newRow(item.getTitle());
         row.addView(titleBlock(item.getTitle(), item.getDescription()), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         Switch toggle = new Switch(this);
@@ -493,7 +516,10 @@ public class SettingsScreenActivity extends MotherActivity {
         addRow(row);
     }
 
-    /** A list where one choice is picked: the row shows the current choice, a click opens the choices. */
+    /**
+     * A list where one choice is picked. The row shows the current choice; a click unfolds the choices right under
+     * it, inside the page (no pop-up). Choosing one folds the list again.
+     */
     private void addChoiceRow(OptionCategory category) {
         final List<OptionItem> options = category.options;
         int selected = -1;
@@ -504,44 +530,130 @@ public class SettingsScreenActivity extends MotherActivity {
             }
         }
 
-        LinearLayout row = newRow();
+        final LinearLayout wrapper = new LinearLayout(this);
+        wrapper.setOrientation(LinearLayout.VERTICAL);
+
+        final LinearLayout row = newRow(category.title);
         row.addView(titleBlock(category.title, null), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
-        TextView value = text(selected >= 0 ? options.get(selected).getTitle().toString() : "", 20, MUTED, false);
+        final TextView value = text(selected >= 0 ? String.valueOf(options.get(selected).getTitle()) : "", 20, MUTED, false);
         value.setSingleLine(true);
-        value.setMaxWidth(dp(360));
+        value.setMaxWidth(dp(280));
         value.setGravity(Gravity.END | Gravity.CENTER_VERTICAL);
         row.addView(value);
 
-        final int rowIndex = mRows.size();
-        row.setOnClickListener(v -> showChoices(category, rowIndex));
+        final TextView arrow = text("\u203A", 30, MUTED, true); // a chevron that turns down when unfolded
+        arrow.setPadding(dp(12), 0, 0, dp(2));
+        row.addView(arrow);
+        wrapper.addView(row);
 
-        addRow(row);
+        final int rowIndex = mRows.size();
+        final MaxHeightScrollView[] list = {null};
+
+        row.setOnClickListener(v -> {
+            if (list[0] != null) {
+                if (mCollapseOpenChoices != null) {
+                    mCollapseOpenChoices.run();
+                }
+                return;
+            }
+
+            if (mCollapseOpenChoices != null) {
+                mCollapseOpenChoices.run(); // only one list is open at a time
+            }
+
+            list[0] = buildChoiceList(options, value, rowIndex);
+            wrapper.addView(list[0]);
+            list[0].setAlpha(0f);
+            list[0].setTranslationY(-dp(8));
+            list[0].animate().alpha(1f).translationY(0f).setDuration(180).start();
+            arrow.animate().rotation(90f).setDuration(180).start();
+
+            mCollapseOpenChoices = () -> {
+                final MaxHeightScrollView open = list[0];
+                list[0] = null;
+                mCollapseOpenChoices = null;
+                arrow.animate().rotation(0f).setDuration(180).start();
+                if (open != null) {
+                    open.animate().alpha(0f).setDuration(140).withEndAction(() -> wrapper.removeView(open)).start();
+                }
+            };
+
+            // Bring the unfolded list into view (long lists such as Language)
+            mScroll.post(() -> mScroll.smoothScrollTo(0, Math.max(0, wrapper.getTop() - dp(8))));
+        });
+
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.bottomMargin = dp(4);
+        mContent.addView(wrapper, lp);
+        mRows.add(row);
     }
 
-    private void showChoices(OptionCategory category, int rowIndex) {
-        final List<OptionItem> options = category.options;
-        CharSequence[] names = new CharSequence[options.size()];
+    /** The unfolded choices: a radio dot and a name each. Long lists scroll inside their own box. */
+    private MaxHeightScrollView buildChoiceList(List<OptionItem> options, TextView value, int rowIndex) {
+        MaxHeightScrollView box = new MaxHeightScrollView(this, dp(320));
+        LinearLayout items = new LinearLayout(this);
+        items.setOrientation(LinearLayout.VERTICAL);
+        items.setPadding(dp(40), dp(2), 0, dp(8));
+        box.addView(items, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        final List<RadioButton> dots = new ArrayList<>();
         int checked = -1;
         for (int i = 0; i < options.size(); i++) {
-            names[i] = options.get(i).getTitle();
             if (options.get(i).isSelected()) {
                 checked = i;
             }
         }
 
-        new AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
-                .setTitle(category.title)
-                .setSingleChoiceItems(names, checked, (dialog, which) -> {
-                    dialog.dismiss();
-                    options.get(which).onSelect(true); // only the chosen one is told (the old screen did the same)
-                    reloadPage(rowIndex);
-                })
-                .show();
+        for (int i = 0; i < options.size(); i++) {
+            final int index = i;
+            final OptionItem option = options.get(i);
+
+            LinearLayout choice = new LinearLayout(this);
+            choice.setOrientation(LinearLayout.HORIZONTAL);
+            choice.setGravity(Gravity.CENTER_VERTICAL);
+            choice.setPadding(dp(16), dp(10), dp(16), dp(10));
+            choice.setFocusable(true);
+            choice.setClickable(true);
+            choice.setBackground(rowBackground());
+            choice.setOnFocusChangeListener((v, hasFocus) -> grow(v, hasFocus));
+            addTouchFeedback(choice);
+
+            RadioButton dot = new RadioButton(this);
+            dot.setChecked(i == checked);
+            dot.setClickable(false);
+            dot.setFocusable(false);
+            dots.add(dot);
+            choice.addView(dot);
+
+            TextView name = text(String.valueOf(option.getTitle()), 20, TEXT, false);
+            name.setPadding(dp(12), 0, 0, 0);
+            choice.addView(name);
+
+            choice.setOnClickListener(v -> {
+                for (int d = 0; d < dots.size(); d++) {
+                    dots.get(d).setChecked(d == index);
+                }
+                value.setText(String.valueOf(option.getTitle()));
+                option.onSelect(true); // only the chosen one is told (the old screen did the same)
+                if (mCollapseOpenChoices != null) {
+                    mCollapseOpenChoices.run();
+                }
+                mHandler.postDelayed(() -> {
+                    if (!isFinishing()) {
+                        reloadPage(rowIndex);
+                    }
+                }, 260);
+            });
+
+            items.addView(choice);
+        }
+
+        return box;
     }
 
     private void addButtonRow(OptionItem item) {
-        LinearLayout row = newRow();
+        LinearLayout row = newRow(item.getTitle());
         row.addView(titleBlock(item.getTitle(), item.getDescription()), new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
 
         final int rowIndex = mRows.size();
@@ -563,7 +675,7 @@ public class SettingsScreenActivity extends MotherActivity {
         mContent.addView(view);
     }
 
-    private LinearLayout newRow() {
+    private LinearLayout newRow(CharSequence iconTitle) {
         LinearLayout row = new LinearLayout(this);
         row.setOrientation(LinearLayout.HORIZONTAL);
         row.setGravity(Gravity.CENTER_VERTICAL);
@@ -574,6 +686,11 @@ public class SettingsScreenActivity extends MotherActivity {
         row.setBackground(rowBackground());
         row.setOnFocusChangeListener((v, hasFocus) -> grow(v, hasFocus));
         addTouchFeedback(row);
+
+        ImageView icon = icon(iconFor(iconTitle), 24);
+        LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(24), dp(24));
+        iconParams.setMarginEnd(dp(16));
+        row.addView(icon, iconParams);
         return row;
     }
 
@@ -598,6 +715,72 @@ public class SettingsScreenActivity extends MotherActivity {
         }
 
         return block;
+    }
+
+    // ---------------------------------------------------------------- icons
+
+    private ImageView icon(int resId, int sizeDp) {
+        ImageView view = new ImageView(this);
+        view.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        view.setImageTintList(ColorStateList.valueOf(TEXT));
+        view.setLayoutParams(new LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp)));
+        if (resId > 0) {
+            try {
+                view.setImageResource(resId);
+            } catch (RuntimeException e) {
+                // no icon: the space stays empty
+            }
+        }
+        return view;
+    }
+
+    /**
+     * An icon for a setting, chosen by words in its (English) name; any other setting gets the icon of its page.
+     * The icons are the ones the app already has (white pictures).
+     */
+    private int iconFor(CharSequence title) {
+        String name = title == null ? "" : title.toString().toLowerCase();
+        String[][] words = {
+                {"shorts", "icon_shorts"}, {"watched", "icon_history"}, {"history", "icon_history"},
+                {"upcoming", "icon_live"}, {"live", "icon_live"}, {"mix", "icon_playlist"},
+                {"playlist", "icon_playlist"}, {"queue", "icon_queue"}, {"boot", "icon_home"},
+                {"background", "icon_queue"}, {"news", "icon_news"}, {"music", "icon_music"},
+                {"subscription", "icon_subscriptions"}, {"notification", "icon_notification"},
+                {"language", "settings_language"}, {"country", "settings_language"}, {"location", "settings_language"},
+                {"subtitle", "settings_subtitles"}, {"sign", "settings_account"}, {"account", "settings_account"},
+                {"scale", "settings_ui_scale"}, {"grid", "settings_ui_scale"}, {"quality", "settings_hq"},
+                {"preset", "settings_hq"}, {"color", "settings_main_ui"}, {"thumbnail", "settings_main_ui"},
+                {"search", "settings_search"}, {"block", "settings_block"},
+                {"speed", "settings_player"}, {"volume", "settings_player"}, {"audio", "settings_player"},
+                {"seek", "settings_player"}, {"sleep", "settings_player"}, {"playback", "settings_player"},
+                {"version", "settings_about"}, {"clean", "icon_trending"}
+        };
+
+        for (String[] pair : words) {
+            if (name.contains(pair[0])) {
+                int id = getResources().getIdentifier(pair[1], "drawable", getPackageName());
+                if (id > 0) {
+                    return id;
+                }
+            }
+        }
+
+        return mPageIconRes;
+    }
+
+    /** A scroll box that stops growing at a maximum height (long lists scroll inside it). */
+    private static class MaxHeightScrollView extends ScrollView {
+        private final int mMaxHeight;
+
+        MaxHeightScrollView(android.content.Context context, int maxHeight) {
+            super(context);
+            mMaxHeight = maxHeight;
+        }
+
+        @Override
+        protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+            super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(mMaxHeight, View.MeasureSpec.AT_MOST));
+        }
     }
 
     // ---------------------------------------------------------------- looks
