@@ -109,6 +109,10 @@ android {
 
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
+            } else {
+                // YouNew: no keystore.properties -> sign with the debug key, so the release APK still installs
+                // (an unsigned APK is refused by Android). Use your own key for APKs you publish.
+                signingConfig signingConfigs.debug
             }
         }
         // Use same key for release and debug for testing

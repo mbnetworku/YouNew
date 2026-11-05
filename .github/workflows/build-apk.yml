@@ -40,7 +40,9 @@ jobs:
             "$BT/aapt" dump badging "$apk" | grep -E "^package:|sdkVersion|targetSdkVersion|application-label:|launchable-activity|leanback-launchable|native-code"
             unzip -l "$apk" | grep -c "classes.*\.dex" | sed 's/^/dex files: /'
             "$BT/zipalign" -c 4 "$apk" && echo "zipalign: OK"
-            "$BT/apksigner" verify --print-certs "$apk" | head -3 || echo "apksigner: not signed (release without keystore.properties)"
+            # Fails the build if the APK is not signed (Android refuses to install it then)
+            "$BT/apksigner" verify --min-sdk-version 21 --print-certs "$apk" > signer.txt
+            head -3 signer.txt
           done
 
       - uses: actions/upload-artifact@v4

@@ -24,7 +24,7 @@ git clone https://github.com/mbnetworku/YouNew.git C:\src\yn
 ```
 
 The universal APK is written to `smarttubetv/build/outputs/apk/stfdroid/release/`.
-To sign it, create a `keystore.properties` file in the project root (never commit it):
+Without a keystore it is signed with the debug key, so it still installs. To sign it with your own key, create a `keystore.properties` file in the project root (never commit it):
 
 ```
 storeFile=path/to/your.jks

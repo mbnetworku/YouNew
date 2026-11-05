@@ -12,7 +12,8 @@ adb shell monkey -p "$PKG" -c android.intent.category.LAUNCHER 1
 sleep 30
 adb shell dumpsys window windows | grep -E "mCurrentFocus|mFocusedApp" || true
 adb logcat -d > logcat.txt
-adb shell screencap -p /sdcard/screen.png && adb pull /sdcard/screen.png screen.png || true
+# /data/local/tmp: the Android 5 emulators have no writable SD card
+adb shell screencap -p /data/local/tmp/screen.png && adb pull /data/local/tmp/screen.png screen.png || true
 if grep -q "FATAL EXCEPTION" logcat.txt; then
   echo "The app crashed:"
   grep -A40 "FATAL EXCEPTION" logcat.txt
