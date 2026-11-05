@@ -470,7 +470,7 @@
     <string name="starting_stream">Starting the stream…</string>
     <string name="action_playlist_remove">Remove from playlist</string>
     <string name="signin_view_title">User Code is loading…</string>
-    <string name="signin_view_description">On this TV: press \"Sign in on this TV\", type your Google email and password, press Allow.\nOr with your phone: scan the QR code (or open %s and type the code above), choose your account, press Allow.\nThis screen closes by itself when you are signed in.</string>
+    <string name="signin_view_description">On this TV: press \"Sign in on this TV\" (or \"Sign in with the web browser\"), type your Google email and password, press Allow.\nOr with your phone: scan the QR code (or open %s and type the code above), choose your account, press Allow.\nThis screen closes by itself when you are signed in.</string>
     <string name="signin_view_action_text">Close</string>
     <string name="require_checked">Requires \"%s\"</string>
     <string name="msg_press_again_to_exit">Press again to exit</string>
@@ -768,5 +768,7 @@
     <string name="younew_no_history">Nothing watched yet.\nThe videos you watch show up here, newest first,\nso you can find them and continue where you stopped.\nNo Google account needed.</string>
     <string name="younew_sign_in_on_tv">Sign in on this TV</string>
     <string name="younew_sign_in_on_tv_desc">Google\'s sign-in page opens here: type your email and password</string>
+    <string name="younew_sign_in_in_browser">Sign in with the web browser</string>
+    <string name="younew_sign_in_in_browser_desc">The same Google page in the TV\'s browser (Chrome…)</string>
     <string name="younew_subscriptions_feed">Subscriptions feed (Google account)</string>
 </resources>

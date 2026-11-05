@@ -34,6 +34,7 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
     private static final String TAG = SignInFragment.class.getSimpleName();
     private static final int CONTINUE = 2;
     private static final int SIGN_IN_ON_TV = 4;
+    private static final int SIGN_IN_IN_BROWSER = 5;
     private static final int QR_SIZE_DP = 240;
     private SignInPresenter mSignInPresenter;
     private String mFullSignInUrl;
@@ -178,7 +179,14 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
                 .id(CONTINUE)
                 .title(getString(R.string.signin_view_action_text))
                 .build();
+        // YouNew: the same Google page in the box's own web browser (when Google refuses the page inside the app)
+        GuidedAction signInInBrowser = new GuidedAction.Builder()
+                .id(SIGN_IN_IN_BROWSER)
+                .title(getString(R.string.younew_sign_in_in_browser))
+                .description(getString(R.string.younew_sign_in_in_browser_desc))
+                .build();
         actions.add(signInOnTv);
+        actions.add(signInInBrowser);
         actions.add(close);
     }
 
@@ -188,6 +196,10 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
             mSignInPresenter.onActionClicked();
         } else if (action.getId() == SIGN_IN_ON_TV) {
             signInOnTv();
+        } else if (action.getId() == SIGN_IN_IN_BROWSER) {
+            if (getContext() != null && !TextUtils.isEmpty(mFullSignInUrl)) {
+                Utils.openLinkExt(getContext(), mFullSignInUrl);
+            }
         }
     }
 
