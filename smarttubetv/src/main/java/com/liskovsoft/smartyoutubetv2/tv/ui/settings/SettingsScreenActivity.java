@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.settings;
 
+import android.animation.ValueAnimator;
 import android.content.res.ColorStateList;
 import android.content.res.Configuration;
 import android.graphics.Color;
@@ -13,6 +14,7 @@ import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
 import android.view.MotionEvent;
+import android.view.animation.OvershootInterpolator;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -49,6 +51,10 @@ import java.util.List;
  * Choices open inside the page (no pop-up): a click on a choice row unfolds its list right under it.
  * Every page and every setting has an icon.
  * <br>
+ * More animation: the screen fades and grows in and out; the pages on the left slide in one after another; a page's
+ * options glide in from below or from above depending on which way you moved in the list; the icon of a switch pops
+ * when you flip it; an unfolded list opens and closes smoothly; a changed value fades to its new text.
+ * <br>
  * Animations: the options of a page glide in one after another, rows grow a little under the remote focus or the
  * mouse and shrink a little while pressed, and the panes slide in a narrow screen.
  * <br>
@@ -77,6 +83,7 @@ public class SettingsScreenActivity extends MotherActivity {
     private LinearLayout mContent;
     private ScrollView mScroll;
     private int mPageIconRes;
+    private boolean mSlideFromBelow = true;
     private Runnable mCollapseOpenChoices;
     private LinearLayout mLeftPanel;
     private boolean mTwoPane;
@@ -93,6 +100,8 @@ public class SettingsScreenActivity extends MotherActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+
+        overridePendingTransition(R.anim.settings_enter, R.anim.settings_stay);
 
         mPages = AppDataSourceManager.instance().getSettingItems(this);
 
@@ -153,6 +162,7 @@ public class SettingsScreenActivity extends MotherActivity {
     public void finish() {
         runFinishCallbacks();
         super.finish();
+        overridePendingTransition(R.anim.settings_stay, R.anim.settings_exit);
     }
 
     /** Some pages ask for a restart or a refresh when you leave them. */
@@ -239,6 +249,11 @@ public class SettingsScreenActivity extends MotherActivity {
             lp.bottomMargin = dp(4);
             left.addView(item, lp);
             mPageViews.add(item);
+
+            // The pages slide in one after another
+            item.setAlpha(0f);
+            item.setTranslationX(-dp(24));
+            item.animate().alpha(1f).translationX(0f).setStartDelay(80L + i * 45L).setDuration(240).start();
         }
 
         // Right: the options of the chosen page
@@ -299,6 +314,23 @@ public class SettingsScreenActivity extends MotherActivity {
         }
     }
 
+    /** A quick "pop" (bigger, then back with a little overshoot): shows that a switch was flipped or a choice made. */
+    private void pop(View view) {
+        view.animate().cancel();
+        view.setScaleX(0.6f);
+        view.setScaleY(0.6f);
+        view.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new OvershootInterpolator(3f)).start();
+    }
+
+    /** A value fades out and back in with its new text. */
+    private void fadeText(TextView view, String text) {
+        view.animate().cancel();
+        view.animate().alpha(0f).setDuration(90).withEndAction(() -> {
+            view.setText(text);
+            view.animate().alpha(1f).setDuration(140).start();
+        }).start();
+    }
+
     /** A view grows a little while it has the remote focus or the mouse over it. */
     private void grow(View view, boolean on) {
         float scale = on ? FOCUS_SCALE : 1f;
@@ -339,9 +371,10 @@ public class SettingsScreenActivity extends MotherActivity {
         for (int i = 0; i < count; i++) {
             View child = mContent.getChildAt(i);
             child.setAlpha(0f);
-            child.setTranslationX(dp(28));
-            child.animate().alpha(1f).translationX(0f)
-                    .setStartDelay(Math.min(i, 10) * 35L).setDuration(220).start();
+            child.setTranslationX(dp(20));
+            child.setTranslationY(mSlideFromBelow ? dp(16) : -dp(16));
+            child.animate().alpha(1f).translationX(0f).translationY(0f)
+                    .setStartDelay(Math.min(i, 10) * 35L).setDuration(240).start();
         }
     }
 
@@ -368,6 +401,7 @@ public class SettingsScreenActivity extends MotherActivity {
             return;
         }
 
+        mSlideFromBelow = index >= mCurrentPage; // moving down the list: the options come up from below
         mCurrentPage = index;
 
         for (int i = 0; i < mPageViews.size(); i++) {
@@ -510,6 +544,7 @@ public class SettingsScreenActivity extends MotherActivity {
         row.setOnClickListener(v -> {
             boolean now = !toggle.isChecked();
             toggle.setChecked(now);
+            pop(row.getChildAt(0)); // the icon pops
             item.onSelect(now);
         });
 
@@ -562,20 +597,19 @@ public class SettingsScreenActivity extends MotherActivity {
                 mCollapseOpenChoices.run(); // only one list is open at a time
             }
 
-            list[0] = buildChoiceList(options, value, rowIndex);
-            wrapper.addView(list[0]);
-            list[0].setAlpha(0f);
-            list[0].setTranslationY(-dp(8));
-            list[0].animate().alpha(1f).translationY(0f).setDuration(180).start();
-            arrow.animate().rotation(90f).setDuration(180).start();
+            final MaxHeightScrollView box = buildChoiceList(options, value, rowIndex);
+            list[0] = box;
+            wrapper.addView(box);
+            unfold(box, true, null);
+            arrow.animate().rotation(90f).setDuration(200).start();
 
             mCollapseOpenChoices = () -> {
                 final MaxHeightScrollView open = list[0];
                 list[0] = null;
                 mCollapseOpenChoices = null;
-                arrow.animate().rotation(0f).setDuration(180).start();
+                arrow.animate().rotation(0f).setDuration(200).start();
                 if (open != null) {
-                    open.animate().alpha(0f).setDuration(140).withEndAction(() -> wrapper.removeView(open)).start();
+                    unfold(open, false, () -> wrapper.removeView(open));
                 }
             };
 
@@ -587,6 +621,41 @@ public class SettingsScreenActivity extends MotherActivity {
         lp.bottomMargin = dp(4);
         mContent.addView(wrapper, lp);
         mRows.add(row);
+    }
+
+    /** Opens (or closes) a list smoothly: its height grows from nothing (or shrinks to nothing) while it fades. */
+    private void unfold(final View box, final boolean open, final Runnable onEnd) {
+        box.measure(View.MeasureSpec.makeMeasureSpec(mContent.getWidth() > 0 ? mContent.getWidth() : dp(600), View.MeasureSpec.AT_MOST),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+        final int full = Math.max(1, box.getMeasuredHeight());
+        final int from = open ? 0 : box.getHeight() > 0 ? box.getHeight() : full;
+        final int to = open ? full : 0;
+
+        final ViewGroup.LayoutParams params = box.getLayoutParams();
+        params.height = from;
+        box.setLayoutParams(params);
+
+        ValueAnimator animator = ValueAnimator.ofInt(from, to);
+        animator.setDuration(open ? 240 : 180);
+        animator.addUpdateListener(a -> {
+            params.height = (int) a.getAnimatedValue();
+            box.setLayoutParams(params);
+            box.setAlpha(open ? a.getAnimatedFraction() : 1f - a.getAnimatedFraction());
+        });
+        animator.addListener(new android.animation.AnimatorListenerAdapter() {
+            @Override
+            public void onAnimationEnd(android.animation.Animator animation) {
+                if (open) {
+                    params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
+                    box.setLayoutParams(params);
+                    box.setAlpha(1f);
+                }
+                if (onEnd != null) {
+                    onEnd.run();
+                }
+            }
+        });
+        animator.start();
     }
 
     /** The unfolded choices: a radio dot and a name each. Long lists scroll inside their own box. */
@@ -634,7 +703,7 @@ public class SettingsScreenActivity extends MotherActivity {
                 for (int d = 0; d < dots.size(); d++) {
                     dots.get(d).setChecked(d == index);
                 }
-                value.setText(String.valueOf(option.getTitle()));
+                fadeText(value, String.valueOf(option.getTitle()));
                 option.onSelect(true); // only the chosen one is told (the old screen did the same)
                 if (mCollapseOpenChoices != null) {
                     mCollapseOpenChoices.run();
@@ -779,7 +848,11 @@ public class SettingsScreenActivity extends MotherActivity {
 
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(mMaxHeight, View.MeasureSpec.AT_MOST));
+            if (View.MeasureSpec.getMode(heightMeasureSpec) == View.MeasureSpec.EXACTLY) {
+                super.onMeasure(widthMeasureSpec, heightMeasureSpec); // being animated to a given height
+            } else {
+                super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(mMaxHeight, View.MeasureSpec.AT_MOST));
+            }
         }
     }
 
