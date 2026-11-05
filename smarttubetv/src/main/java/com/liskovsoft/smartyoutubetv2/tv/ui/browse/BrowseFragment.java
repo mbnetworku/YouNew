@@ -135,7 +135,9 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                     } else {
                         // update section when clicked or pressed
                         mBrowsePresenter.onSectionFocused((int) headerId);
-                        startHeadersTransitionSafe(false);
+                        // YouNew: tapping the open section's icon in the collapsed bar opens the bar (names shown);
+                        // tapping it in the open bar closes the bar
+                        startHeadersTransitionSafe(!isShowingHeaders());
                     }
 
                     if (viewHolder != null && viewHolder.view.isInTouchMode()) {

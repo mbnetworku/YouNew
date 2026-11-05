@@ -1155,6 +1155,9 @@ public class BrowseSupportFragment extends BaseSupportFragment {
                 return;
             }
             if (!mCanShowHeaders || isInHeadersTransition()) return;
+            // YouNew: with a finger or mouse (touch mode) the bar opens and closes only by what the person taps,
+            // not by focus jumping around (that made it open and hide by itself)
+            if (getView() != null && getView().isInTouchMode()) return;
             int childId = child.getId();
             if (childId == R.id.browse_container_dock && mShowingHeaders) {
                 startHeadersTransitionInternal(false);
