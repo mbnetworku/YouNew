@@ -13,6 +13,7 @@ import androidx.leanback.app.BrowseSupportFragment.MainFragmentAdapter;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.CategoryEmptyError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.ErrorFragmentData;
+import com.liskovsoft.smartyoutubetv2.common.app.models.errors.NoHistoryError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.NoSubscriptionsError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.SignInError;
 import com.liskovsoft.smartyoutubetv2.tv.R;
@@ -68,7 +69,8 @@ public class ErrorDialogFragment extends ErrorSupportFragment implements BrowseS
             return;
         }
 
-        if (mDialogData instanceof CategoryEmptyError || mDialogData instanceof SignInError || mDialogData instanceof NoSubscriptionsError) {
+        if (mDialogData instanceof CategoryEmptyError || mDialogData instanceof SignInError || mDialogData instanceof NoSubscriptionsError
+                || mDialogData instanceof NoHistoryError) {
             setImageDrawable(ContextCompat.getDrawable(getActivity(), R.drawable.lb_ic_sad_cloud));
         }
 

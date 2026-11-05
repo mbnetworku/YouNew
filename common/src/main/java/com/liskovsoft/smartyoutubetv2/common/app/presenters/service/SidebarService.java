@@ -20,6 +20,7 @@ import java.util.Map;
 public class SidebarService implements ProfileChangeListener {
     @SuppressLint("StaticFieldLeak")
     private static SidebarService sInstance;
+    private static final String KEY_HISTORY_ADDED = "history_added";
     private final Context mContext;
     private List<Video> mPinnedItems;
     private final Map<Integer, Integer> mDefaultSections = new LinkedHashMap<>();
@@ -277,15 +278,16 @@ public class SidebarService implements ProfileChangeListener {
 
     private void initPinnedItems() {
         for (int sectionId : mDefaultSections.values()) {
-            // YouNew: a short sidebar: Home, Shorts, News, Live, Subscriptions and Settings.
-            // Home, Shorts, News and Live work without signing in. The other sections
-            // (Music, Gaming, History, Playlists...) can be switched on in Settings > General > Set-up sections.
+            // YouNew: a short sidebar: Home, Shorts, News, Live, Subscriptions, History and Settings.
+            // All of them work without signing in (History then lists the videos watched on this box).
+            // The other sections (Music, Gaming, Playlists...) can be switched on in Settings > General > Set-up sections.
             enableSection(sectionId, Helpers.equalsAny(sectionId, new int[] {
                     MediaGroup.TYPE_HOME,
                     MediaGroup.TYPE_SHORTS,
                     MediaGroup.TYPE_NEWS,
                     MediaGroup.TYPE_LIVE,
                     MediaGroup.TYPE_CHANNEL_UPLOADS,
+                    MediaGroup.TYPE_HISTORY,
                     MediaGroup.TYPE_SETTINGS
             }));
         }
@@ -328,7 +330,22 @@ public class SidebarService implements ProfileChangeListener {
         // Backward compatibility
         enableSection(MediaGroup.TYPE_SETTINGS, true);
 
+        addHistoryOnce();
+
         cleanupPinnedItems();
+    }
+
+    /**
+     * YouNew: History became a default section. Boxes that already have saved sections get it once;
+     * if the user hides it later in Set-up sections, it stays hidden.
+     */
+    private void addHistoryOnce() {
+        android.content.SharedPreferences prefs = mContext.getSharedPreferences("younew_sidebar", Context.MODE_PRIVATE);
+
+        if (!prefs.getBoolean(KEY_HISTORY_ADDED, false)) {
+            enableSection(MediaGroup.TYPE_HISTORY, true);
+            prefs.edit().putBoolean(KEY_HISTORY_ADDED, true).apply();
+        }
     }
 
     private void transferOldPinnedItems() {

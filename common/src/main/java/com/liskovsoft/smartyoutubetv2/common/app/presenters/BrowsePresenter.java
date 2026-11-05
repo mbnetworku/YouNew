@@ -21,6 +21,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.data.SettingsItem;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.Video;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.VideoGroup;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.CategoryEmptyError;
+import com.liskovsoft.smartyoutubetv2.common.app.models.errors.NoHistoryError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.NoSubscriptionsError;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.ErrorFragmentData;
 import com.liskovsoft.smartyoutubetv2.common.app.models.errors.PasswordError;
@@ -901,6 +902,10 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                 VideoGroup videoGroup = VideoGroup.from(getCurrentSection());
                 appendLocalHistory(videoGroup);
                 getView().updateSection(videoGroup);
+            } else if (isHistorySection()) {
+                // YouNew: nothing watched yet on this box. Explain History instead of asking to sign in.
+                getView().showProgressBar(false);
+                getView().showError(new NoHistoryError(getContext()));
             } else {
                 getView().showProgressBar(false);
                 getView().showError(new SignInError(getContext()));
