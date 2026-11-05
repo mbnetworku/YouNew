@@ -110,6 +110,11 @@ if adb root > /dev/null 2>&1; then
   adb shell input keyevent KEYCODE_BACK || true
   # Settings inside the Home screen: open the sidebar, go down to Settings (the last entry), press OK.
   # Then CHECK what is on the screen: the pages must be there, and a tap on one must show its options.
+  # Animations ON, like on a real device (the emulator runner switches them off): an animation that leaves the
+  # panel invisible must show up here
+  adb shell settings put global window_animation_scale 1.0 || true
+  adb shell settings put global transition_animation_scale 1.0 || true
+  adb shell settings put global animator_duration_scale 1.0 || true
   adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
   sleep 6
   adb shell input keyevent KEYCODE_DPAD_LEFT || true
@@ -119,6 +124,29 @@ if adb root > /dev/null 2>&1; then
   sleep 6
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/settings-home.png && adb pull /data/local/tmp/settings-home.png settings-home.png || true
+  # Pixel check: the area next to the sidebar must not be empty (looks at the picture, not at the view tree)
+  python3 -m pip install -q pillow > /dev/null 2>&1 || true
+  PIXELS=$(python3 - settings-home.png <<'PY' 2>/dev/null
+import sys
+from PIL import Image
+im = Image.open(sys.argv[1]).convert('L')
+w, h = im.size
+box = im.crop((int(w * 0.30), int(h * 0.12), w, int(h * 0.90)))
+data = list(box.getdata())
+print("%.2f" % (sum(1 for p in data if p > 90) * 100.0 / len(data)))
+PY
+)
+  if [ -n "$PIXELS" ]; then
+    echo "CHECK content area pixels lit: $PIXELS%"
+    if python3 -c "import sys; sys.exit(0 if float('$PIXELS') >= 0.3 else 1)"; then
+      echo "CHECK content area is not empty: OK"
+    else
+      echo "CHECK content area is EMPTY (blank screen)"
+      FAILED=1
+    fi
+  else
+    echo "CHECK pixel check skipped (no image library)"
+  fi
   if ui_dump home-settings; then
     if has_text ui-home-settings.xml "General"; then
       echo "CHECK settings panel in the Home screen: SHOWN"

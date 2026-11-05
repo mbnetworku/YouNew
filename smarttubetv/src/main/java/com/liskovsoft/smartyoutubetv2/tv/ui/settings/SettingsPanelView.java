@@ -98,6 +98,7 @@ public class SettingsPanelView extends FrameLayout {
     private int mCurrentPage = -1;
     private int mLoadId;
     private Runnable mPendingPage;
+    private final Runnable mSettle = this::settle;
 
     /**
      * @param startPage   the page to show first (-1: the first one on a wide panel, the list on a narrow one)
@@ -173,6 +174,41 @@ public class SettingsPanelView extends FrameLayout {
         if (!onBack() && mHost != null) {
             mHost.onClose();
         }
+    }
+
+    /**
+     * Safety net: after the entrance animations should be over, every item is put in its final place and made fully
+     * visible. An animation that was cut short (the panel was detached or hidden while it ran, as the Home screen
+     * does when it changes sections) can no longer leave the panel invisible.
+     */
+    private void settle() {
+        settleChildren(mLeftPanel);
+        settleChildren(mContent);
+    }
+
+    private void settleChildren(ViewGroup group) {
+        if (group == null) {
+            return;
+        }
+
+        for (int i = 0; i < group.getChildCount(); i++) {
+            View child = group.getChildAt(i);
+            child.animate().cancel();
+            child.setAlpha(1f);
+            child.setTranslationX(0f);
+            child.setTranslationY(0f);
+        }
+    }
+
+    private void scheduleSettle() {
+        mHandler.removeCallbacks(mSettle);
+        mHandler.postDelayed(mSettle, 1500);
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        scheduleSettle();
     }
 
     @Override
@@ -298,6 +334,8 @@ public class SettingsPanelView extends FrameLayout {
             mScroll.setVisibility(mShowingOptions ? View.VISIBLE : View.GONE);
             left.setVisibility(mShowingOptions ? View.GONE : View.VISIBLE);
         }
+
+        scheduleSettle();
 
         return root;
     }
@@ -530,6 +568,7 @@ public class SettingsPanelView extends FrameLayout {
         }
 
         mScroll.scrollTo(0, 0);
+        scheduleSettle();
 
         if (focusRow >= 0) {
             if (focusRow < mRows.size()) {
