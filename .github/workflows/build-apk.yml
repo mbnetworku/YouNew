@@ -6,6 +6,11 @@ on:
     tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Publish a release with this tag (for example v32.68). Leave empty for a normal check.'
+        required: false
+        default: ''
   release:
     types: [ published ]
 
@@ -127,7 +132,8 @@ jobs:
   # YouTvPlus.apk (universal) and YouTvPlus-<abi>.apk. Runs only after every emulator check passed.
   attach-to-release:
     # A published GitHub Release, or a pushed version tag such as v32.68 (the release is then created here)
-    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
+    # Also from the Actions tab: "Run workflow" with a release tag
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
     needs: smoke-test
     runs-on: ubuntu-latest
     permissions:
@@ -148,9 +154,9 @@ jobs:
             if [ "$abi" = "universal" ]; then cp "$f" out/YouTvPlus.apk; else cp "$f" "out/YouTvPlus-$abi.apk"; fi
           done
           ls -la out
-          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          TAG="${{ inputs.release_tag || github.event.release.tag_name || github.ref_name }}"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" > /dev/null 2>&1; then
-            gh release create "$TAG" --repo "${{ github.repository }}" --verify-tag --title "YouTv Plus ${TAG#v}" \
+            gh release create "$TAG" --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "YouTv Plus ${TAG#v}" \
               --notes "YouTv Plus ${TAG#v}. Works on Android 5.0 and newer. Not sure which file? Take **YouTvPlus.apk**. Most TV boxes can also use YouTvPlus-armeabi-v7a.apk (smaller)."
           fi
           gh release upload "$TAG" out/*.apk --clobber --repo "${{ github.repository }}"
