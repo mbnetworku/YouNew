@@ -96,6 +96,8 @@ public class IconHeaderItemPresenter extends RowHeaderPresenter {
     protected void onSelectLevelChanged(RowHeaderPresenter.ViewHolder holder) {
         holder.view.setAlpha(mUnselectedAlpha + holder.getSelectLevel() *
                 (1.0f - mUnselectedAlpha));
+        // YouNew: the entry of the open section gets a soft pill (see header_item_bg)
+        holder.view.setSelected(holder.getSelectLevel() > 0.5f);
     }
 
     private final RequestListener<Drawable> mErrorListener = new RequestListener<Drawable>() {

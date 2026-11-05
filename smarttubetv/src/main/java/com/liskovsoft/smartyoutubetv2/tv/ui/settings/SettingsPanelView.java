@@ -74,7 +74,7 @@ public class SettingsPanelView extends FrameLayout {
     private static final int FOCUS = 0xFF3A3A3A;
     private static final int PRESSED = 0xFF4A4A4A;
     private static final long FOCUS_DELAY_MS = 150;
-    private static final float TWO_PANE_MIN_WIDTH_DP = 640f;
+    private static final float TWO_PANE_MIN_WIDTH_DP = 600f;
     private static final float FOCUS_SCALE = 1.02f;
     private static final float PRESS_SCALE = 0.97f;
 
@@ -92,7 +92,10 @@ public class SettingsPanelView extends FrameLayout {
     private int mPageIconRes;
     private boolean mSlideFromBelow = true;
     private Runnable mCollapseOpenChoices;
-    private LinearLayout mLeftPanel;
+    private ViewGroup mLeftPanel; // scrolls when the list of pages is taller than the screen
+    private LinearLayout mLeftList;
+    private int mLastLeft = -1;
+    private int mLastTop = -1;
     private boolean mTwoPane;
     private boolean mShowingOptions;
     private int mCurrentPage = -1;
@@ -124,6 +127,44 @@ public class SettingsPanelView extends FrameLayout {
 
         if (takeFocus && start < mPageViews.size()) {
             mPageViews.get(start).requestFocus();
+        }
+    }
+
+    /**
+     * The Home screen moves this panel to the right when the sidebar is expanded, but gives it the same width as
+     * before, so its right part would be cut off by the edge of the screen. The panel takes only the part of the
+     * screen that is really left (and the same for the height).
+     */
+    @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        int[] at = new int[2];
+        getLocationOnScreen(at);
+
+        widthMeasureSpec = fitSpec(widthMeasureSpec, metrics.widthPixels - Math.max(0, at[0]));
+        heightMeasureSpec = fitSpec(heightMeasureSpec, metrics.heightPixels - Math.max(0, at[1]));
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+    }
+
+    private static int fitSpec(int spec, int max) {
+        int mode = MeasureSpec.getMode(spec);
+        if (mode != MeasureSpec.UNSPECIFIED && max > 0 && MeasureSpec.getSize(spec) > max) {
+            return MeasureSpec.makeMeasureSpec(max, mode);
+        }
+        return spec;
+    }
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+
+        // The panel was moved (the sidebar opened or closed): measure again with what is visible now
+        int[] at = new int[2];
+        getLocationOnScreen(at);
+        if (at[0] != mLastLeft || at[1] != mLastTop) {
+            mLastLeft = at[0];
+            mLastTop = at[1];
+            post(this::requestLayout);
         }
     }
 
@@ -182,7 +223,7 @@ public class SettingsPanelView extends FrameLayout {
      * does when it changes sections) can no longer leave the panel invisible.
      */
     private void settle() {
-        settleChildren(mLeftPanel);
+        settleChildren(mLeftList);
         settleChildren(mContent);
     }
 
@@ -249,15 +290,20 @@ public class SettingsPanelView extends FrameLayout {
         root.setOrientation(LinearLayout.HORIZONTAL);
 
         // Left: title and the list of pages
+        // The list of pages sits in a scroll box: on a phone held sideways the screen is shorter than the list
+        final ScrollView leftScroll = new ScrollView(getContext());
+        leftScroll.setClipToPadding(false);
+        mLeftPanel = leftScroll;
         LinearLayout left = new LinearLayout(getContext());
-        mLeftPanel = left;
+        mLeftList = left;
         left.setOrientation(LinearLayout.VERTICAL);
+        leftScroll.addView(left, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         if (mTwoPane) {
-            left.setPadding(dp(48), dp(40), dp(24), dp(24));
-            root.addView(left, new LinearLayout.LayoutParams(dp(340), ViewGroup.LayoutParams.MATCH_PARENT));
+            left.setPadding(dp(32), dp(24), dp(16), dp(24));
+            root.addView(leftScroll, new LinearLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT));
         } else {
-            left.setPadding(dp(20), dp(32), dp(20), dp(24));
-            root.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+            left.setPadding(dp(16), dp(24), dp(16), dp(24));
+            root.addView(leftScroll, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
         }
 
         LinearLayout titleRow = new LinearLayout(getContext());
@@ -332,7 +378,7 @@ public class SettingsPanelView extends FrameLayout {
 
         if (!mTwoPane) { // one pane at a time
             mScroll.setVisibility(mShowingOptions ? View.VISIBLE : View.GONE);
-            left.setVisibility(mShowingOptions ? View.GONE : View.VISIBLE);
+            leftScroll.setVisibility(mShowingOptions ? View.GONE : View.VISIBLE);
         }
 
         scheduleSettle();

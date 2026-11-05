@@ -34,6 +34,34 @@ check_crash() {
   fi
 }
 
+# Fails when any text on the screen starts or ends outside the screen (a cut-off panel).
+# The first bounds in the dump are the whole screen.
+check_inside_screen() {
+  local result
+  result=$(python3 - "$1" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+nodes = re.findall(r'<node[^>]*>', s)
+screen = None
+bad = []
+for n in nodes:
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if not b:
+        continue
+    x1, y1, x2, y2 = map(int, b.groups())
+    if screen is None:
+        screen = (x2, y2)
+        continue
+    t = re.search(r' text="([^"]*)"', n)
+    if t and t.group(1) and x2 > screen[0] + 1:
+        bad.append("'%s' ends at x=%d (screen %d)" % (t.group(1), x2, screen[0]))
+print("OK" if not bad else "CUT OFF: " + "; ".join(bad[:6]))
+PY
+)
+  echo "CHECK nothing cut off ($2): $result"
+  case "$result" in OK*) ;; *) FAILED=1 ;; esac
+}
+
 has_text() { [ -s "$1" ] && grep -q "text=\"$2\"" "$1"; }
 
 # Taps the middle of the first thing with this text, like a finger or a mouse click would.
@@ -173,6 +201,25 @@ PY
         echo "CHECK tap on a settings page: FAILED (options not shown)"
         FAILED=1
       fi
+      check_inside_screen ui-home-settings-tapped.xml "options open"
+
+      # The sidebar opens (Left) and pushes the panel to the right: nothing may be cut off by the screen edge
+      adb shell input keyevent KEYCODE_DPAD_LEFT || true
+      adb shell input keyevent KEYCODE_DPAD_LEFT || true
+      sleep 3
+      if ui_dump home-settings-sidebar; then
+        check_inside_screen ui-home-settings-sidebar.xml "sidebar expanded"
+      fi
+
+      # The phone held sideways (the screen is wider and shorter)
+      adb shell settings put system accelerometer_rotation 0 || true
+      adb shell settings put system user_rotation 1 || true
+      sleep 5
+      check_crash "phone turned sideways"
+      if ui_dump home-settings-landscape; then
+        check_inside_screen ui-home-settings-landscape.xml "turned sideways"
+      fi
+      adb shell settings put system user_rotation 0 || true
     else
       echo "CHECK settings panel in the Home screen: MISSING (no page list on the screen)"
       FAILED=1
