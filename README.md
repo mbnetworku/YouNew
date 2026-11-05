@@ -46,6 +46,12 @@ started on Android 5.0, 5.1, 8.0 and 11 emulators; the build fails if the app cr
 every build are under the run's *Artifacts* on the
 [Actions page](https://github.com/mbnetworku/YouNew/actions).
 
+**Signing key (do this once):** on Windows, double-click `tools\make-signing-key.bat`. It asks for
+administrator rights, creates the key in *Documents\YouTvPlus-key*, copies it to the clipboard and opens
+the GitHub secrets page, where you add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and
+`KEY_PASSWORD`. From then on every build has the same signature, so new versions install over old
+ones. Without it each build gets a temporary key and the old version has to be uninstalled first.
+
 **New release:** on GitHub, open *Releases*, then *Draft a new release*, make a tag such as
 `v32.68`, and publish it. The APKs are built and attached to the release by themselves a few minutes
 later. Raise `versionCode` and `versionName` in `smarttubetv/build.gradle` first, or devices will not
