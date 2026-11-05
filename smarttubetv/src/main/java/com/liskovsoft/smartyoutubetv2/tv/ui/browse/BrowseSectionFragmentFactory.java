@@ -1,5 +1,7 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.browse;
 
+import com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsPanelFragment;
+
 import androidx.fragment.app.Fragment;
 import androidx.leanback.app.BrowseSupportFragment;
 import androidx.leanback.widget.HeaderItem;
@@ -71,7 +73,7 @@ public class BrowseSectionFragmentFactory extends BrowseSupportFragment.Fragment
                 fragment = new ShortsGridFragment();
                 break;
             case BrowseSection.TYPE_SETTINGS_GRID:
-                fragment = new SettingsGridFragment();
+                fragment = new SettingsPanelFragment(); // YouNew: Settings inside the Home screen
                 break;
             case BrowseSection.TYPE_MULTI_GRID:
                 fragment = new MultiVideoGridFragment();

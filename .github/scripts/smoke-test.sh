@@ -62,6 +62,22 @@ if adb root > /dev/null 2>&1; then
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/settings-choice-done.png && adb pull /data/local/tmp/settings-choice-done.png settings-choice-done.png || true
   adb shell input keyevent KEYCODE_BACK || true
+  # Settings inside the Home screen: open the sidebar, go down to Settings (the last entry), press OK,
+  # then move into the panel and press OK on a row
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 6
+  adb shell input keyevent KEYCODE_DPAD_LEFT || true
+  sleep 1
+  for i in 1 2 3 4 5 6 7; do adb shell input keyevent KEYCODE_DPAD_DOWN || true; done
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 6
+  adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+  adb shell screencap -p /data/local/tmp/settings-home.png && adb pull /data/local/tmp/settings-home.png settings-home.png || true
+  adb shell input keyevent KEYCODE_DPAD_RIGHT || true
+  sleep 1
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 3
+  adb shell screencap -p /data/local/tmp/settings-home2.png && adb pull /data/local/tmp/settings-home2.png settings-home2.png || true
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"

@@ -128,15 +128,6 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                     long headerId = row.getHeaderItem().getId();
                     int newPosition = indexOf(headerId);
 
-                    // YouNew: the Settings entry opens the Settings screen at once (no list of pages first),
-                    // unless Settings are protected by a password (the old list asks for it)
-                    if (headerId == com.liskovsoft.mediaserviceinterfaces.data.MediaGroup.TYPE_SETTINGS && getContext() != null
-                            && com.liskovsoft.smartyoutubetv2.common.prefs.GeneralData.instance(getContext()).getSettingsPassword() == null) {
-                        startActivity(new android.content.Intent(getContext(),
-                                com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsScreenActivity.class));
-                        return;
-                    }
-
                     if (getHeadersSupportFragment().getSelectedPosition() != newPosition) {
                         // YouNew: one mouse click opens the section, even from the collapsed rail
                         // (before, the first click only moved the selection in the hidden menu)
@@ -423,6 +414,11 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
         if (item != null) {
             mSectionFragmentFactory.selectCurrentFragmentItem(item);
         }
+    }
+
+    /** YouNew: shows the sidebar (used by the Settings panel's back arrow). */
+    public void showSidebar() {
+        startHeadersTransitionSafe(true);
     }
 
     /**
