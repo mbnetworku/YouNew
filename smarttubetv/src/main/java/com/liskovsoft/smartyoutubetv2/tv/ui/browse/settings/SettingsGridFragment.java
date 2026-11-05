@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.browse.settings;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.View;
 import android.widget.Toast;
@@ -20,6 +21,7 @@ import com.liskovsoft.smartyoutubetv2.common.prefs.MainUIData;
 import com.liskovsoft.smartyoutubetv2.common.utils.SimpleEditDialog;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsScreenActivity;
 import com.liskovsoft.smartyoutubetv2.tv.presenter.SettingsCardPresenter;
 import com.liskovsoft.smartyoutubetv2.tv.ui.browse.interfaces.SettingsSection;
 import com.liskovsoft.smartyoutubetv2.tv.ui.browse.video.GridFragmentHelper;
@@ -138,6 +140,17 @@ public class SettingsGridFragment extends GridFragment implements SettingsSectio
         }
     }
 
+    /** YouNew: the Settings screen shows all pages on the left and the chosen page's options on the right. */
+    private void openSettingsScreen(SettingsItem item) {
+        if (getContext() == null) {
+            return;
+        }
+
+        Intent intent = new Intent(getContext(), SettingsScreenActivity.class);
+        intent.putExtra(SettingsScreenActivity.EXTRA_PAGE, Math.max(0, mSettingsAdapter.indexOf(item)));
+        startActivity(intent);
+    }
+
     private MainUIData getMainUIData() {
         return MainUIData.instance(getContext());
     }
@@ -155,7 +168,7 @@ public class SettingsGridFragment extends GridFragment implements SettingsSectio
                 String password = getGeneralData().getSettingsPassword();
 
                 if (password == null) {
-                    ((SettingsItem) item).onClick.run();
+                    openSettingsScreen((SettingsItem) item);
                 } else {
                     SimpleEditDialog.showPassword(
                             getContext(),
@@ -163,7 +176,7 @@ public class SettingsGridFragment extends GridFragment implements SettingsSectio
                             null,
                             newValue -> {
                                 if (Utils.passwordMatch(password, newValue)) {
-                                    ((SettingsItem) item).onClick.run();
+                                    openSettingsScreen((SettingsItem) item);
                                     return true;
                                 }
                                 return false;

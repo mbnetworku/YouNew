@@ -153,6 +153,12 @@
                   android:screenOrientation="unspecified"
                   android:theme="@style/App.Theme.Leanback.Preferences"/>
 
+        <!-- YouNew: the Settings screen (pages on the left, options on the right) -->
+        <activity android:name="com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsScreenActivity"
+                  android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|layoutDirection"
+                  android:screenOrientation="unspecified"
+                  android:theme="@style/App.Theme.SettingsScreen"/>
+
         <!-- Android 8 fallback -->
         <activity android:name="com.liskovsoft.smartyoutubetv2.tv.ui.dialogs.AppDialogActivityOpaque"
             android:noHistory="true"

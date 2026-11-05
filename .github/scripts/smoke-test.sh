@@ -38,6 +38,17 @@ if adb root > /dev/null 2>&1; then
   sleep 15
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/signin-popup.png && adb pull /data/local/tmp/signin-popup.png signin-popup.png || true
+  # The new Settings screen: open every page (0 Accounts ... 6 About), press Right and OK on the first option
+  for page in 0 1 2 3 4 5 6; do
+    adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsScreenActivity" --ei page $page || true
+    sleep 7
+    adb shell input keyevent KEYCODE_DPAD_RIGHT || true
+    sleep 1
+    adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+    adb shell screencap -p /data/local/tmp/settings-$page.png && adb pull /data/local/tmp/settings-$page.png settings-$page.png || true
+    adb shell input keyevent KEYCODE_BACK || true
+    sleep 2
+  done
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"

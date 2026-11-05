@@ -69,6 +69,12 @@
         <item tools:targetApi="18" name="android:windowOverscan">true</item>
         <item name="android:windowContentOverlay">@null</item>
     </style>
+    <!-- YouNew: plain dark theme of the Settings screen -->
+    <style name="App.Theme.SettingsScreen" parent="@android:style/Theme.Material.NoActionBar">
+        <item name="android:windowBackground">@android:color/black</item>
+        <item name="android:windowAnimationStyle">@null</item>
+        <item name="android:windowFullscreen">true</item>
+    </style>
     <style name="App.Theme.Leanback.GuidedStep" parent="Theme.Leanback.GuidedStep">
         <item name="android:windowBackground">@color/shelf_background_dark</item>
         <item name="shelfBackground">@color/shelf_background_dark</item>
