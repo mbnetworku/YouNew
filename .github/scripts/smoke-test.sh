@@ -23,6 +23,11 @@ if adb root > /dev/null 2>&1; then
   sleep 15
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/signin.png && adb pull /data/local/tmp/signin.png signin.png || true
+  # Press OK on the first button ("Sign in on this TV"): opens the sign-in page on the TV
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 15
+  adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+  adb shell screencap -p /data/local/tmp/signin-tv.png && adb pull /data/local/tmp/signin-tv.png signin-tv.png || true
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"

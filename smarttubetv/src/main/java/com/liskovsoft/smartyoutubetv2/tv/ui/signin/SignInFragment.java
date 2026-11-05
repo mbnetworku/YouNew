@@ -1,6 +1,9 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.signin;
 
+import android.content.Intent;
+import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
+import android.net.Uri;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -33,7 +36,7 @@ import java.util.Map;
 public class SignInFragment extends GuidedStepSupportFragment implements SignInView {
     private static final String TAG = SignInFragment.class.getSimpleName();
     private static final int CONTINUE = 2;
-    private static final int OPEN_BROWSER = 3;
+    private static final int SIGN_IN_ON_TV = 4;
     private static final int QR_SIZE_DP = 240;
     private SignInPresenter mSignInPresenter;
     private String mFullSignInUrl;
@@ -168,26 +171,60 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
 
     @Override
     public void onCreateActions(@NonNull List<GuidedAction> actions, Bundle savedInstanceState) {
-        GuidedAction login = new GuidedAction.Builder()
+        // YouNew: first button (OK on the remote) = sign in right here on the TV
+        GuidedAction signInOnTv = new GuidedAction.Builder()
+                .id(SIGN_IN_ON_TV)
+                .title(getString(R.string.younew_sign_in_on_tv))
+                .description(getString(R.string.younew_sign_in_on_tv_desc))
+                .build();
+        GuidedAction close = new GuidedAction.Builder()
                 .id(CONTINUE)
                 .title(getString(R.string.signin_view_action_text))
                 .build();
-        GuidedAction openBrowser = new GuidedAction.Builder()
-                .id(OPEN_BROWSER)
-                .title(getString(R.string.login_from_browser))
-                .build();
-        actions.add(login);
-        actions.add(openBrowser);
+        actions.add(signInOnTv);
+        actions.add(close);
     }
 
     @Override
     public void onGuidedActionClicked(GuidedAction action) {
         if (action.getId() == CONTINUE) {
             mSignInPresenter.onActionClicked();
-        } else if (action.getId() == OPEN_BROWSER) {
-            if (mFullSignInUrl != null) {
-                Utils.openLinkExt(getContext(), mFullSignInUrl);
-            }
+        } else if (action.getId() == SIGN_IN_ON_TV) {
+            signInOnTv();
         }
+    }
+
+    /**
+     * YouNew: opens Google's activation page with the code already in it, on the TV itself. You type your Google
+     * email and password with the mouse or keyboard and press Allow; this screen keeps waiting and closes by
+     * itself once you are signed in. The box's own web browser is used when there is one (Google trusts it);
+     * otherwise the app's built-in browser page.
+     */
+    private void signInOnTv() {
+        if (getContext() == null || TextUtils.isEmpty(mFullSignInUrl)) {
+            return;
+        }
+
+        if (hasWebBrowser()) {
+            Utils.openLinkExt(getContext(), mFullSignInUrl);
+        } else {
+            Utils.openLink(getContext(), mFullSignInUrl);
+        }
+    }
+
+    private boolean hasWebBrowser() {
+        try {
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://accounts.google.com"));
+            List<ResolveInfo> apps = getContext().getPackageManager().queryIntentActivities(intent, 0);
+            for (ResolveInfo app : apps) {
+                if (app.activityInfo != null && !getContext().getPackageName().equals(app.activityInfo.packageName)) {
+                    return true;
+                }
+            }
+        } catch (RuntimeException e) {
+            Log.e(TAG, "Browser check failed: " + e);
+        }
+
+        return false;
     }
 }
