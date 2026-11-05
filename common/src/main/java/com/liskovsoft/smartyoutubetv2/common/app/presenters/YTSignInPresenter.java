@@ -79,6 +79,8 @@ public class YTSignInPresenter extends SignInPresenter {
                                 getView().close();
                             }
 
+                            WebBrowserPresenter.instance(getContext()).close(); // YouNew: close the sign-in page too
+
                             AccountSelectionPresenter.instance(getContext()).show(true);
                         }
                  );

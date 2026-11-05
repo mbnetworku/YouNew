@@ -1,5 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.webbrowser;
 
+import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -45,6 +46,11 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView {
         super.onViewCreated(view, savedInstanceState);
 
         mWebView = (WebView) view.findViewById(R.id.webview);
+
+        if (mWebView == null) {
+            return;
+        }
+
         mWebView.setBackgroundColor(Color.TRANSPARENT);
         WebSettings webSettings = mWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
@@ -52,7 +58,16 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView {
         webSettings.setDomStorageEnabled(true);
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(mWebView, true);
-        mWebView.setWebViewClient(new WebViewClient());
+        mWebView.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageStarted(WebView view, String url, Bitmap favicon) {
+                super.onPageStarted(view, url, favicon);
+                // Google refuses sign-in inside this app on some boxes: continue in the box's browser
+                if (isGoogleRefusal(url)) {
+                    openInBrowserAndClose(null);
+                }
+            }
+        });
 
         // No caching
         //webSettings.setAppCacheEnabled(false);
@@ -68,6 +83,28 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView {
 
     @Override
     public void loadUrl(String url) {
+        if (mWebView == null) { // No WebView on this box
+            openInBrowserAndClose(url);
+            return;
+        }
+
         mWebView.loadUrl(url);
+    }
+
+    @Override
+    public void close() {
+        if (getActivity() != null) {
+            getActivity().finish();
+        }
+    }
+
+    private void openInBrowserAndClose(String url) {
+        mWebBrowserPresenter.openInBrowser(url);
+        close();
+    }
+
+    private static boolean isGoogleRefusal(String url) {
+        return url != null && url.contains("accounts.google.com")
+                && (url.contains("/rejected") || url.contains("disallowed_useragent"));
     }
 }

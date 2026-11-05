@@ -1,9 +1,6 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.signin;
 
-import android.content.Intent;
-import android.content.pm.ResolveInfo;
 import android.graphics.Bitmap;
-import android.net.Uri;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -195,36 +192,16 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
     }
 
     /**
-     * YouNew: opens Google's activation page with the code already in it, on the TV itself. You type your Google
-     * email and password with the mouse or keyboard and press Allow; this screen keeps waiting and closes by
-     * itself once you are signed in. The box's own web browser is used when there is one (Google trusts it);
-     * otherwise the app's built-in browser page.
+     * YouNew: opens Google's own sign-in page inside the app, with the code already in it. You type your Google
+     * email and password there (mouse or keyboard) and press Allow; the page and this screen then close by
+     * themselves. If the box has no WebView, or Google refuses sign-in inside apps, the box's browser is used.
+     * (The app never sees the password: it is typed on Google's page.)
      */
     private void signInOnTv() {
         if (getContext() == null || TextUtils.isEmpty(mFullSignInUrl)) {
             return;
         }
 
-        if (hasWebBrowser()) {
-            Utils.openLinkExt(getContext(), mFullSignInUrl);
-        } else {
-            Utils.openLink(getContext(), mFullSignInUrl);
-        }
-    }
-
-    private boolean hasWebBrowser() {
-        try {
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse("https://accounts.google.com"));
-            List<ResolveInfo> apps = getContext().getPackageManager().queryIntentActivities(intent, 0);
-            for (ResolveInfo app : apps) {
-                if (app.activityInfo != null && !getContext().getPackageName().equals(app.activityInfo.packageName)) {
-                    return true;
-                }
-            }
-        } catch (RuntimeException e) {
-            Log.e(TAG, "Browser check failed: " + e);
-        }
-
-        return false;
+        Utils.openLink(getContext(), mFullSignInUrl);
     }
 }

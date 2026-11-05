@@ -757,6 +757,6 @@
     <string name="younew_search_videos">البحث عن فيديوهات</string>
     <string name="younew_no_history">لم تشاهد أي فيديو بعد.\nالفيديوهات التي تشاهدها تظهر هنا، الأحدث أولاً،\nلتجدها وتكمل من حيث توقفت.\nلا حاجة لحساب Google.</string>
     <string name="younew_sign_in_on_tv">تسجيل الدخول على هذا التلفاز</string>
-    <string name="younew_sign_in_on_tv_desc">اكتب بريد Google وكلمة المرور هنا بالفأرة أو لوحة المفاتيح</string>
+    <string name="younew_sign_in_on_tv_desc">تُفتح صفحة تسجيل الدخول من Google هنا: اكتب بريدك وكلمة المرور</string>
     <string name="younew_subscriptions_feed">خلاصة الاشتراكات (حساب Google)</string>
 </resources>
