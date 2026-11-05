@@ -5,6 +5,8 @@ on:
     branches: [ main, 'claude/**' ]
   pull_request:
   workflow_dispatch:
+  release:
+    types: [ published ]
 
 jobs:
   build:
@@ -95,3 +97,29 @@ jobs:
           path: |
             logcat.txt
             screen.png
+
+  # When a GitHub Release is published, attach the release APKs with simple names:
+  # YouTvPlus.apk (universal) and YouTvPlus-<abi>.apk. Runs only after every emulator check passed.
+  attach-to-release:
+    if: github.event_name == 'release'
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: YouNew-apk
+          path: apk
+
+      - name: Upload APKs to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir out
+          for f in apk/release/YouTvPlus-*.apk; do
+            abi=$(basename "$f" .apk | sed -E 's/^YouTvPlus-[^-]+-//')
+            if [ "$abi" = "universal" ]; then cp "$f" out/YouTvPlus.apk; else cp "$f" "out/YouTvPlus-$abi.apk"; fi
+          done
+          ls -la out
+          gh release upload "${{ github.event.release.tag_name }}" out/*.apk --clobber --repo "${{ github.repository }}"
