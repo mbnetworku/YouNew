@@ -774,5 +774,6 @@
     <string name="younew_clean_feeds">Clean up my feeds</string>
     <string name="younew_hide_watched">Hide videos I already watched</string>
     <string name="younew_hide_upcoming_streams">Hide upcoming videos and live streams</string>
+    <string name="younew_back">Back</string>
     <string name="younew_subscriptions_feed">Subscriptions feed (Google account)</string>
 </resources>

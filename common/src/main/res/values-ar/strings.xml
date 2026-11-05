@@ -764,5 +764,6 @@
     <string name="younew_clean_feeds">تنظيف القوائم</string>
     <string name="younew_hide_watched">إخفاء الفيديوهات التي شاهدتها</string>
     <string name="younew_hide_upcoming_streams">إخفاء الفيديوهات القادمة والبث المباشر</string>
+    <string name="younew_back">رجوع</string>
     <string name="younew_subscriptions_feed">خلاصة الاشتراكات (حساب Google)</string>
 </resources>

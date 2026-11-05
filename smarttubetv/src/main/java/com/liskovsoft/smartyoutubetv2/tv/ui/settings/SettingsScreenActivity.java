@@ -185,9 +185,15 @@ public class SettingsScreenActivity extends MotherActivity {
             root.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
         }
 
+        LinearLayout titleRow = new LinearLayout(this);
+        titleRow.setOrientation(LinearLayout.HORIZONTAL);
+        titleRow.setGravity(Gravity.CENTER_VERTICAL);
+        titleRow.setPadding(0, 0, 0, dp(16));
+        titleRow.addView(backArrow());
         TextView title = text(getString(R.string.header_settings), 30, TEXT, true);
-        title.setPadding(dp(20), 0, 0, dp(20));
-        left.addView(title);
+        title.setPadding(dp(8), 0, 0, 0);
+        titleRow.addView(title);
+        left.addView(titleRow);
 
         for (int i = 0; i < mPages.size(); i++) {
             final int index = i;
@@ -396,15 +402,7 @@ public class SettingsScreenActivity extends MotherActivity {
         headingRow.setPadding(0, 0, 0, dp(12));
 
         if (!mTwoPane) { // narrow screen: an arrow back to the list of pages
-            TextView back = text("\u2039", 36, TEXT, true);
-            back.setGravity(Gravity.CENTER);
-            back.setPadding(dp(14), 0, dp(14), dp(4));
-            back.setFocusable(true);
-            back.setClickable(true);
-            back.setBackground(rowBackground());
-            back.setOnClickListener(v -> onBackPressed());
-            addTouchFeedback(back);
-            headingRow.addView(back);
+            headingRow.addView(backArrow());
         }
 
         TextView heading = text(mPages.get(index).title, 30, TEXT, true);
@@ -603,6 +601,24 @@ public class SettingsScreenActivity extends MotherActivity {
     }
 
     // ---------------------------------------------------------------- looks
+
+    /**
+     * An arrow button that works with the mouse alone (a TV box with only a USB mouse has no Back key):
+     * it goes back one step, and leaves Settings from the list of pages.
+     */
+    private TextView backArrow() {
+        TextView back = text("\u2039", 36, TEXT, true);
+        back.setGravity(Gravity.CENTER);
+        back.setPadding(dp(14), 0, dp(14), dp(4));
+        back.setFocusable(true);
+        back.setClickable(true);
+        back.setBackground(rowBackground());
+        back.setContentDescription(getString(R.string.younew_back));
+        back.setOnClickListener(v -> onBackPressed());
+        back.setOnFocusChangeListener((v, hasFocus) -> grow(v, hasFocus));
+        addTouchFeedback(back);
+        return back;
+    }
 
     private TextView text(String value, int sp, int color, boolean bold) {
         TextView view = new TextView(this);
