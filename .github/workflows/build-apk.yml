@@ -3,6 +3,7 @@ name: Build and check APK
 on:
   push:
     branches: [ main, 'claude/**' ]
+    tags: [ 'v*' ]
   pull_request:
   workflow_dispatch:
   release:
@@ -125,7 +126,8 @@ jobs:
   # When a GitHub Release is published, attach the release APKs with simple names:
   # YouTvPlus.apk (universal) and YouTvPlus-<abi>.apk. Runs only after every emulator check passed.
   attach-to-release:
-    if: github.event_name == 'release'
+    # A published GitHub Release, or a pushed version tag such as v32.68 (the release is then created here)
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v')
     needs: smoke-test
     runs-on: ubuntu-latest
     permissions:
@@ -146,4 +148,9 @@ jobs:
             if [ "$abi" = "universal" ]; then cp "$f" out/YouTvPlus.apk; else cp "$f" "out/YouTvPlus-$abi.apk"; fi
           done
           ls -la out
-          gh release upload "${{ github.event.release.tag_name }}" out/*.apk --clobber --repo "${{ github.repository }}"
+          TAG="${{ github.event.release.tag_name || github.ref_name }}"
+          if ! gh release view "$TAG" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            gh release create "$TAG" --repo "${{ github.repository }}" --verify-tag --title "YouTv Plus ${TAG#v}" \
+              --notes "YouTv Plus ${TAG#v}. Works on Android 5.0 and newer. Not sure which file? Take **YouTvPlus.apk**. Most TV boxes can also use YouTvPlus-armeabi-v7a.apk (smaller)."
+          fi
+          gh release upload "$TAG" out/*.apk --clobber --repo "${{ github.repository }}"
