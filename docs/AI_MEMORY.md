@@ -30,6 +30,7 @@ Last updated: 2026-11-05, after version 32.86.
 | 32.84 | Automatic update (build failed: duplicate FileProvider, fixed by `UpdateFileProvider`; not published) |
 | 32.85 | Auto update, readable sidebar icons (90 % opacity, 32 dp), sidebar brand "YouTv Plus" with new mark, panel safety net against invisibility |
 | 32.86 | Panel measures itself to the visible space (sidebar open / phone sideways), scrolling page list, sidebar redesign (rounded pills, taller rows), cut-off checks in CI |
+| 32.87 | First release signed with the owner's own key (secrets set by `tools/make-signing-key.ps1`); no UI change |
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept
