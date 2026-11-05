@@ -470,7 +470,7 @@
     <string name="starting_stream">Starting the stream…</string>
     <string name="action_playlist_remove">Remove from playlist</string>
     <string name="signin_view_title">User Code is loading…</string>
-    <string name="signin_view_description">To sign-in enter this code on page %s\nNOTE. Works only with Firefox or Chrome browsers.</string>
+    <string name="signin_view_description">1. Scan the QR code with your phone camera.\n    Or open %s on your phone or computer and type the code above.\n2. Choose your Google account and press Allow.\n3. That\'s all: this screen closes by itself.</string>
     <string name="signin_view_action_text">Done</string>
     <string name="require_checked">Requires \"%s\"</string>
     <string name="msg_press_again_to_exit">Press again to exit</string>

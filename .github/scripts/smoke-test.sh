@@ -14,6 +14,20 @@ adb shell dumpsys window windows | grep -E "mCurrentFocus|mFocusedApp" || true
 adb logcat -d > logcat.txt
 # /data/local/tmp: the Android 5 emulators have no writable SD card
 adb shell screencap -p /data/local/tmp/screen.png && adb pull /data/local/tmp/screen.png screen.png || true
+# Sign-in screen: must open without crashing and show the QR code (screenshot in the artifacts).
+# It is not exported, so it is started as root (works on the "default" emulator images).
+if adb root > /dev/null 2>&1; then
+  sleep 3
+  adb wait-for-device
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.signin.SignInActivity" || true
+  sleep 15
+  adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+  adb shell screencap -p /data/local/tmp/signin.png && adb pull /data/local/tmp/signin.png signin.png || true
+  adb logcat -d > logcat.txt
+else
+  echo "adb root not available: sign-in screen not checked"
+fi
+
 if grep -q "FATAL EXCEPTION" logcat.txt; then
   echo "The app crashed:"
   grep -A40 "FATAL EXCEPTION" logcat.txt

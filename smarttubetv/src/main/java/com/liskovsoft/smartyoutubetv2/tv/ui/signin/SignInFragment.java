@@ -1,32 +1,40 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.signin;
 
-import android.graphics.drawable.Drawable;
+import android.graphics.Bitmap;
+import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.view.View;
+import android.view.ViewGroup;
+import android.widget.ImageView;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.core.content.ContextCompat;
 import androidx.leanback.app.GuidedStepSupportFragment;
 import androidx.leanback.widget.GuidanceStylist;
 import androidx.leanback.widget.GuidedAction;
-import com.bumptech.glide.Glide;
-import com.bumptech.glide.load.DataSource;
-import com.bumptech.glide.load.engine.GlideException;
-import com.bumptech.glide.request.RequestListener;
-import com.bumptech.glide.request.target.Target;
 import com.liskovsoft.sharedutils.mylogger.Log;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.SignInPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.SignInView;
 import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.smartyoutubetv2.tv.R;
-import com.liskovsoft.smartyoutubetv2.tv.util.ViewUtil;
 
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+
+import java.util.EnumMap;
 import java.util.List;
+import java.util.Map;
 
 public class SignInFragment extends GuidedStepSupportFragment implements SignInView {
     private static final String TAG = SignInFragment.class.getSimpleName();
     private static final int CONTINUE = 2;
     private static final int OPEN_BROWSER = 3;
+    private static final int QR_SIZE_DP = 240;
     private SignInPresenter mSignInPresenter;
     private String mFullSignInUrl;
 
@@ -70,13 +78,15 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
 
         mFullSignInUrl = fullSignInUrl != null ? fullSignInUrl : signInUrl;
 
-        Glide.with(getContext())
-                .load(Utils.toQrCodeLink(mFullSignInUrl))
-                .placeholder(R.drawable.activate_account_qrcode)
-                .apply(ViewUtil.glideOptions())
-                .error(R.drawable.activate_account_qrcode)
-                .listener(mErrorListener)
-                .into(getGuidanceStylist().getIconView());
+        // YouNew: the QR code is drawn on the box (before, an outside web site made the picture: when the box
+        // could not reach it, a fixed picture without your code was shown and scanning it did not work)
+        showQrCode(mFullSignInUrl);
+
+        if (TextUtils.isEmpty(signInUrl)) {
+            // An error message is shown as the "code"
+            getGuidanceStylist().getDescriptionView().setText("");
+            return;
+        }
 
         String description = getString(R.string.signin_view_description, signInUrl);
         int start = description.indexOf(signInUrl);
@@ -84,6 +94,61 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
         CharSequence coloredDescription = Utils.color(description, ContextCompat.getColor(getContext(), R.color.red), start, end);
 
         getGuidanceStylist().getDescriptionView().setText(coloredDescription);
+    }
+
+    /** Draws the QR code for the sign-in link, large, black on white, so a phone camera reads it from the sofa. */
+    private void showQrCode(String url) {
+        ImageView iconView = getGuidanceStylist().getIconView();
+
+        if (iconView == null) {
+            return;
+        }
+
+        int size = (int) (QR_SIZE_DP * getResources().getDisplayMetrics().density);
+        Bitmap qr = TextUtils.isEmpty(url) ? null : createQrCode(url, size);
+
+        if (qr != null) {
+            iconView.setImageBitmap(qr);
+        } else {
+            iconView.setImageDrawable(ContextCompat.getDrawable(getContext(), R.drawable.activate_account_qrcode));
+        }
+
+        iconView.setMaxWidth(size);
+        iconView.setMaxHeight(size);
+        ViewGroup.LayoutParams lp = iconView.getLayoutParams();
+        if (lp != null) {
+            lp.width = size;
+            lp.height = size;
+            iconView.setLayoutParams(lp);
+        }
+        iconView.setVisibility(View.VISIBLE);
+    }
+
+    @Nullable
+    private static Bitmap createQrCode(String text, int size) {
+        try {
+            Map<EncodeHintType, Object> hints = new EnumMap<>(EncodeHintType.class);
+            hints.put(EncodeHintType.MARGIN, 2); // white border, needed by phone cameras
+            hints.put(EncodeHintType.ERROR_CORRECTION, ErrorCorrectionLevel.M);
+            BitMatrix matrix = new QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, size, size, hints);
+
+            int width = matrix.getWidth();
+            int height = matrix.getHeight();
+            int[] pixels = new int[width * height];
+            for (int y = 0; y < height; y++) {
+                int offset = y * width;
+                for (int x = 0; x < width; x++) {
+                    pixels[offset + x] = matrix.get(x, y) ? Color.BLACK : Color.WHITE;
+                }
+            }
+
+            Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+            bitmap.setPixels(pixels, 0, width, 0, 0, width, height);
+            return bitmap;
+        } catch (WriterException | IllegalArgumentException | OutOfMemoryError e) {
+            Log.e(TAG, "QR code error: " + e);
+            return null;
+        }
     }
 
     @Override
@@ -125,17 +190,4 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
             }
         }
     }
-
-    private final RequestListener<Drawable> mErrorListener = new RequestListener<Drawable>() {
-        @Override
-        public boolean onLoadFailed(@Nullable GlideException e, Object model, Target<Drawable> target, boolean isFirstResource) {
-            Log.e(TAG, "Glide load failed: " + e);
-            return false;
-        }
-
-        @Override
-        public boolean onResourceReady(Drawable resource, Object model, Target<Drawable> target, DataSource dataSource, boolean isFirstResource) {
-            return false;
-        }
-    };
 }

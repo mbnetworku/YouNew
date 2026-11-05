@@ -8,6 +8,7 @@ a white focus ring, and a slim left icon menu that expands to labels.
 - **Works on Android 5.0 and newer:** TV boxes, smart TVs, phones and tablets.
 - Remote, mouse and keyboard all work.
 - No Google account needed: subscriptions are kept on the device. You can still sign in for your own feed.
+- **Easy Google sign-in:** scan the large QR code with your phone camera, choose your account, press Allow. No typing on the TV.
 - **History** in the sidebar: the videos you watched, newest first, with how far you got. Works without an account too.
 - Shorts player, topic buttons on Home (Music, Gaming, News, Sports), English and Arabic layout.
 
@@ -54,7 +55,7 @@ the GitHub secrets page, where you add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `
 ones. Without it each build gets a temporary key and the old version has to be uninstalled first.
 
 **New release:** on GitHub, open *Releases*, then *Draft a new release*, make a tag such as
-`v32.69`, and publish it. The APKs are built and attached to the release by themselves a few minutes
+`v32.70`, and publish it. The APKs are built and attached to the release by themselves a few minutes
 later. Raise `versionCode` and `versionName` in `smarttubetv/build.gradle` first, or devices will not
 take the update.
 
