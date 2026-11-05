@@ -15,12 +15,12 @@ $alias = 'youtvplus'
 
 if (Test-Path $jks) {
     Write-Host "A key already exists: $jks (it is kept, not replaced)." -ForegroundColor Yellow
-    $pwd = Read-Host 'Its password'
+    $pass = Read-Host 'Its password'
 } else {
-    $pwd = Read-Host 'Choose a password for the key (at least 6 characters)'
-    if ($pwd.Length -lt 6) { Write-Host 'Too short.' -ForegroundColor Red; exit 1 }
+    $pass = Read-Host 'Choose a password for the key (at least 6 characters)'
+    if ($pass.Length -lt 6) { Write-Host 'Too short.' -ForegroundColor Red; exit 1 }
     & $keytoolPath -genkeypair -v -keystore $jks -alias $alias -keyalg RSA -keysize 2048 -validity 10000 `
-        -storepass $pwd -keypass $pwd -dname 'CN=YouTv Plus'
+        -storepass $pass -keypass $pass -dname 'CN=YouTv Plus'
     Write-Host "Key created: $jks  (back up this file and the password)" -ForegroundColor Green
 }
 
