@@ -7,8 +7,8 @@ Last updated: 2026-11-05, after version 32.86.
 ## Where things stand
 - Repository: `mbnetworku/YouNew` (public). Work branch: `claude/practical-wozniak-ou260z`. Pull request #2 into `main`
   is open: the owner has not merged it, so `main` is behind the branch.
-- Latest published release: **32.85**. Version **32.86** (Settings panel fits the visible space, page list scrolls,
-  sidebar redesign) was started and publishes only if its emulator tests pass: check `get_latest_release`.
+- Latest published release: **32.86** (all four emulators passed; Settings panel fits the visible space, page list scrolls,
+  sidebar redesign). README was fully redesigned afterwards (user-first layout, Q&A, developer section).
 - Download: `https://github.com/mbnetworku/YouNew/releases/latest/download/YouTvPlus.apk`.
 - Users: the owner tests on a phone (portrait and landscape) and an Android 5.1.1 TV box (KII PRO, USB mouse).
 
