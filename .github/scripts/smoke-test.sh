@@ -2,6 +2,52 @@
 # Installs the debug APK on the running emulator, starts it, and fails if the app crashes.
 set -u
 PKG=com.younew.tv
+FAILED=0
+
+# Reads what is on the screen (uiautomator) into ui-<label>.xml and prints every text with its position.
+ui_dump() {
+  adb shell uiautomator dump /data/local/tmp/ui.xml > /dev/null 2>&1
+  adb pull /data/local/tmp/ui.xml "ui-$1.xml" > /dev/null 2>&1
+  echo "=== SCREEN $1"
+  if [ ! -s "ui-$1.xml" ]; then echo "(no screen dump available)"; return 1; fi
+  python3 - "ui-$1.xml" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+for m in re.finditer(r'<node[^>]*>', s):
+    n = m.group(0)
+    t = re.search(r' text="([^"]*)"', n)
+    b = re.search(r'bounds="([^"]*)"', n)
+    if t and t.group(1):
+        print("  '%s' %s" % (t.group(1), b.group(1) if b else ''))
+PY
+}
+
+has_text() { [ -s "$1" ] && grep -q "text=\"$2\"" "$1"; }
+
+# Taps the middle of the first thing with this text, like a finger or a mouse click would.
+tap_text() {
+  local coords
+  coords=$(python3 - "$1" "$2" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+for m in re.finditer(r'<node[^>]*>', s):
+    n = m.group(0)
+    t = re.search(r' text="([^"]*)"', n)
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if t and b and t.group(1) == sys.argv[2]:
+        x1, y1, x2, y2 = map(int, b.groups())
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        break
+PY
+)
+  if [ -n "$coords" ]; then
+    adb shell input tap $coords
+    echo "tapped '$2' at $coords"
+    return 0
+  fi
+  echo "'$2' not found on the screen, cannot tap"
+  return 1
+}
 # Universal APK: it holds every ABI, so it runs on both the x86 and the x86_64 emulators
 APK=$(ls apk/debug/*universal*.apk | head -1)
 adb shell getprop ro.build.version.release
@@ -62,8 +108,8 @@ if adb root > /dev/null 2>&1; then
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/settings-choice-done.png && adb pull /data/local/tmp/settings-choice-done.png settings-choice-done.png || true
   adb shell input keyevent KEYCODE_BACK || true
-  # Settings inside the Home screen: open the sidebar, go down to Settings (the last entry), press OK,
-  # then move into the panel and press OK on a row
+  # Settings inside the Home screen: open the sidebar, go down to Settings (the last entry), press OK.
+  # Then CHECK what is on the screen: the pages must be there, and a tap on one must show its options.
   adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
   sleep 6
   adb shell input keyevent KEYCODE_DPAD_LEFT || true
@@ -73,14 +119,35 @@ if adb root > /dev/null 2>&1; then
   sleep 6
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/settings-home.png && adb pull /data/local/tmp/settings-home.png settings-home.png || true
-  adb shell input keyevent KEYCODE_DPAD_RIGHT || true
-  sleep 1
-  adb shell input keyevent KEYCODE_DPAD_CENTER || true
-  sleep 3
-  adb shell screencap -p /data/local/tmp/settings-home2.png && adb pull /data/local/tmp/settings-home2.png settings-home2.png || true
+  if ui_dump home-settings; then
+    if has_text ui-home-settings.xml "General"; then
+      echo "CHECK settings panel in the Home screen: SHOWN"
+      tap_text ui-home-settings.xml "General" || true
+      sleep 3
+      ui_dump home-settings-tapped || true
+      if has_text ui-home-settings-tapped.xml "Boot to section"; then
+        echo "CHECK tap on a settings page: WORKS"
+      else
+        echo "CHECK tap on a settings page: FAILED (options not shown)"
+        FAILED=1
+      fi
+    else
+      echo "CHECK settings panel in the Home screen: MISSING (no page list on the screen)"
+      FAILED=1
+    fi
+  else
+    echo "CHECK skipped: no screen dump on this emulator"
+  fi
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"
+fi
+
+if [ "$FAILED" != "0" ]; then
+  echo "A screen check failed (see the CHECK lines above)"
+  adb logcat -d > logcat.txt
+  grep -iE "SettingsPanel|AndroidRuntime|BrowseSupportFragment|ClassCast|NullPointer" logcat.txt | tail -40
+  exit 1
 fi
 
 if grep -q "FATAL EXCEPTION" logcat.txt; then

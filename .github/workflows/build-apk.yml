@@ -131,6 +131,7 @@ jobs:
             signin-tv.png
             signin-popup.png
             settings-*.png
+            ui-*.xml
 
   # When a GitHub Release is published, attach the release APKs with simple names:
   # YouTvPlus.apk (universal) and YouTvPlus-<abi>.apk. Runs only after every emulator check passed.
