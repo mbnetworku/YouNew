@@ -1,7 +1,7 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.signin;
 
 import android.os.Bundle;
-import androidx.leanback.app.GuidedStepSupportFragment;
+import androidx.fragment.app.Fragment;
 import com.liskovsoft.smartyoutubetv2.tv.ui.common.LeanbackActivity;
 
 public class SignInActivity extends LeanbackActivity {
@@ -10,8 +10,19 @@ public class SignInActivity extends LeanbackActivity {
         super.onCreate(savedInstanceState);
 
         if (null == savedInstanceState) {
-            GuidedStepSupportFragment.addAsRoot(this, new SignInFragment(), android.R.id.content);
+            getSupportFragmentManager().beginTransaction().replace(android.R.id.content, new SignInFragment()).commit();
         }
+    }
+
+    @Override
+    public void onBackPressed() {
+        // YouNew: Back first closes Google's page inside the sign-in screen
+        Fragment fragment = getSupportFragmentManager().findFragmentById(android.R.id.content);
+        if (fragment instanceof SignInFragment && ((SignInFragment) fragment).onBack()) {
+            return;
+        }
+
+        super.onBackPressed();
     }
 
     @Override

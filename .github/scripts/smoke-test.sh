@@ -109,21 +109,25 @@ if adb root > /dev/null 2>&1; then
   sleep 15
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/signin.png && adb pull /data/local/tmp/signin.png signin.png || true
-  # Press OK on the first button ("Sign in on this TV"): opens the sign-in page on the TV
+  # The redesigned sign-in screen: one screen, QR + code on the left, buttons on the right
+  ui_dump signin || true
+  if grep -q 'Sign in here' ui-signin.xml 2>/dev/null; then echo "CHECK sign-in screen buttons: SHOWN"; else echo "CHECK sign-in screen buttons: MISSING"; FAILED=1; fi
+  check_inside_screen ui-signin.xml "sign-in screen"
+  check_crash "sign-in screen"
+  # OK on the first button ("Sign in here"): Google's page must open INSIDE this screen (a layer with a Back button).
+  # A box without a WebView (API 26 emulator) shows a message instead and stays on the screen.
   adb shell input keyevent KEYCODE_DPAD_CENTER || true
-  sleep 15
+  sleep 12
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+  ui_dump signin-page || true
+  if grep -q 'Google sign-in' ui-signin-page.xml 2>/dev/null; then echo "CHECK sign-in page inside the screen: SHOWN"; else echo "CHECK sign-in page inside the screen: not shown (no WebView on this emulator?)"; fi
+  check_crash "sign-in page"
   adb shell screencap -p /data/local/tmp/signin-tv.png && adb pull /data/local/tmp/signin-tv.png signin-tv.png || true
-  # Open the sign-in screen again, then the second button: Google's page in a pop-up window inside the app
-  # (started again instead of Back: on a TV without WebView the first button leaves the screen)
-  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.signin.SignInActivity" || true
-  sleep 6
-  adb shell input keyevent KEYCODE_DPAD_DOWN || true
-  sleep 1
-  adb shell input keyevent KEYCODE_DPAD_CENTER || true
-  sleep 15
+  # Back closes the page inside the screen, not the screen
+  adb shell input keyevent KEYCODE_BACK || true
+  sleep 2
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
-  adb shell screencap -p /data/local/tmp/signin-popup.png && adb pull /data/local/tmp/signin-popup.png signin-popup.png || true
+  check_crash "sign-in back"
   # The new Settings screen: open every page (0 Accounts ... 6 About), press Right and OK on the first option
   for page in 0 1 2 3 4 5 6; do
     adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsScreenActivity" --ei page $page || true

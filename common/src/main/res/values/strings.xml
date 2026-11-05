@@ -785,4 +785,14 @@
     <string name="younew_update_allow">Allow YouTv Plus to install apps, then press the update again.</string>
     <string name="younew_update_other_key">This update is signed with a different key, so Android cannot install it over this app. Uninstall YouTv Plus once, then install the update. Later updates will then work.</string>
     <string name="younew_subscriptions_feed">Subscriptions feed (Google account)</string>
+    <string name="younew_signin_title">Sign in to YouTube</string>
+    <string name="younew_signin_subtitle">Optional. Your subscriptions also work without an account.</string>
+    <string name="younew_signin_steps">Pick one:\n1. Press \"Sign in here\", type your Google email and password, press Allow.\n2. Or scan the QR code with your phone (or open the address under the code and type the code), choose your account, press Allow.\nThis screen closes by itself when you are signed in.</string>
+    <string name="younew_signin_qr_hint">Or open %s and type the code</string>
+    <string name="younew_sign_in_here">Sign in here</string>
+    <string name="younew_sign_in_here_desc">Google\'s page opens inside this screen</string>
+    <string name="younew_sign_in_in_tv_browser">Use the TV\'s browser</string>
+    <string name="younew_sign_in_in_tv_browser_desc">Only if the page does not work here</string>
+    <string name="younew_sign_in_back">Back</string>
+    <string name="younew_sign_in_google_page">Google sign-in</string>
 </resources>
