@@ -3,6 +3,9 @@
 A YouTube TV-style app for Android TV boxes: dark theme, large rounded 16:9 thumbnails,
 a white focus ring, and a slim left icon menu that expands to labels.
 
+Works on Android 5.0 and newer (Android TV boxes, TVs and phones). Every push is built and the APK is
+started on Android 5.0, 5.1, 8.0 and 11 emulators by GitHub Actions; the APKs are under the run's *Artifacts*.
+
 ## Build
 
 Needs JDK 17 and the Android SDK (platform 34, build-tools 30.0.3).

@@ -2,8 +2,9 @@
 # Installs the debug APK on the running emulator, starts it, and fails if the app crashes.
 set -u
 PKG=com.younew.tv
-APK=$(ls apk/debug/*_x86.apk 2>/dev/null | head -1)
-[ -z "$APK" ] && APK=$(ls apk/debug/*universal*.apk | head -1)
+# Universal APK: it holds every ABI, so it runs on both the x86 and the x86_64 emulators
+APK=$(ls apk/debug/*universal*.apk | head -1)
+adb shell getprop ro.build.version.release
 echo "Installing $APK"
 adb install -r "$APK" || exit 1
 adb logcat -c

@@ -34,6 +34,9 @@ jobs:
           ls -la smarttubetv/build/outputs/apk/stfdroid/*/
           for apk in smarttubetv/build/outputs/apk/stfdroid/*/*universal*.apk; do
             echo "=== $apk"
+            MINSDK=$("$BT/aapt" dump badging "$apk" | sed -n "s/^sdkVersion:'\([0-9]*\)'/\1/p")
+            echo "minSdk: $MINSDK"
+            if [ "$MINSDK" -gt 21 ]; then echo "ERROR: APK needs API $MINSDK, but it must install on Android 5.0 (API 21)"; exit 1; fi
             "$BT/aapt" dump badging "$apk" | grep -E "^package:|sdkVersion|targetSdkVersion|application-label:|launchable-activity|leanback-launchable|native-code"
             unzip -l "$apk" | grep -c "classes.*\.dex" | sed 's/^/dex files: /'
             "$BT/zipalign" -c 4 "$apk" && echo "zipalign: OK"
@@ -46,12 +49,20 @@ jobs:
           path: smarttubetv/build/outputs/apk/stfdroid/**/*.apk
           if-no-files-found: error
 
-  # Install and start the app on an Android 5.1 (API 22) emulator, the same Android
-  # version as the TV boxes this app is made for, and fail if it crashes on start.
+  # Install and start the app on emulators from Android 5.0 up, and fail if it crashes on start.
+  # 5.1 (API 22) is the Android version of the TV boxes this app is made for.
   smoke-test:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { api: 21, arch: x86 }        # Android 5.0
+          - { api: 22, arch: x86 }        # Android 5.1
+          - { api: 26, arch: x86 }        # Android 8.0
+          - { api: 30, arch: x86_64 }     # Android 11
     steps:
       - uses: actions/checkout@v4
 
@@ -69,8 +80,8 @@ jobs:
       - name: Install and launch on emulator
         uses: reactivecircus/android-emulator-runner@v2
         with:
-          api-level: 22
-          arch: x86
+          api-level: ${{ matrix.api }}
+          arch: ${{ matrix.arch }}
           target: default
           disable-animations: true
           script: bash .github/scripts/smoke-test.sh
@@ -78,7 +89,7 @@ jobs:
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: emulator-check
+          name: emulator-check-api${{ matrix.api }}
           path: |
             logcat.txt
             screen.png
