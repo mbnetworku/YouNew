@@ -771,5 +771,8 @@
     <string name="younew_sign_in_in_browser">Sign in in a pop-up window</string>
     <string name="younew_sign_in_in_browser_desc">The same Google page in a window over this screen</string>
     <string name="younew_no_webview">This TV can\'t show web pages inside apps. Scan the QR code with your phone to sign in.</string>
+    <string name="younew_clean_feeds">Clean up my feeds</string>
+    <string name="younew_hide_watched">Hide videos I already watched</string>
+    <string name="younew_hide_upcoming_streams">Hide upcoming videos and live streams</string>
     <string name="younew_subscriptions_feed">Subscriptions feed (Google account)</string>
 </resources>

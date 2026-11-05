@@ -761,5 +761,8 @@
     <string name="younew_sign_in_in_browser">تسجيل الدخول في نافذة منبثقة</string>
     <string name="younew_sign_in_in_browser_desc">نفس صفحة Google في نافذة فوق هذه الشاشة</string>
     <string name="younew_no_webview">هذا التلفاز لا يعرض صفحات الويب داخل التطبيقات. امسح رمز QR بهاتفك لتسجيل الدخول.</string>
+    <string name="younew_clean_feeds">تنظيف القوائم</string>
+    <string name="younew_hide_watched">إخفاء الفيديوهات التي شاهدتها</string>
+    <string name="younew_hide_upcoming_streams">إخفاء الفيديوهات القادمة والبث المباشر</string>
     <string name="younew_subscriptions_feed">خلاصة الاشتراكات (حساب Google)</string>
 </resources>
