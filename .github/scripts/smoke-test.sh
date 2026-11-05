@@ -22,6 +22,18 @@ for m in re.finditer(r'<node[^>]*>', s):
 PY
 }
 
+# Looks for Android's "Application Error / Not Responding" window; if there is one, prints the crash log and fails.
+check_crash() {
+  if adb shell dumpsys window windows | grep -E "mCurrentFocus|mFocusedWindow" | grep -qE "Application Error|Not Responding"; then
+    echo "APP ERROR DIALOG at: $1"
+    adb logcat -d -b all -v threadtime 2>/dev/null | grep -B2 -A30 "FATAL EXCEPTION" | head -90
+    adb logcat -d -b crash -v threadtime 2>/dev/null | tail -60
+    FAILED=1
+    adb shell input keyevent KEYCODE_ENTER || true
+    adb shell input keyevent KEYCODE_BACK || true
+  fi
+}
+
 has_text() { [ -s "$1" ] && grep -q "text=\"$2\"" "$1"; }
 
 # Taps the middle of the first thing with this text, like a finger or a mouse click would.
@@ -91,6 +103,7 @@ if adb root > /dev/null 2>&1; then
     adb shell input keyevent KEYCODE_DPAD_RIGHT || true
     sleep 1
     adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+    check_crash "settings page $page"
     adb shell screencap -p /data/local/tmp/settings-$page.png && adb pull /data/local/tmp/settings-$page.png settings-$page.png || true
     adb shell input keyevent KEYCODE_BACK || true
     sleep 2
@@ -147,6 +160,7 @@ PY
   else
     echo "CHECK pixel check skipped (no image library)"
   fi
+  check_crash "settings in the Home screen"
   if ui_dump home-settings; then
     if has_text ui-home-settings.xml "General"; then
       echo "CHECK settings panel in the Home screen: SHOWN"
