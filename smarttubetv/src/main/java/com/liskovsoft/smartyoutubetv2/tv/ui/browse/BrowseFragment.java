@@ -127,6 +127,7 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                 (viewHolder, row) -> {
                     long headerId = row.getHeaderItem().getId();
                     int newPosition = indexOf(headerId);
+                    boolean opensBar = false;
 
                     if (getHeadersSupportFragment().getSelectedPosition() != newPosition) {
                         // YouNew: one mouse click opens the section, even from the collapsed rail
@@ -137,10 +138,11 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                         mBrowsePresenter.onSectionFocused((int) headerId);
                         // YouNew: tapping the open section's icon in the collapsed bar opens the bar (names shown);
                         // tapping it in the open bar closes the bar
-                        startHeadersTransitionSafe(!isShowingHeaders());
+                        opensBar = !isShowingHeaders();
+                        startHeadersTransitionSafe(opensBar);
                     }
 
-                    if (viewHolder != null && viewHolder.view.isInTouchMode()) {
+                    if (!opensBar && viewHolder != null && viewHolder.view.isInTouchMode()) {
                         focusContentAfterMouseClick(10);
                     }
                 }
