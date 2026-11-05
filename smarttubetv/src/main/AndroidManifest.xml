@@ -75,7 +75,7 @@
 
         <!-- YouNew: hands the downloaded update file to Android's installer (see AppUpdater) -->
         <provider
-            android:name="androidx.core.content.FileProvider"
+            android:name="com.liskovsoft.smartyoutubetv2.common.misc.UpdateFileProvider"
             android:authorities="${applicationId}.updates"
             android:exported="false"
             android:grantUriPermissions="true">
