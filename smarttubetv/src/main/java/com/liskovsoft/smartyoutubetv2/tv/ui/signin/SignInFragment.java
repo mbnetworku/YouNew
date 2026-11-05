@@ -1,9 +1,17 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.signin;
 
+import android.annotation.SuppressLint;
+import android.app.Dialog;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.text.TextUtils;
+import android.util.DisplayMetrics;
+import android.view.Window;
+import android.webkit.CookieManager;
+import android.webkit.WebSettings;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
@@ -38,6 +46,7 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
     private static final int QR_SIZE_DP = 240;
     private SignInPresenter mSignInPresenter;
     private String mFullSignInUrl;
+    private Dialog mSignInPopup;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -56,6 +65,7 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
 
     @Override
     public void onDestroy() {
+        dismissSignInPopup();
         super.onDestroy();
         mSignInPresenter.onViewDestroyed();
     }
@@ -152,8 +162,68 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
         }
     }
 
+    /**
+     * YouNew: Google's sign-in page in a pop-up window over this screen, inside the app (not the TV's browser).
+     * You type your email and password there and press Allow; the pop-up and this screen then close by themselves.
+     * Back closes the pop-up.
+     */
+    @SuppressLint("SetJavaScriptEnabled")
+    private void showSignInPopup() {
+        if (getActivity() == null || TextUtils.isEmpty(mFullSignInUrl)) {
+            return;
+        }
+
+        dismissSignInPopup();
+
+        WebView webView;
+        try {
+            webView = new WebView(getActivity());
+        } catch (RuntimeException e) { // No WebView on this box
+            Log.e(TAG, "WebView error: " + e);
+            Utils.openLinkExt(getContext(), mFullSignInUrl);
+            return;
+        }
+
+        WebSettings settings = webView.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(webView, true);
+        webView.setWebViewClient(new WebViewClient()); // keep every page inside the pop-up
+        webView.setBackgroundColor(Color.WHITE);
+        webView.loadUrl(mFullSignInUrl);
+
+        Dialog dialog = new Dialog(getActivity());
+        dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
+        dialog.setContentView(webView);
+        dialog.setCancelable(true); // Back closes it
+        dialog.setOnDismissListener(d -> webView.destroy());
+
+        Window window = dialog.getWindow();
+        if (window != null) {
+            DisplayMetrics metrics = getResources().getDisplayMetrics();
+            window.setLayout((int) (metrics.widthPixels * 0.7f), (int) (metrics.heightPixels * 0.85f));
+        }
+
+        dialog.show();
+        webView.requestFocus();
+        mSignInPopup = dialog;
+    }
+
+    private void dismissSignInPopup() {
+        if (mSignInPopup != null) {
+            try {
+                mSignInPopup.dismiss();
+            } catch (RuntimeException e) {
+                // Window already gone
+            }
+            mSignInPopup = null;
+        }
+    }
+
     @Override
     public void close() {
+        dismissSignInPopup();
         if (getActivity() != null) {
             getActivity().finish();
         }
@@ -197,9 +267,7 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
         } else if (action.getId() == SIGN_IN_ON_TV) {
             signInOnTv();
         } else if (action.getId() == SIGN_IN_IN_BROWSER) {
-            if (getContext() != null && !TextUtils.isEmpty(mFullSignInUrl)) {
-                Utils.openLinkExt(getContext(), mFullSignInUrl);
-            }
+            showSignInPopup();
         }
     }
 

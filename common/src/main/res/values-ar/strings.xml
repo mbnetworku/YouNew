@@ -430,7 +430,7 @@
   <string name="starting_stream">جارٍ بدء البث ...</string>
   <string name="action_playlist_remove">إزالة من قائمة التشغيل</string>
   <string name="signin_view_title">يتم تحميل رمز المستخدم ...</string>
-  <string name="signin_view_description">على هذا التلفاز: اضغط \"تسجيل الدخول على هذا التلفاز\" (أو \"تسجيل الدخول بمتصفح الويب\")، اكتب بريد Google وكلمة المرور، ثم اضغط سماح.\nأو بهاتفك: امسح رمز QR (أو افتح %s واكتب الرمز أعلاه)، اختر حسابك، ثم اضغط سماح.\nتُغلق هذه الشاشة وحدها بعد تسجيل الدخول.</string>
+  <string name="signin_view_description">على هذا التلفاز: اضغط \"تسجيل الدخول على هذا التلفاز\" (أو \"تسجيل الدخول في نافذة منبثقة\")، اكتب بريد Google وكلمة المرور، ثم اضغط سماح.\nأو بهاتفك: امسح رمز QR (أو افتح %s واكتب الرمز أعلاه)، اختر حسابك، ثم اضغط سماح.\nتُغلق هذه الشاشة وحدها بعد تسجيل الدخول.</string>
   <string name="signin_view_action_text">إغلاق</string>
   <string name="require_checked"> \"%sيتطلب</string>
   <string name="msg_press_again_to_exit">اضغط مرة أخرى للخروج</string>
@@ -758,7 +758,7 @@
     <string name="younew_no_history">لم تشاهد أي فيديو بعد.\nالفيديوهات التي تشاهدها تظهر هنا، الأحدث أولاً،\nلتجدها وتكمل من حيث توقفت.\nلا حاجة لحساب Google.</string>
     <string name="younew_sign_in_on_tv">تسجيل الدخول على هذا التلفاز</string>
     <string name="younew_sign_in_on_tv_desc">تُفتح صفحة تسجيل الدخول من Google هنا: اكتب بريدك وكلمة المرور</string>
-    <string name="younew_sign_in_in_browser">تسجيل الدخول بمتصفح الويب</string>
-    <string name="younew_sign_in_in_browser_desc">نفس صفحة Google في متصفح التلفاز (Chrome…)</string>
+    <string name="younew_sign_in_in_browser">تسجيل الدخول في نافذة منبثقة</string>
+    <string name="younew_sign_in_in_browser_desc">نفس صفحة Google في نافذة فوق هذه الشاشة</string>
     <string name="younew_subscriptions_feed">خلاصة الاشتراكات (حساب Google)</string>
 </resources>

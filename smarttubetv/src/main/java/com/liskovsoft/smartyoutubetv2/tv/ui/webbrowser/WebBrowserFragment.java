@@ -1,6 +1,5 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.webbrowser;
 
-import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.os.Bundle;
 import android.view.LayoutInflater;
@@ -58,16 +57,7 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView {
         webSettings.setDomStorageEnabled(true);
         CookieManager.getInstance().setAcceptCookie(true);
         CookieManager.getInstance().setAcceptThirdPartyCookies(mWebView, true);
-        mWebView.setWebViewClient(new WebViewClient() {
-            @Override
-            public void onPageStarted(WebView view, String url, Bitmap favicon) {
-                super.onPageStarted(view, url, favicon);
-                // Google refuses sign-in inside this app on some boxes: continue in the box's browser
-                if (isGoogleRefusal(url)) {
-                    openInBrowserAndClose(null);
-                }
-            }
-        });
+        mWebView.setWebViewClient(new WebViewClient());
 
         // No caching
         //webSettings.setAppCacheEnabled(false);
@@ -103,8 +93,4 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView {
         close();
     }
 
-    private static boolean isGoogleRefusal(String url) {
-        return url != null && url.contains("accounts.google.com")
-                && (url.contains("/rejected") || url.contains("disallowed_useragent"));
-    }
 }

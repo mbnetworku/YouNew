@@ -28,6 +28,15 @@ if adb root > /dev/null 2>&1; then
   sleep 15
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/signin-tv.png && adb pull /data/local/tmp/signin-tv.png signin-tv.png || true
+  # Back to the sign-in screen, then the second button: Google's page in a pop-up window inside the app
+  adb shell input keyevent KEYCODE_BACK || true
+  sleep 4
+  adb shell input keyevent KEYCODE_DPAD_DOWN || true
+  sleep 1
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 15
+  adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+  adb shell screencap -p /data/local/tmp/signin-popup.png && adb pull /data/local/tmp/signin-popup.png signin-popup.png || true
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"
