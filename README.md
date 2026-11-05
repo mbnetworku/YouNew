@@ -56,7 +56,7 @@ the GitHub secrets page, where you add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `
 ones. Without it each build gets a temporary key and the old version has to be uninstalled first.
 
 **New release:** on GitHub, open *Releases*, then *Draft a new release*, make a tag such as
-`v32.78`, and publish it. The APKs are built and attached to the release by themselves a few minutes
+`v32.79`, and publish it. The APKs are built and attached to the release by themselves a few minutes
 later. Raise `versionCode` and `versionName` in `smarttubetv/build.gradle` first, or devices will not
 take the update.
 

@@ -2,6 +2,7 @@ package com.liskovsoft.smartyoutubetv2.tv.ui.settings;
 
 import android.app.AlertDialog;
 import android.content.res.ColorStateList;
+import android.content.res.Configuration;
 import android.graphics.Color;
 import android.graphics.drawable.ColorDrawable;
 import android.graphics.drawable.GradientDrawable;
@@ -9,8 +10,10 @@ import android.graphics.drawable.StateListDrawable;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
@@ -38,6 +41,13 @@ import java.util.List;
  * Remote: Up/Down choose a page, Right goes into its options, Left goes back, Back leaves.
  * Mouse or touch: click a page on the left, click an option on the right.
  * <br>
+ * Narrow screens (a phone held upright): one pane at a time. The list of pages first; a click slides the
+ * options in, and Back (or the arrow at the top) slides back to the list. Wide screens (TV, a phone held
+ * sideways): both panes together. The screen rebuilds itself when the phone is turned.
+ * <br>
+ * Animations: the options of a page glide in one after another, rows grow a little under the remote focus or the
+ * mouse and shrink a little while pressed, and the panes slide in a narrow screen.
+ * <br>
  * The options come from the same presenters as before (they build option lists for AppDialogPresenter);
  * this screen draws those lists itself. See {@link AppDialogPresenter#setCapture}.
  */
@@ -51,6 +61,9 @@ public class SettingsScreenActivity extends MotherActivity {
     private static final int FOCUS = 0xFF3A3A3A;
     private static final int PRESSED = 0xFF4A4A4A;
     private static final long FOCUS_DELAY_MS = 150;
+    private static final float TWO_PANE_MIN_WIDTH_DP = 640f;
+    private static final float FOCUS_SCALE = 1.02f;
+    private static final float PRESS_SCALE = 0.97f;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final List<TextView> mPageViews = new ArrayList<>();
@@ -59,6 +72,9 @@ public class SettingsScreenActivity extends MotherActivity {
     private List<SettingsItem> mPages = new ArrayList<>();
     private LinearLayout mContent;
     private ScrollView mScroll;
+    private LinearLayout mLeftPanel;
+    private boolean mTwoPane;
+    private boolean mShowingOptions;
     private int mCurrentPage = -1;
     private int mLoadId;
     private Runnable mPendingPage;
@@ -76,13 +92,48 @@ public class SettingsScreenActivity extends MotherActivity {
 
         setContentView(buildScreen());
 
+        boolean pageGiven = getIntent().hasExtra(EXTRA_PAGE);
         int start = getIntent().getIntExtra(EXTRA_PAGE, 0);
         start = Math.max(0, Math.min(start, mPages.size() - 1));
-        showPage(start);
+
+        if (mTwoPane || pageGiven) {
+            showPage(start);
+            showOptions(true, false);
+        }
 
         if (start < mPageViews.size()) {
             mPageViews.get(start).requestFocus();
         }
+    }
+
+    /** The phone was turned: the width changed, so choose the layout again. */
+    @Override
+    public void onConfigurationChanged(Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        int page = mCurrentPage;
+        boolean showing = mShowingOptions;
+        mCurrentPage = -1;
+        mPageViews.clear();
+        mRows.clear();
+        ++mLoadId; // drop a page that was still loading
+
+        setContentView(buildScreen());
+
+        if (page >= 0) {
+            showPage(page);
+            showOptions(showing || mTwoPane, false);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        if (!mTwoPane && mShowingOptions) {
+            showOptions(false, true);
+            return;
+        }
+
+        super.onBackPressed();
     }
 
     @Override
@@ -115,15 +166,24 @@ public class SettingsScreenActivity extends MotherActivity {
     // ---------------------------------------------------------------- screen
 
     private View buildScreen() {
+        DisplayMetrics metrics = getResources().getDisplayMetrics();
+        mTwoPane = metrics.widthPixels / metrics.density >= TWO_PANE_MIN_WIDTH_DP;
+
         LinearLayout root = new LinearLayout(this);
         root.setOrientation(LinearLayout.HORIZONTAL);
         root.setBackgroundColor(BG);
 
         // Left: title and the list of pages
         LinearLayout left = new LinearLayout(this);
+        mLeftPanel = left;
         left.setOrientation(LinearLayout.VERTICAL);
-        left.setPadding(dp(48), dp(40), dp(24), dp(24));
-        root.addView(left, new LinearLayout.LayoutParams(dp(360), ViewGroup.LayoutParams.MATCH_PARENT));
+        if (mTwoPane) {
+            left.setPadding(dp(48), dp(40), dp(24), dp(24));
+            root.addView(left, new LinearLayout.LayoutParams(dp(340), ViewGroup.LayoutParams.MATCH_PARENT));
+        } else {
+            left.setPadding(dp(20), dp(32), dp(20), dp(24));
+            root.addView(left, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+        }
 
         TextView title = text(getString(R.string.header_settings), 30, TEXT, true);
         title.setPadding(dp(20), 0, 0, dp(20));
@@ -140,13 +200,19 @@ public class SettingsScreenActivity extends MotherActivity {
             item.setBackground(pageBackground());
             item.setTextColor(new ColorStateList(
                     new int[][]{{android.R.attr.state_selected}, {}}, new int[]{Color.BLACK, TEXT}));
-            item.setOnClickListener(v -> showPage(index));
-            // The remote moves the focus: show that page after a short moment (not while scrolling fast)
+            item.setOnClickListener(v -> {
+                showPage(index);
+                showOptions(true, true); // narrow screen: slide the options in (nothing happens on a wide one)
+            });
+            // The remote moves the focus: show that page after a short moment (not while scrolling fast).
+            // A narrow screen waits for the click instead (the options cover the list).
             item.setOnFocusChangeListener((v, hasFocus) -> {
-                if (hasFocus) {
+                grow(v, hasFocus);
+                if (hasFocus && mTwoPane) {
                     showPageDelayed(index);
                 }
             });
+            addTouchFeedback(item);
             LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
             lp.bottomMargin = dp(4);
             left.addView(item, lp);
@@ -159,14 +225,103 @@ public class SettingsScreenActivity extends MotherActivity {
         mScroll.setClipToPadding(false);
         mContent = new LinearLayout(this);
         mContent.setOrientation(LinearLayout.VERTICAL);
-        mContent.setPadding(dp(24), dp(40), dp(64), dp(48));
+        if (mTwoPane) {
+            mContent.setPadding(dp(24), dp(40), dp(64), dp(48));
+        } else {
+            mContent.setPadding(dp(16), dp(24), dp(16), dp(32));
+        }
         mScroll.addView(mContent, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
         root.addView(mScroll, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
+
+        if (!mTwoPane) { // one pane at a time
+            mScroll.setVisibility(mShowingOptions ? View.VISIBLE : View.GONE);
+            left.setVisibility(mShowingOptions ? View.GONE : View.VISIBLE);
+        }
 
         return root;
     }
 
     // ---------------------------------------------------------------- pages
+
+    /** Narrow screen only: slides between the list of pages and the options of the chosen page. */
+    private void showOptions(boolean show, boolean animate) {
+        if (mTwoPane) {
+            return;
+        }
+
+        mShowingOptions = show;
+        final View hide = show ? mLeftPanel : mScroll;
+        final View reveal = show ? mScroll : mLeftPanel;
+
+        if (!animate) {
+            hide.setVisibility(View.GONE);
+            reveal.setVisibility(View.VISIBLE);
+            return;
+        }
+
+        float shift = dp(72);
+        reveal.setVisibility(View.VISIBLE);
+        reveal.setAlpha(0f);
+        reveal.setTranslationX(show ? shift : -shift);
+        reveal.animate().alpha(1f).translationX(0f).setStartDelay(0).setDuration(240).start();
+
+        hide.animate().alpha(0f).translationX(show ? -shift : shift).setStartDelay(0).setDuration(180)
+                .withEndAction(() -> {
+                    hide.setVisibility(View.GONE);
+                    hide.setAlpha(1f);
+                    hide.setTranslationX(0f);
+                }).start();
+
+        if (!show && mCurrentPage >= 0 && mCurrentPage < mPageViews.size()) {
+            mPageViews.get(mCurrentPage).requestFocus();
+        }
+    }
+
+    /** A view grows a little while it has the remote focus or the mouse over it. */
+    private void grow(View view, boolean on) {
+        float scale = on ? FOCUS_SCALE : 1f;
+        view.animate().scaleX(scale).scaleY(scale).setDuration(120).start();
+    }
+
+    /** Pressed: shrink a little; released: back (to the focus size if it still has the focus). */
+    private void addTouchFeedback(View view) {
+        view.setOnTouchListener((v, event) -> {
+            switch (event.getActionMasked()) {
+                case MotionEvent.ACTION_DOWN:
+                    v.animate().scaleX(PRESS_SCALE).scaleY(PRESS_SCALE).setDuration(80).start();
+                    break;
+                case MotionEvent.ACTION_UP:
+                case MotionEvent.ACTION_CANCEL:
+                    float scale = v.isFocused() ? FOCUS_SCALE : 1f;
+                    v.animate().scaleX(scale).scaleY(scale).setDuration(120).start();
+                    break;
+                default:
+                    break;
+            }
+            return false; // the click still works
+        });
+
+        view.setOnHoverListener((v, event) -> {
+            if (event.getActionMasked() == MotionEvent.ACTION_HOVER_ENTER) {
+                grow(v, true);
+            } else if (event.getActionMasked() == MotionEvent.ACTION_HOVER_EXIT && !v.isFocused()) {
+                grow(v, false);
+            }
+            return false;
+        });
+    }
+
+    /** The options of a page glide in one after another. */
+    private void animateContentIn() {
+        int count = mContent.getChildCount();
+        for (int i = 0; i < count; i++) {
+            View child = mContent.getChildAt(i);
+            child.setAlpha(0f);
+            child.setTranslationX(dp(28));
+            child.animate().alpha(1f).translationX(0f)
+                    .setStartDelay(Math.min(i, 10) * 35L).setDuration(220).start();
+        }
+    }
 
     private void showPageDelayed(int index) {
         if (mPendingPage != null) {
@@ -235,9 +390,27 @@ public class SettingsScreenActivity extends MotherActivity {
         mContent.removeAllViews();
         mRows.clear();
 
+        LinearLayout headingRow = new LinearLayout(this);
+        headingRow.setOrientation(LinearLayout.HORIZONTAL);
+        headingRow.setGravity(Gravity.CENTER_VERTICAL);
+        headingRow.setPadding(0, 0, 0, dp(12));
+
+        if (!mTwoPane) { // narrow screen: an arrow back to the list of pages
+            TextView back = text("\u2039", 36, TEXT, true);
+            back.setGravity(Gravity.CENTER);
+            back.setPadding(dp(14), 0, dp(14), dp(4));
+            back.setFocusable(true);
+            back.setClickable(true);
+            back.setBackground(rowBackground());
+            back.setOnClickListener(v -> onBackPressed());
+            addTouchFeedback(back);
+            headingRow.addView(back);
+        }
+
         TextView heading = text(mPages.get(index).title, 30, TEXT, true);
-        heading.setPadding(dp(20), 0, 0, dp(16));
-        mContent.addView(heading);
+        heading.setPadding(dp(mTwoPane ? 20 : 8), 0, 0, 0);
+        headingRow.addView(heading);
+        mContent.addView(headingRow);
 
         if (categories != null) {
             for (OptionCategory category : categories) {
@@ -279,8 +452,15 @@ public class SettingsScreenActivity extends MotherActivity {
 
         mScroll.scrollTo(0, 0);
 
-        if (focusRow >= 0 && focusRow < mRows.size()) {
-            mRows.get(focusRow).requestFocus();
+        if (focusRow >= 0) {
+            if (focusRow < mRows.size()) {
+                mRows.get(focusRow).requestFocus();
+            }
+        } else {
+            animateContentIn(); // a refresh after a click does not replay it
+            if (!mTwoPane && !mRows.isEmpty()) {
+                mRows.get(0).requestFocus();
+            }
         }
     }
 
@@ -394,6 +574,8 @@ public class SettingsScreenActivity extends MotherActivity {
         row.setFocusable(true);
         row.setClickable(true);
         row.setBackground(rowBackground());
+        row.setOnFocusChangeListener((v, hasFocus) -> grow(v, hasFocus));
+        addTouchFeedback(row);
         return row;
     }
 
