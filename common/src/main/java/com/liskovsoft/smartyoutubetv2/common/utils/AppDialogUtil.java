@@ -837,10 +837,7 @@ public class AppDialogUtil {
         for (int[] pair : new int[][] {
                 {R.string.repeat_mode_all, PlayerConstants.PLAYBACK_MODE_ALL},
                 {R.string.repeat_mode_one, PlayerConstants.PLAYBACK_MODE_ONE},
-                {R.string.repeat_mode_shuffle, PlayerConstants.PLAYBACK_MODE_SHUFFLE},
-                {R.string.repeat_mode_pause_alt, PlayerConstants.PLAYBACK_MODE_LIST},
-                {R.string.repeat_mode_reverse_list, PlayerConstants.PLAYBACK_MODE_REVERSE_LIST},
-                {R.string.repeat_mode_pause, PlayerConstants.PLAYBACK_MODE_PAUSE},
+                // YouNew: shuffle, playlist-only, reverse and pause-after-each were removed (three choices are enough)
                 {R.string.repeat_mode_none, PlayerConstants.PLAYBACK_MODE_CLOSE}
         }) {
             options.add(UiOptionItem.from(context.getString(pair[0]),

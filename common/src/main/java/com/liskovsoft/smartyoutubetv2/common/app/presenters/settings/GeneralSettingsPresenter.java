@@ -81,7 +81,7 @@ public class GeneralSettingsPresenter extends BasePresenter<Void> {
         AppDialogPresenter settingsPresenter = AppDialogPresenter.instance(getContext());
 
         appendBootToSection(settingsPresenter);
-        appendEnabledSections(settingsPresenter);
+        // YouNew: hidden (the sidebar is fixed) - appendEnabledSections(settingsPresenter);
         // YouNew: hidden (fewer settings) - appendContextMenuItemsCategory(settingsPresenter);
         appendHideContent(settingsPresenter);
         // YouNew: hidden (fewer settings) - appendAppExitCategory(settingsPresenter);
