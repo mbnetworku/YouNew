@@ -121,7 +121,30 @@ public class AppDialogPresenter extends BasePresenter<AppDialogView> {
         showDialog(null, onFinish);
     }
 
+    /**
+     * YouNew: lets a screen draw the options itself. While a capture is set, the next showDialog() hands the
+     * built categories to it instead of opening the dialog screen. It works once (the capture is cleared).
+     */
+    public interface OnCapture {
+        void onCapture(List<OptionCategory> categories, CharSequence title, Runnable onFinish);
+    }
+
+    private OnCapture mCapture;
+
+    public void setCapture(OnCapture capture) {
+        mCapture = capture;
+    }
+
     public void showDialog(CharSequence dialogTitle, Runnable onFinish) {
+        if (mCapture != null) {
+            OnCapture capture = mCapture;
+            mCapture = null;
+            List<OptionCategory> categories = mCategories;
+            resetData();
+            capture.onCapture(categories, dialogTitle, onFinish);
+            return;
+        }
+
         mTitle = dialogTitle;
         mOnFinish.add(onFinish);
         

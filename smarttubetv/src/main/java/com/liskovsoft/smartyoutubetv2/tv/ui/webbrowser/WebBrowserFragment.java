@@ -5,8 +5,10 @@ import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.webkit.CookieManager;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.fragment.app.Fragment;
@@ -43,9 +45,19 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView {
         super.onViewCreated(view, savedInstanceState);
 
         mWebView = (WebView) view.findViewById(R.id.webview);
+
+        if (mWebView == null) {
+            return;
+        }
+
         mWebView.setBackgroundColor(Color.TRANSPARENT);
         WebSettings webSettings = mWebView.getSettings();
         webSettings.setJavaScriptEnabled(true);
+        // YouNew: sign-in pages need these, and links must open inside this page, not in another app
+        webSettings.setDomStorageEnabled(true);
+        CookieManager.getInstance().setAcceptCookie(true);
+        CookieManager.getInstance().setAcceptThirdPartyCookies(mWebView, true);
+        mWebView.setWebViewClient(new WebViewClient());
 
         // No caching
         //webSettings.setAppCacheEnabled(false);
@@ -61,6 +73,24 @@ public class WebBrowserFragment extends Fragment implements WebBrowserView {
 
     @Override
     public void loadUrl(String url) {
+        if (mWebView == null) { // No WebView on this box
+            openInBrowserAndClose(url);
+            return;
+        }
+
         mWebView.loadUrl(url);
     }
+
+    @Override
+    public void close() {
+        if (getActivity() != null) {
+            getActivity().finish();
+        }
+    }
+
+    private void openInBrowserAndClose(String url) {
+        mWebBrowserPresenter.openInBrowser(url);
+        close();
+    }
+
 }

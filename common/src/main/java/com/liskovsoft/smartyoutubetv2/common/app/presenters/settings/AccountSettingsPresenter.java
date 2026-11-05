@@ -68,9 +68,9 @@ public class AccountSettingsPresenter extends BasePresenter<Void> {
         appendSelectAccountSection(accounts, icons, settingsPresenter);
         appendSignInButton(settingsPresenter);
         appendSignOutSection(accounts, icons, settingsPresenter);
-        appendProtectAccountWithPassword(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendProtectAccountWithPassword(settingsPresenter);
         appendSeparateSettings(settingsPresenter);
-        appendSelectAccountOnBoot(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendSelectAccountOnBoot(settingsPresenter);
 
         Account account = getSignInService().getSelectedAccount();
         int accountIndex = accounts != null ? accounts.indexOf(account) : -1;

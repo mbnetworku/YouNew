@@ -1,0 +1,167 @@
+name: Build and check APK
+
+on:
+  push:
+    branches: [ main, 'claude/**' ]
+    tags: [ 'v*' ]
+  pull_request:
+  workflow_dispatch:
+    inputs:
+      release_tag:
+        description: 'Publish a release with this tag (for example v32.68). Leave empty for a normal check.'
+        required: false
+        default: ''
+  release:
+    types: [ published ]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Android SDK packages
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-34" "build-tools;30.0.3" "build-tools;34.0.0"
+
+      # Your own signing key, kept as repository secrets (Settings > Secrets and variables > Actions):
+      # KEYSTORE_BASE64 (the .jks file in base64), KEYSTORE_PASSWORD, KEY_ALIAS, KEY_PASSWORD.
+      # With it every build has the same signature, so new versions install over old ones.
+      # Without it the build uses a throw-away debug key that changes from build to build.
+      - name: Signing key from secrets
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_BASE64" ]; then
+            echo "::warning::No signing key in secrets: APKs use a temporary debug key, so they will not update over an earlier build"
+            exit 0
+          fi
+          echo "$KEYSTORE_BASE64" | base64 -d > "$RUNNER_TEMP/release.jks"
+          {
+            echo "storeFile=$RUNNER_TEMP/release.jks"
+            echo "storePassword=$KEYSTORE_PASSWORD"
+            echo "keyAlias=$KEY_ALIAS"
+            echo "keyPassword=$KEY_PASSWORD"
+          } > keystore.properties
+          echo "Signing with the key from secrets"
+
+      - name: Build (debug and release)
+        run: |
+          chmod +x gradlew
+          ./gradlew --no-daemon --stacktrace assembleStfdroidDebug assembleStfdroidRelease
+
+      - name: Check the APK files
+        run: |
+          BT="$ANDROID_HOME/build-tools/34.0.0"
+          ls -la smarttubetv/build/outputs/apk/stfdroid/*/
+          for apk in smarttubetv/build/outputs/apk/stfdroid/*/*universal*.apk; do
+            echo "=== $apk"
+            MINSDK=$("$BT/aapt" dump badging "$apk" | sed -n "s/^sdkVersion:'\([0-9]*\)'/\1/p")
+            echo "minSdk: $MINSDK"
+            if [ "$MINSDK" -gt 21 ]; then echo "ERROR: APK needs API $MINSDK, but it must install on Android 5.0 (API 21)"; exit 1; fi
+            "$BT/aapt" dump badging "$apk" | grep -E "^package:|sdkVersion|targetSdkVersion|application-label:|launchable-activity|leanback-launchable|native-code"
+            unzip -l "$apk" | grep -c "classes.*\.dex" | sed 's/^/dex files: /'
+            "$BT/zipalign" -c 4 "$apk" && echo "zipalign: OK"
+            # Fails the build if the APK is not signed (Android refuses to install it then)
+            "$BT/apksigner" verify --min-sdk-version 21 --print-certs "$apk" > signer.txt
+            head -3 signer.txt
+          done
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: YouNew-apk
+          path: smarttubetv/build/outputs/apk/stfdroid/**/*.apk
+          if-no-files-found: error
+
+  # Install and start the app on emulators from Android 5.0 up, and fail if it crashes on start.
+  # 5.1 (API 22) is the Android version of the TV boxes this app is made for.
+  smoke-test:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { api: 21, arch: x86 }        # Android 5.0
+          - { api: 22, arch: x86 }        # Android 5.1
+          - { api: 26, arch: x86 }        # Android 8.0
+          - { api: 30, arch: x86_64 }     # Android 11
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: YouNew-apk
+          path: apk
+
+      - name: Enable KVM
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install and launch on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api }}
+          arch: ${{ matrix.arch }}
+          target: default
+          disable-animations: true
+          script: bash .github/scripts/smoke-test.sh
+
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: emulator-check-api${{ matrix.api }}
+          path: |
+            logcat.txt
+            screen.png
+            signin.png
+            signin-tv.png
+            signin-popup.png
+            settings-*.png
+            ui-*.xml
+
+  # When a GitHub Release is published, attach the release APKs with simple names:
+  # YouTvPlus.apk (universal) and YouTvPlus-<abi>.apk. Runs only after every emulator check passed.
+  attach-to-release:
+    # A published GitHub Release, or a pushed version tag such as v32.68 (the release is then created here)
+    # Also from the Actions tab: "Run workflow" with a release tag
+    if: github.event_name == 'release' || startsWith(github.ref, 'refs/tags/v') || inputs.release_tag != ''
+    needs: smoke-test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: YouNew-apk
+          path: apk
+
+      - name: Upload APKs to the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mkdir out
+          for f in apk/release/YouTvPlus-*.apk; do
+            abi=$(basename "$f" .apk | sed -E 's/^YouTvPlus-[^-]+-//')
+            if [ "$abi" = "universal" ]; then cp "$f" out/YouTvPlus.apk; else cp "$f" "out/YouTvPlus-$abi.apk"; fi
+          done
+          ls -la out
+          TAG="${{ inputs.release_tag || github.event.release.tag_name || github.ref_name }}"
+          if ! gh release view "$TAG" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            gh release create "$TAG" --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "YouTv Plus ${TAG#v}" \
+              --notes "YouTv Plus ${TAG#v}. Works on Android 5.0 and newer. Not sure which file? Take **YouTvPlus.apk**. Most TV boxes can also use YouTvPlus-armeabi-v7a.apk (smaller)."
+          fi
+          gh release upload "$TAG" out/*.apk --clobber --repo "${{ github.repository }}"

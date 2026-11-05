@@ -227,7 +227,7 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
             }
             android.widget.TextView brand = (android.widget.TextView) getView().findViewById(R.id.younew_brand);
             if (brand != null) {
-                brand.setText(enabled ? "YouNew" : "");
+                brand.setText(enabled ? "YouTv Plus" : "");
             }
         }
         final VerticalGridView grid = getVerticalGridView();

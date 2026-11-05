@@ -4,6 +4,7 @@ import android.content.Context;
 import android.os.Build;
 import com.liskovsoft.sharedutils.helpers.AppInfoHelpers;
 import com.liskovsoft.smartyoutubetv2.common.R;
+import com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionItem;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
@@ -13,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * About page: just the app version and the device model. No links, no update check, no donations.
+ * About page: the app version, the device model, and the update switch and button. No links, no donations.
  */
 public class AboutSimpleSettingsPresenter extends BasePresenter<Void> {
     public AboutSimpleSettingsPresenter(Context context) {
@@ -33,6 +34,13 @@ public class AboutSimpleSettingsPresenter extends BasePresenter<Void> {
         info.add(UiOptionItem.from(String.format("%s %s", Build.MANUFACTURER, Build.MODEL)));
 
         settingsPresenter.appendStringsCategory(getContext().getString(R.string.settings_about), info);
+
+        // YouNew: the app updates itself from its own GitHub releases
+        settingsPresenter.appendSingleSwitch(UiOptionItem.from(getContext().getString(R.string.younew_update_auto),
+                option -> AppUpdater.setAutoCheckEnabled(getContext(), option.isSelected()),
+                AppUpdater.isAutoCheckEnabled(getContext())));
+        settingsPresenter.appendSingleButton(UiOptionItem.from(getContext().getString(R.string.younew_update_check),
+                option -> AppUpdater.checkNow(getContext())));
 
         settingsPresenter.showDialog(getContext().getString(R.string.settings_about));
     }

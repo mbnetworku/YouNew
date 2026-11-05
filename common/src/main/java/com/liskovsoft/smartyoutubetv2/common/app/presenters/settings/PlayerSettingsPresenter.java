@@ -7,6 +7,7 @@ import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.sharedutils.helpers.MessageHelpers;
 import com.liskovsoft.sharedutils.prefs.GlobalPreferences;
 import com.liskovsoft.smartyoutubetv2.common.R;
+import com.liskovsoft.smartyoutubetv2.common.app.models.playback.manager.PlayerConstants;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionCategory;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionItem;
 import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem;
@@ -58,20 +59,20 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
         AppDialogPresenter settingsPresenter = AppDialogPresenter.instance(getContext());
 
         appendPlaybackModeCategory(settingsPresenter);
-        appendVideoPresetsCategory(settingsPresenter);
-        appendPlayerButtonsCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendVideoPresetsCategory(settingsPresenter);
+        // YouNew: hidden (fixed set of player buttons) - appendPlayerButtonsCategory(settingsPresenter);
         // YouNew: hidden (fewer settings) - appendNetworkEngineCategory(settingsPresenter);
         // YouNew: hidden (fewer settings) - appendVideoBufferCategory(settingsPresenter);
         // YouNew: hidden (fewer settings) - appendVideoZoomCategory(settingsPresenter);
         appendVideoSpeedCategory(settingsPresenter);
         appendAudioLanguageCategory(settingsPresenter);
-        appendAudioDelayCategory(settingsPresenter);
+        // YouNew: hidden (fewer settings) - appendAudioDelayCategory(settingsPresenter);
         appendMasterVolumeCategory(settingsPresenter);
         appendOKButtonCategory(settingsPresenter);
         appendUIAutoHideCategory(settingsPresenter);
         // YouNew: hidden (fewer settings) - appendSeekTypeCategory(settingsPresenter);
         // YouNew: hidden (fewer settings) - appendSeekingPreviewCategory(settingsPresenter);
-        AppDialogUtil.appendSeekIntervalDialogItems(getContext(), settingsPresenter, mPlayerData, false);
+        // YouNew: hidden (the Seek interval button in the player sets it) - AppDialogUtil.appendSeekIntervalDialogItems(getContext(), settingsPresenter, mPlayerData, false);
         //appendRememberSpeedCategory(settingsPresenter);
         //appendScreenOffTimeoutCategory(settingsPresenter);
         // YouNew: hidden (fewer settings) - appendEndingTimeCategory(settingsPresenter);
@@ -319,6 +320,12 @@ public class PlayerSettingsPresenter extends BasePresenter<Void> {
     }
 
     private void appendPlaybackModeCategory(AppDialogPresenter settingsPresenter) {
+        // YouNew: three modes are left. A box that had one of the removed modes goes back to "continuous".
+        int mode = mPlayerData.getPlaybackMode();
+        if (mode != PlayerConstants.PLAYBACK_MODE_ALL && mode != PlayerConstants.PLAYBACK_MODE_ONE && mode != PlayerConstants.PLAYBACK_MODE_CLOSE) {
+            mPlayerData.setPlaybackMode(PlayerConstants.PLAYBACK_MODE_ALL);
+        }
+
         OptionCategory category = AppDialogUtil.createPlaybackModeCategory(getContext());
         settingsPresenter.appendCategory(category);
     }

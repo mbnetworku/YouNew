@@ -28,7 +28,7 @@
         android:layout_width="@dimen/lb_browse_headers_width"
         android:layout_height="match_parent"
         style="?attr/headersVerticalGridStyle"/>
-    <!-- YouNew brand at the top of the sidebar -->
+    <!-- YouTv Plus brand at the top of the sidebar -->
     <TextView
         android:id="@+id/younew_brand"
         android:layout_width="wrap_content"
@@ -38,7 +38,7 @@
         android:drawableStart="@drawable/younew_badge"
         android:drawablePadding="10dp"
         android:gravity="center_vertical"
-        android:text="YouNew"
+        android:text="YouTv Plus"
         android:textColor="#FFFFFF"
         android:textSize="22sp"
         android:textStyle="bold" />

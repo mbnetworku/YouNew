@@ -52,6 +52,7 @@ public class MediaServiceManager implements OnAccountChange {
     private Disposable mRowsAction;
     private Disposable mSubscribedChannelsAction;
     private Disposable mFormatInfoAction;
+    private Disposable mPrefetchFormatInfoAction; // YouNew: own slot, so a card prefetch never cancels another load
     private Disposable mPlaylistGroupAction;
     private Disposable mPlaylistInfosAction;
     private Disposable mHistoryAction;
@@ -257,6 +258,24 @@ public class MediaServiceManager implements OnAccountChange {
                 .subscribe(
                         onFormatInfo::onFormatInfo,
                         error -> Log.e(TAG, "loadFormatInfo error: %s", error.getMessage())
+                );
+    }
+
+    /**
+     * YouNew: fetch a video's data in advance (see VideoPrefetcher). Uses its own request slot,
+     * so it never cancels a load started by the player or a menu (they use {@link #loadFormatInfo}).
+     */
+    public void prefetchFormatInfo(Video item) {
+        if (item == null) {
+            return;
+        }
+
+        RxHelper.disposeActions(mPrefetchFormatInfoAction);
+
+        mPrefetchFormatInfoAction = mItemService.getFormatInfoObserve(item.videoId)
+                .subscribe(
+                        formatInfo -> { /* kept in the cache for the player */ },
+                        error -> Log.e(TAG, "prefetchFormatInfo error: %s", error.getMessage())
                 );
     }
 

@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- YouNew: sidebar entries that are not selected were drawn at 50% (grey on black, hard to read); 90% now -->
+    <item name="lb_browse_header_unselect_alpha" type="fraction">90%</item>
+</resources>

@@ -416,6 +416,11 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
         }
     }
 
+    /** YouNew: shows the sidebar (used by the Settings panel's back arrow). */
+    public void showSidebar() {
+        startHeadersTransitionSafe(true);
+    }
+
     /**
      * Fix: IllegalStateException: "Can not perform this action after onSaveInstanceState"
      */

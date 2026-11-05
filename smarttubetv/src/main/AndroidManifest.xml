@@ -17,6 +17,8 @@
 
     <uses-permission android:name="${applicationId}.ACCESS_VIDEO_DATA" />
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- YouNew: the app installs its own updates (Settings > About) -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
 
@@ -69,6 +71,17 @@
             <meta-data
                 android:name="androidx.work.WorkManagerInitializer"
                 tools:node="remove" />
+        </provider>
+
+        <!-- YouNew: hands the downloaded update file to Android's installer (see AppUpdater) -->
+        <provider
+            android:name="com.liskovsoft.smartyoutubetv2.common.misc.UpdateFileProvider"
+            android:authorities="${applicationId}.updates"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/younew_update_paths" />
         </provider>
 
         <!-- Screen Mirror (e.g. DIAL) for Amazon TV -->
@@ -152,6 +165,12 @@
                   android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|layoutDirection"
                   android:screenOrientation="unspecified"
                   android:theme="@style/App.Theme.Leanback.Preferences"/>
+
+        <!-- YouNew: the Settings screen (pages on the left, options on the right) -->
+        <activity android:name="com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsScreenActivity"
+                  android:configChanges="screenSize|smallestScreenSize|screenLayout|orientation|layoutDirection"
+                  android:screenOrientation="unspecified"
+                  android:theme="@style/App.Theme.SettingsScreen"/>
 
         <!-- Android 8 fallback -->
         <activity android:name="com.liskovsoft.smartyoutubetv2.tv.ui.dialogs.AppDialogActivityOpaque"

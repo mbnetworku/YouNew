@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- YouNew: where the downloaded update file lives (see AppUpdater) -->
+<paths>
+    <external-cache-path name="ext_cache" path="." />
+    <cache-path name="int_cache" path="." />
+</paths>

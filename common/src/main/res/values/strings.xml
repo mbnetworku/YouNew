@@ -470,8 +470,8 @@
     <string name="starting_stream">Starting the stream…</string>
     <string name="action_playlist_remove">Remove from playlist</string>
     <string name="signin_view_title">User Code is loading…</string>
-    <string name="signin_view_description">To sign-in enter this code on page %s\nNOTE. Works only with Firefox or Chrome browsers.</string>
-    <string name="signin_view_action_text">Done</string>
+    <string name="signin_view_description">On this TV: press \"Sign in on this TV\" (or \"Sign in in a pop-up window\"), type your Google email and password, press Allow.\nOr with your phone: scan the QR code (or open %s and type the code above), choose your account, press Allow.\nThis screen closes by itself when you are signed in.</string>
+    <string name="signin_view_action_text">Close</string>
     <string name="require_checked">Requires \"%s\"</string>
     <string name="msg_press_again_to_exit">Press again to exit</string>
     <string name="player_remaining_time">Remaining: %s</string>
@@ -765,5 +765,24 @@
     <string name="younew_shorts_hint">▲ ▼  Next / previous Short</string>
     <string name="younew_no_subscriptions">No subscriptions yet.\nOpen a video and press Subscribe:\nthe channel will appear here.\nNo Google account needed.</string>
     <string name="younew_search_videos">Search for videos</string>
+    <string name="younew_no_history">Nothing watched yet.\nThe videos you watch show up here, newest first,\nso you can find them and continue where you stopped.\nNo Google account needed.</string>
+    <string name="younew_sign_in_on_tv">Sign in on this TV</string>
+    <string name="younew_sign_in_on_tv_desc">Google\'s sign-in page opens here: type your email and password</string>
+    <string name="younew_sign_in_in_browser">Sign in in a pop-up window</string>
+    <string name="younew_sign_in_in_browser_desc">The same Google page in a window over this screen</string>
+    <string name="younew_no_webview">This TV can\'t show web pages inside apps. Scan the QR code with your phone to sign in.</string>
+    <string name="younew_clean_feeds">Clean up my feeds</string>
+    <string name="younew_hide_watched">Hide videos I already watched</string>
+    <string name="younew_hide_upcoming_streams">Hide upcoming videos and live streams</string>
+    <string name="younew_back">Back</string>
+    <string name="younew_update_auto">Check for updates automatically</string>
+    <string name="younew_update_check">Check for updates now</string>
+    <string name="younew_update_available">Update available: %s</string>
+    <string name="younew_update_now">Update now (%s)</string>
+    <string name="younew_update_later">Later</string>
+    <string name="younew_update_downloading">Downloading the update… %d%%</string>
+    <string name="younew_update_error">Could not get the update. Check the internet and try again.</string>
+    <string name="younew_update_allow">Allow YouTv Plus to install apps, then press the update again.</string>
+    <string name="younew_update_other_key">This update is signed with a different key, so Android cannot install it over this app. Uninstall YouTv Plus once, then install the update. Later updates will then work.</string>
     <string name="younew_subscriptions_feed">Subscriptions feed (Google account)</string>
 </resources>

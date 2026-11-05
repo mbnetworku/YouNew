@@ -57,8 +57,8 @@ android {
         applicationId "app.smarttube"
         minSdkVersion project.properties.minSdkVersion
         targetSdkVersion project.properties.targetSdkVersion
-        versionCode 2458
-        versionName "32.68"
+        versionCode 2476
+        versionName "32.86"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "long", "TIMESTAMP", System.currentTimeMillis() + "L"
 
@@ -109,6 +109,10 @@ android {
 
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
+            } else {
+                // YouNew: no keystore.properties -> sign with the debug key, so the release APK still installs
+                // (an unsigned APK is refused by Android). Use your own key for APKs you publish.
+                signingConfig signingConfigs.debug
             }
         }
         // Use same key for release and debug for testing
@@ -123,14 +127,14 @@ android {
     // https://stackoverflow.com/questions/18332474/how-to-set-versionname-in-apk-filename-using-gradle
     applicationVariants.all { variant ->
         variant.outputs.all { output ->
-            def project = "YouNewTV"
-            def flavor = variant.productFlavors[-1].name.substring(2) // remove st prefix
-            def buildType = variant.buildType.name.take(1)
+            // YouNew: clear download names, e.g. YouTvPlus-32.68-universal.apk (debug builds end in -debug)
+            def project = "YouTvPlus"
             def version = variant.versionName
             def arch = output.getFilter(com.android.build.OutputFile.ABI)
             arch = arch != null ? arch : "universal"
+            def suffix = variant.buildType.name == "release" ? "" : "-" + variant.buildType.name
 
-            def newApkName = sprintf("%s_%s_%s_%s.apk", [project, flavor, version, arch])
+            def newApkName = sprintf("%s-%s-%s%s.apk", [project, version, arch, suffix])
 
             // gradle 4.6 migration
             output.outputFileName = new File(newApkName)
@@ -254,4 +258,7 @@ dependencies {
     implementation 'org.conscrypt:conscrypt-android:' + conscryptVersion
 
     implementation 'androidx.work:work-runtime:' + workVersion
+
+    // YouNew: draws the sign-in QR code on the box (3.3.3 is the last version that runs on Android 5)
+    implementation 'com.google.zxing:core:3.3.3'
 }

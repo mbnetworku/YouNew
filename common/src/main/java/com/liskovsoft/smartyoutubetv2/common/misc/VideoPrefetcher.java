@@ -35,7 +35,7 @@ public class VideoPrefetcher {
 
         sPending = () -> {
             sPending = null;
-            MediaServiceManager.instance().loadFormatInfo(video, formatInfo -> { /* kept in the cache for the player */ });
+            MediaServiceManager.instance().prefetchFormatInfo(video);
         };
 
         sHandler.postDelayed(sPending, REST_DELAY_MS);
