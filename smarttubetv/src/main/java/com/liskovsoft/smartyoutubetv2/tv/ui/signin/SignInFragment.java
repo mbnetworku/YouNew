@@ -21,6 +21,7 @@ import androidx.core.content.ContextCompat;
 import androidx.leanback.app.GuidedStepSupportFragment;
 import androidx.leanback.widget.GuidanceStylist;
 import androidx.leanback.widget.GuidedAction;
+import com.liskovsoft.sharedutils.helpers.MessageHelpers;
 import com.liskovsoft.sharedutils.mylogger.Log;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.SignInPresenter;
 import com.liskovsoft.smartyoutubetv2.common.app.views.SignInView;
@@ -175,6 +176,11 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
 
         dismissSignInPopup();
 
+        if (!Utils.isWebViewAvailable(getContext())) {
+            showNoWebViewMessage();
+            return;
+        }
+
         WebView webView;
         try {
             webView = new WebView(getActivity());
@@ -208,6 +214,12 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
         dialog.show();
         webView.requestFocus();
         mSignInPopup = dialog;
+    }
+
+    /** YouNew: this TV has no built-in web view: say so, and try the TV's own browser if it has one. */
+    private void showNoWebViewMessage() {
+        MessageHelpers.showLongMessage(getContext(), R.string.younew_no_webview);
+        Utils.openLinkExt(getContext(), mFullSignInUrl);
     }
 
     private void dismissSignInPopup() {
@@ -279,6 +291,11 @@ public class SignInFragment extends GuidedStepSupportFragment implements SignInV
      */
     private void signInOnTv() {
         if (getContext() == null || TextUtils.isEmpty(mFullSignInUrl)) {
+            return;
+        }
+
+        if (!Utils.isWebViewAvailable(getContext())) {
+            showNoWebViewMessage();
             return;
         }
 

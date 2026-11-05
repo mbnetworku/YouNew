@@ -512,7 +512,25 @@ public class Utils {
         return String.format(QR_CODE_URL_TEMPLATE, data);
     }
 
+    /**
+     * YouNew: true when the box has Android's built-in web view (needed for web pages inside the app).
+     * Some TVs ship without it; opening an in-app page there fails.
+     */
+    public static boolean isWebViewAvailable(Context context) {
+        try {
+            android.webkit.CookieManager.getInstance(); // throws when no WebView is installed
+            return true;
+        } catch (Throwable e) {
+            return false;
+        }
+    }
+
     public static void openLink(Context context, String url) {
+        if (!isWebViewAvailable(context)) { // YouNew: no in-app web page on this box, use its browser
+            openLinkExt(context, url);
+            return;
+        }
+
         try {
             WebBrowserPresenter.instance(context).loadUrl(url);
         } catch (Exception e) {

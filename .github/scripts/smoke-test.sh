@@ -28,9 +28,10 @@ if adb root > /dev/null 2>&1; then
   sleep 15
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
   adb shell screencap -p /data/local/tmp/signin-tv.png && adb pull /data/local/tmp/signin-tv.png signin-tv.png || true
-  # Back to the sign-in screen, then the second button: Google's page in a pop-up window inside the app
-  adb shell input keyevent KEYCODE_BACK || true
-  sleep 4
+  # Open the sign-in screen again, then the second button: Google's page in a pop-up window inside the app
+  # (started again instead of Back: on a TV without WebView the first button leaves the screen)
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.signin.SignInActivity" || true
+  sleep 6
   adb shell input keyevent KEYCODE_DPAD_DOWN || true
   sleep 1
   adb shell input keyevent KEYCODE_DPAD_CENTER || true
