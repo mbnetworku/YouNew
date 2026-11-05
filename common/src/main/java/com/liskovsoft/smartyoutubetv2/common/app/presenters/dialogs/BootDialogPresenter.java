@@ -7,8 +7,8 @@ import com.liskovsoft.smartyoutubetv2.common.app.presenters.base.BasePresenter;
 /**
  * Shows boot dialogs one by one.
  *
- * YouNew: there are no boot dialogs. The old update check was removed on purpose,
- * because it asked SmartTube's servers for updates and showed their release notes.
+ * YouNew: the only boot step is the update check (see AppUpdater). It looks at this app's own GitHub releases
+ * (the old one asked SmartTube's servers and was removed on purpose).
  */
 public class BootDialogPresenter extends BasePresenter<Void> {
     @SuppressLint("StaticFieldLeak")
@@ -29,6 +29,7 @@ public class BootDialogPresenter extends BasePresenter<Void> {
     }
 
     public void start() {
-        // NOP: nothing to show at start-up
+        // YouNew: look for a newer version on our own GitHub releases (at most every 12 hours, can be switched off)
+        com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.checkInBackground(getContext());
     }
 }

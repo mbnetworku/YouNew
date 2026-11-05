@@ -775,5 +775,14 @@
     <string name="younew_hide_watched">Hide videos I already watched</string>
     <string name="younew_hide_upcoming_streams">Hide upcoming videos and live streams</string>
     <string name="younew_back">Back</string>
+    <string name="younew_update_auto">Check for updates automatically</string>
+    <string name="younew_update_check">Check for updates now</string>
+    <string name="younew_update_available">Update available: %s</string>
+    <string name="younew_update_now">Update now (%s)</string>
+    <string name="younew_update_later">Later</string>
+    <string name="younew_update_downloading">Downloading the update… %d%%</string>
+    <string name="younew_update_error">Could not get the update. Check the internet and try again.</string>
+    <string name="younew_update_allow">Allow YouTv Plus to install apps, then press the update again.</string>
+    <string name="younew_update_other_key">This update is signed with a different key, so Android cannot install it over this app. Uninstall YouTv Plus once, then install the update. Later updates will then work.</string>
     <string name="younew_subscriptions_feed">Subscriptions feed (Google account)</string>
 </resources>

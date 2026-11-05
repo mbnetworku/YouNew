@@ -9,6 +9,7 @@ a white focus ring, and a slim left icon menu that expands to labels.
 - Remote, mouse and keyboard all work.
 - No Google account needed: subscriptions are kept on the device. You can still sign in for your own feed.
 - **One Settings screen:** the pages (Accounts, General, Player, Language, Subtitles, Appearance, About) on the left and the options of the chosen page on the right, together. Mouse, touch and remote all work on both sides.
+- **Updates itself:** when a newer release is on GitHub, the app asks "Update now / Later" at start-up (at most every 12 hours; Settings > About has the switch and a "Check for updates now" button). It downloads the file for your device and opens Android's installer.
 - **Google sign-in, three ways:** *Sign in on this TV* (Google's page inside the app), *Sign in in a pop-up window* (the same page in a window over the sign-in screen), or scan the large QR code with your phone. Type your email and password, press Allow.
 - **History** in the sidebar: the videos you watched, newest first, with how far you got. Works without an account too.
 - Shorts player, topic buttons on Home (Music, Gaming, News, Sports), English and Arabic layout.
@@ -49,14 +50,16 @@ started on Android 5.0, 5.1, 8.0 and 11 emulators; the build fails if the app cr
 every build are under the run's *Artifacts* on the
 [Actions page](https://github.com/mbnetworku/YouNew/actions).
 
-**Signing key (do this once):** on Windows, double-click `tools\make-signing-key.bat`. It asks for
+**Signing key (do this once, needed for updates):** Android only installs an update that is signed with the same key as the installed app, so the in-app updater works only for builds made with your own key (without it every build gets a different temporary key). The app checks this and tells you if an update has another key.
+
+**How:** on Windows, double-click `tools\make-signing-key.bat`. It asks for
 administrator rights, creates the key in *Documents\YouTvPlus-key*, copies it to the clipboard and opens
 the GitHub secrets page, where you add `KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` and
 `KEY_PASSWORD`. From then on every build has the same signature, so new versions install over old
 ones. Without it each build gets a temporary key and the old version has to be uninstalled first.
 
 **New release:** on GitHub, open *Releases*, then *Draft a new release*, make a tag such as
-`v32.83`, and publish it. The APKs are built and attached to the release by themselves a few minutes
+`v32.84`, and publish it. The APKs are built and attached to the release by themselves a few minutes
 later. Raise `versionCode` and `versionName` in `smarttubetv/build.gradle` first, or devices will not
 take the update.
 

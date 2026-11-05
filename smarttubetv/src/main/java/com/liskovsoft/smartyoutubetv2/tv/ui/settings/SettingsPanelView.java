@@ -845,7 +845,7 @@ public class SettingsPanelView extends FrameLayout {
     private int iconFor(CharSequence title) {
         String name = title == null ? "" : title.toString().toLowerCase();
         String[][] words = {
-                {"shorts", "shorts"}, {"watched", "history"}, {"history", "history"},
+                {"update", "sparkle"}, {"shorts", "shorts"}, {"watched", "history"}, {"history", "history"},
                 {"upcoming", "live"}, {"live", "live"}, {"mix", "playlist"},
                 {"playlist", "playlist"}, {"queue", "queue"}, {"boot", "home"},
                 {"background", "queue"}, {"news", "news"}, {"music", "music"},

@@ -765,5 +765,14 @@
     <string name="younew_hide_watched">إخفاء الفيديوهات التي شاهدتها</string>
     <string name="younew_hide_upcoming_streams">إخفاء الفيديوهات القادمة والبث المباشر</string>
     <string name="younew_back">رجوع</string>
+    <string name="younew_update_auto">البحث عن تحديثات تلقائيًا</string>
+    <string name="younew_update_check">البحث عن تحديث الآن</string>
+    <string name="younew_update_available">يوجد تحديث: %s</string>
+    <string name="younew_update_now">حدّث الآن (%s)</string>
+    <string name="younew_update_later">لاحقًا</string>
+    <string name="younew_update_downloading">جارٍ تنزيل التحديث… %d%%</string>
+    <string name="younew_update_error">تعذّر الحصول على التحديث. تحقق من الإنترنت وحاول مرة أخرى.</string>
+    <string name="younew_update_allow">اسمح لـ YouTv Plus بتثبيت التطبيقات، ثم اضغط التحديث مرة أخرى.</string>
+    <string name="younew_update_other_key">هذا التحديث موقّع بمفتاح مختلف، لذلك لا يستطيع أندرويد تثبيته فوق هذا التطبيق. احذف YouTv Plus مرة واحدة ثم ثبّت التحديث. بعدها تعمل التحديثات اللاحقة.</string>
     <string name="younew_subscriptions_feed">خلاصة الاشتراكات (حساب Google)</string>
 </resources>
