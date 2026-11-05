@@ -17,6 +17,7 @@ import android.content.Context;
 import android.graphics.Rect;
 import android.util.AttributeSet;
 import android.view.KeyEvent;
+import android.view.MotionEvent;
 import android.view.View;
 import android.widget.FrameLayout;
 
@@ -66,6 +67,25 @@ public class BrowseFrameLayout extends FrameLayout {
 
     public BrowseFrameLayout(Context context, AttributeSet attrs, int defStyle) {
         super(context, attrs, defStyle);
+    }
+
+    /** YouNew: told when a finger or mouse button goes down anywhere in this layout. */
+    public interface OnTouchDownListener {
+        void onTouchDown(MotionEvent event);
+    }
+
+    private OnTouchDownListener mOnTouchDownListener;
+
+    public void setOnTouchDownListener(OnTouchDownListener listener) {
+        mOnTouchDownListener = listener;
+    }
+
+    @Override
+    public boolean dispatchTouchEvent(MotionEvent ev) {
+        if (mOnTouchDownListener != null && ev.getActionMasked() == MotionEvent.ACTION_DOWN) {
+            mOnTouchDownListener.onTouchDown(ev);
+        }
+        return super.dispatchTouchEvent(ev);
     }
 
     private OnFocusSearchListener mListener;
