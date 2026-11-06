@@ -506,6 +506,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             return onShortsMouse(event, true);
         }
 
+        // YouNew: swipe down (finger or mouse drag) hides the player bar / video info / suggestions
+        trackSwipeDown(event);
+
         if (mDoubleTapPlayerAdapter != null && !isOverlayShown()) {
             boolean handled = mDoubleTapPlayerAdapter.onTouchEvent(event);
 
@@ -517,12 +520,52 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         return false;
     }
 
+    private float mSwipeStartX;
+    private float mSwipeStartY;
+    private boolean mSwipeTracking;
+
+    private void trackSwipeDown(MotionEvent event) {
+        switch (event.getActionMasked()) {
+            case MotionEvent.ACTION_DOWN:
+                mSwipeStartX = event.getX();
+                mSwipeStartY = event.getY();
+                mSwipeTracking = isOverlayShown();
+                break;
+            case MotionEvent.ACTION_UP:
+                if (mSwipeTracking && isOverlayShown()) {
+                    float density = getResources().getDisplayMetrics().density;
+                    float dx = event.getX() - mSwipeStartX;
+                    float dy = event.getY() - mSwipeStartY;
+                    // a clear downward move of about 1 cm that is more vertical than sideways
+                    if (dy > 60 * density && Math.abs(dy) > Math.abs(dx) * 1.5f) {
+                        hideControlsOverlay(true);
+                    }
+                }
+                mSwipeTracking = false;
+                break;
+            case MotionEvent.ACTION_CANCEL:
+                mSwipeTracking = false;
+                break;
+            default:
+                break;
+        }
+    }
+
     /**
      * @return true if the mouse event was used by the Shorts screen and must not go further
      */
     public boolean onDispatchGenericMotionEvent(MotionEvent event) {
         if (isShortsMode()) {
             return onShortsMouse(event, false);
+        }
+
+        // YouNew: a mouse that only moves (or shakes a little on the table) must not keep the bar on screen
+        // for ever: moving the pointer no longer restarts the hide timer. Clicks and the wheel still do.
+        int action = event.getActionMasked();
+        if (action == MotionEvent.ACTION_HOVER_MOVE
+                || action == MotionEvent.ACTION_HOVER_ENTER
+                || action == MotionEvent.ACTION_HOVER_EXIT) {
+            return false;
         }
 
         applyTickle(event);

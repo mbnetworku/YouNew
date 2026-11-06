@@ -30,7 +30,10 @@ Last updated: 2026-11-05, after version 32.86.
 | 32.84 | Automatic update (build failed: duplicate FileProvider, fixed by `UpdateFileProvider`; not published) |
 | 32.85 | Auto update, readable sidebar icons (90 % opacity, 32 dp), sidebar brand "YouTv Plus" with new mark, panel safety net against invisibility |
 | 32.86 | Panel measures itself to the visible space (sidebar open / phone sideways), scrolling page list, sidebar redesign (rounded pills, taller rows), cut-off checks in CI |
-| 32.87 | First release signed with the owner's own key (secrets set by `tools/make-signing-key.ps1`); no UI change |
+| 32.87 | First release signed with the owner's own key (secrets set by `tools/make-signing-key.ps1`) |
+| 32.88 | Sign-in screen redesigned: one rounded screen, big QR + code, Google page inside the same screen (`SignInFragment`) |
+| 32.89 | Sidebar in touch/mouse mode: no focus-driven open/close (`BrowseSupportFragment.onRequestChildFocus`), tap on current icon toggles the bar, touch on content closes it |
+| 32.90 | New account with empty personal Home falls back to the public Home (`BrowsePresenter.signedHomeWithFallback`); loading-arrow watchdog (25 s); player: swipe down hides bar/info, mouse hover no longer restarts the hide timer |
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept
