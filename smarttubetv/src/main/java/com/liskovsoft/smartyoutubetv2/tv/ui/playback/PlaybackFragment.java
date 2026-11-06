@@ -241,6 +241,11 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             }
 
             @Override
+            public void showGestureSuggestions() {
+                showSuggestions(true);
+            }
+
+            @Override
             public boolean isGesturePlaying() {
                 return getPlayWhenReady();
             }
@@ -1222,6 +1227,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             mPlayerGlue.setTitle(video.getTitleFull() != null ? video.getTitleFull() : "...");
             if (mPlayerOverlay != null) {
                 mPlayerOverlay.setTitle(video.getTitleFull());
+                mPlayerOverlay.setSubtitle(video.getSecondTitleFull() != null ? createSubtitle(video) : "");
             }
             mPlayerGlue.setSubtitle(video.getSecondTitleFull() != null ? createSubtitle(video) : "...");
             mPlayerGlue.setVideo(video);

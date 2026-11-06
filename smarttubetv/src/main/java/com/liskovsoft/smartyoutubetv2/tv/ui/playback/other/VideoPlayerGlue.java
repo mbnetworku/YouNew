@@ -142,18 +142,10 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         // Will display as follows:
         // play/pause, previous, rewind, fast forward, next
         //   > /||      |<        <<        >>         >|
-        if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_PLAY_PAUSE)) {
-            super.onCreatePrimaryActions(adapter);
-        }
+        // YouNew: Play/Pause, Previous and Next are the big round buttons in the middle of the picture now
+        // (PlayerOverlayView), so they are not repeated in this row.
+        // (Remote: OK / Play-Pause key still pause and play, the skip keys still skip.)
 
-        if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_PREVIOUS)) {
-            adapter.add(mSkipPreviousAction);
-        }
-        //adapter.add(mRewindAction);
-        //adapter.add(mFastForwardAction);
-        if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_NEXT)) {
-            adapter.add(mSkipNextAction);
-        }
         if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_REPEAT_MODE)) {
             adapter.add(mActions.get(R.id.action_repeat));
         }
