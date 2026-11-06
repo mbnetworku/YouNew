@@ -92,10 +92,11 @@ public final class SeekBar extends View {
     public SeekBar(Context context, AttributeSet attrs) {
         super(context, attrs);
         setWillNotDraw(false);
-        mBackgroundPaint.setColor(Color.GRAY);
-        mSecondProgressPaint.setColor(Color.LTGRAY);
+        // YouNew: YouTube look - see-through white track, lighter buffer, red progress with a red round knob
+        mBackgroundPaint.setColor(0x66FFFFFF);
+        mSecondProgressPaint.setColor(0x99FFFFFF);
         mProgressPaint.setColor(Color.RED);
-        mKnobPaint.setColor(Color.WHITE);
+        mKnobPaint.setColor(Color.RED);
         mBarHeight = context.getResources().getDimensionPixelSize(
                 R.dimen.lb_playback_transport_progressbar_bar_height);
         mActiveBarHeight = context.getResources().getDimensionPixelSize(
@@ -156,7 +157,10 @@ public final class SeekBar extends View {
             canvas.drawRoundRect(rectangle.rect, radius, radius, rectangle.paint);
         }
 
-        canvas.drawCircle(mKnobx, getHeight() / 2, radius, mKnobPaint);
+        // YouNew: the knob is always visible (like YouTube), bigger when the bar has focus
+        final int knobRadius = isFocused() ? mActiveRadius
+                : Math.max(radius, (int) (7 * getResources().getDisplayMetrics().density));
+        canvas.drawCircle(mKnobx, getHeight() / 2, knobRadius, mKnobPaint);
     }
 
     /**
@@ -219,6 +223,7 @@ public final class SeekBar extends View {
      */
     public void setProgressColor(int color) {
         mProgressPaint.setColor(color);
+        mKnobPaint.setColor(color);
     }
 
     /**

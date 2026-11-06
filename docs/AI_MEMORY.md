@@ -34,6 +34,7 @@ Last updated: 2026-11-05, after version 32.86.
 | 32.88 | Sign-in screen redesigned: one rounded screen, big QR + code, Google page inside the same screen (`SignInFragment`) |
 | 32.89 | Sidebar in touch/mouse mode: no focus-driven open/close (`BrowseSupportFragment.onRequestChildFocus`), tap on current icon toggles the bar, touch on content closes it |
 | 32.90 | New account with empty personal Home falls back to the public Home (`BrowsePresenter.signedHomeWithFallback`); loading-arrow watchdog (25 s); player: swipe down hides bar/info, mouse hover no longer restarts the hide timer |
+| 32.91 | Player look like modern YouTube: glass round buttons (focus ring, mouse hover), see-through track, red progress with always-visible red knob (`SeekBar`, `lb_control_button_*.xml`, dimens) |
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept
