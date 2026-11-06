@@ -85,6 +85,7 @@ public class SearchPanelView extends FrameLayout {
         GradientDrawable queryBg = new GradientDrawable();
         queryBg.setColor(0xFF272727);
         queryBg.setCornerRadius(dp(22));
+        queryBg.setStroke(dp(1), 0xFF3A3A3A); // soft edge, like the YouTube search field
         mQuery.setBackground(queryBg);
         LinearLayout.LayoutParams queryLp = new LinearLayout.LayoutParams(narrow ? -1 : dp(420), dp(44));
         queryLp.topMargin = dp(8);
@@ -194,8 +195,8 @@ public class SearchPanelView extends FrameLayout {
     }
 
     private LinearLayout.LayoutParams chipLp() {
-        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(38));
-        lp.bottomMargin = dp(8);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(-2, dp(42));
+        lp.bottomMargin = dp(10); // a little more air between the suggestion pills
         return lp;
     }
 
@@ -203,7 +204,7 @@ public class SearchPanelView extends FrameLayout {
     private TextView newChip(String text) {
         TextView chip = new TextView(getContext());
         chip.setText(text);
-        chip.setTextSize(16);
+        chip.setTextSize(17);
         chip.setTypeface(Typeface.DEFAULT_BOLD);
         chip.setSingleLine(true);
         chip.setEllipsize(TextUtils.TruncateAt.END);
