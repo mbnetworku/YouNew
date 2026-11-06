@@ -46,6 +46,7 @@ Last updated: 2026-11-05, after version 32.86.
 | 33.00 | Same as 32.99 plus the old search pill at the top really gone, CI test restarts the app and checks for it |
 | 33.01-beta | Settings list with section headers (Language & Location, About) like YouTube TV; Search panel CI check is a warning (the tap on the sidebar entry is not reliable in CI); beta label |
 | 33.03-beta | Two channels: production = normal releases (the download link and the updater's default); beta = tags with 'beta', marked as GitHub pre-releases by the workflow (`gh release edit --prerelease`). About > 'Include beta versions' lets the updater use the newest release of either kind (`AppUpdater.fetchRelease`, `releases?per_page=10`). Also the Search design pass (33.02) |
+| 33.04 | First production release of the two-channel setup (production = normal tag, no beta label) |
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept
