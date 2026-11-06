@@ -101,7 +101,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     private static final String TAG = PlaybackFragment.class.getSimpleName();
     private static final String SELECTED_VIDEO_ID = "SelectedVideoId";
     private static final int UPDATE_DELAY_MS = 100;
-    private static final int SUGGESTIONS_START_INDEX = 1;
+    private static final int SUGGESTIONS_START_INDEX = 0; // YouNew: suggestion rows live in their own list (pop-up), not under the controls
     private VideoPlayerGlue mPlayerGlue;
     private SimpleExoPlayer mPlayer;
     private PlaybackPresenter mPlaybackPresenter;
@@ -112,6 +112,8 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     private ShortsOverlayView mShortsOverlay;
     // YouNew: YouTube-like layer (back arrow, title, big play/pause/prev/next) and swipe/hold gestures
     private PlayerOverlayView mPlayerOverlay;
+    private SuggestionsPanelView mSuggestionsPanel;
+    private ArrayObjectAdapter mSuggestionRows;
     private PlayerGestures mGestures;
     private boolean mConsumeShortsBackUp;
     private boolean mStayInShorts;
@@ -221,8 +223,31 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             public boolean isOverlayPlaying() {
                 return getPlayWhenReady();
             }
+
+            @Override
+            public void onOverlaySuggestions() {
+                showSuggestions(true);
+            }
         });
         root.addView(mPlayerOverlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        mSuggestionsPanel = new SuggestionsPanelView(getContext(), new SuggestionsPanelView.Host() {
+            @Override
+            public void onSuggestionClicked(Video video) {
+                mPlaybackPresenter.onSuggestionItemClicked(video);
+            }
+
+            @Override
+            public void onSuggestionLongClicked(Video video) {
+                mPlaybackPresenter.onSuggestionItemLongClicked(video);
+            }
+
+            @Override
+            public void onSuggestionsEnd(Video lastVideo) {
+                mPlaybackPresenter.onScrollEnd(lastVideo);
+            }
+        });
+        root.addView(mSuggestionsPanel, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
         mGestures = new PlayerGestures(getContext(), new PlayerGestures.Host() {
             @Override
@@ -610,6 +635,23 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
      * @return true if the key was used by the Shorts screen and must not go further
      */
     public boolean onDispatchKeyEvent(KeyEvent event) {
+        if (isSuggestionsShown() && (event.getKeyCode() == KeyEvent.KEYCODE_BACK || event.getKeyCode() == KeyEvent.KEYCODE_ESCAPE)) {
+            if (event.getAction() == KeyEvent.ACTION_UP) {
+                mSuggestionsPanel.close();
+            }
+            return true; // Back closes the pop-up first
+        }
+
+        // Remote: Down on the progress bar opens the Suggestions pop-up (the list used to be a row under the controls)
+        if (event.getKeyCode() == KeyEvent.KEYCODE_DPAD_DOWN && event.getAction() == KeyEvent.ACTION_DOWN
+                && !isSuggestionsShown() && isOverlayShown() && getView() != null) {
+            View focused = getView().findFocus();
+            if (focused != null && focused.getId() == R.id.playback_progress && !isSuggestionsEmpty()) {
+                showSuggestions(true);
+                return true;
+            }
+        }
+
         return isShortsMode() && onShortsKey(event);
     }
 
@@ -619,6 +661,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     public boolean onDispatchTouchEvent(MotionEvent event) {
         if (isShortsMode()) {
             return onShortsMouse(event, true);
+        }
+
+        if (isSuggestionsShown()) {
+            return false; // the pop-up list handles its own touches
         }
 
         // YouNew: swipes (volume, brightness, hide), press-and-hold 2x speed, tap to hide
@@ -643,6 +689,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     public boolean onDispatchGenericMotionEvent(MotionEvent event) {
         if (isShortsMode()) {
             return onShortsMouse(event, false);
+        }
+
+        if (isSuggestionsShown()) {
+            return false;
         }
 
         // YouNew: a mouse that only moves (or shakes a little on the table) must not keep the bar on screen
@@ -785,6 +835,11 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     private void destroyPlayerObjects() {
         setAdapter(null); // PlayerGlue->LeanbackPlayerAdapter->Context memory leak fix
+        if (mSuggestionRows != null) {
+            mSuggestionRows.clear();
+            mSuggestionRows = null;
+        }
+
         if (mRowsAdapter != null) {
             mRowsAdapter.clear();
             mRowsAdapter = null;
@@ -1084,6 +1139,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
         // player controls row
         mRowsAdapter.add(mPlayerGlue.getControlsRow());
+
+        // YouNew: the suggestion rows are kept here and shown in a pop-up (SuggestionsPanelView)
+        mSuggestionRows = new ArrayObjectAdapter(mRowPresenter);
 
         setAdapter(mRowsAdapter);
     }
@@ -1613,7 +1671,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public boolean isSuggestionsShown() {
-        return isControlsOverlayVisible() && getPlayerRowIndex() != 0;
+        return mSuggestionsPanel != null && mSuggestionsPanel.isOpen();
     }
 
     @Override
@@ -1697,11 +1755,54 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             return;
         }
 
-        showOverlay(show);
+        if (show) {
+            if (isSuggestionsEmpty() || mSuggestionsPanel == null) {
+                showOverlay(true);
+                return;
+            }
 
-        if (show && !isSuggestionsShown() && !isSuggestionsEmpty()) {
-            setPlayerRowIndex(1);
+            // YouNew: the list opens as a pop-up (bottom sheet upright, left panel sideways) over the video
+            hideControlsOverlay(true);
+            refreshSuggestionsPanel();
+            mSuggestionsPanel.open();
+        } else {
+            if (mSuggestionsPanel != null) {
+                mSuggestionsPanel.close();
+            }
+            showOverlay(false);
         }
+    }
+
+    /** Fills the pop-up from the suggestion rows (called again whenever rows change or grow). */
+    private void refreshSuggestionsPanel() {
+        if (mSuggestionsPanel == null || mSuggestionRows == null) {
+            return;
+        }
+
+        java.util.List<Object> items = new java.util.ArrayList<>();
+        boolean manyRows = mSuggestionRows.size() > 1;
+
+        for (int i = 0; i < mSuggestionRows.size(); i++) {
+            Object row = mSuggestionRows.get(i);
+            if (!(row instanceof ListRow)) {
+                continue;
+            }
+
+            ListRow listRow = (ListRow) row;
+            if (manyRows && listRow.getHeaderItem() != null && !TextUtils.isEmpty(listRow.getHeaderItem().getName())) {
+                items.add(listRow.getHeaderItem().getName());
+            }
+
+            ObjectAdapter adapter = listRow.getAdapter();
+            for (int j = 0; j < adapter.size(); j++) {
+                Object item = adapter.get(j);
+                if (item instanceof Video) {
+                    items.add(item);
+                }
+            }
+        }
+
+        mSuggestionsPanel.setItems(items);
     }
 
     /**
@@ -1788,7 +1889,12 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public void updateSuggestions(VideoGroup group) {
-        if (mRowsAdapter == null) {
+        updateSuggestionsInternal(group);
+        refreshSuggestionsPanel();
+    }
+
+    private void updateSuggestionsInternal(VideoGroup group) {
+        if (mSuggestionRows == null) {
             Log.e(TAG, "Related videos row not initialized yet.");
             return;
         }
@@ -1826,10 +1932,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             ListRow row = new ListRow(rowHeader, videoGroupAdapter);
 
             int newPosition = group.getPosition() + SUGGESTIONS_START_INDEX;
-            if (group.getPosition() == -1 || newPosition > mRowsAdapter.size()) {
-                mRowsAdapter.add(row);
+            if (group.getPosition() == -1 || newPosition > mSuggestionRows.size()) {
+                mSuggestionRows.add(row);
             } else {
-                mRowsAdapter.add(newPosition, row);
+                mSuggestionRows.add(newPosition, row);
             }
         } else {
             Log.d(TAG, "Continue row %s %s", group.getTitle(), System.currentTimeMillis());
@@ -1857,7 +1963,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
                 int position = getSuggestionsIndex(group);
                 if (position != -1) {
                     mVideoGroupAdapters.remove(group.getId());
-                    mRowsAdapter.removeItems(position + SUGGESTIONS_START_INDEX, 1);
+                    mSuggestionRows.removeItems(position + SUGGESTIONS_START_INDEX, 1);
                 }
             }
         }
@@ -1865,7 +1971,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public int getSuggestionsIndex(VideoGroup group) {
-        if (mRowsAdapter == null) {
+        if (mSuggestionRows == null) {
             Log.e(TAG, "Related videos row not initialized yet.");
             return -1;
         }
@@ -1880,14 +1986,14 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     private int getRowAdapterIndex(VideoGroupObjectAdapter adapter) {
         int index = -1;
 
-        for (int i = 0; i < mRowsAdapter.size(); i++) {
-            Object row = mRowsAdapter.get(i);
+        for (int i = 0; i < mSuggestionRows.size(); i++) {
+            Object row = mSuggestionRows.get(i);
 
             if (row instanceof ListRow) {
                 ObjectAdapter current = ((ListRow) row).getAdapter();
 
                 if (current == adapter) {
-                    index = mRowsAdapter.indexOf(row);
+                    index = mSuggestionRows.indexOf(row);
                     break;
                 }
             }
@@ -1904,7 +2010,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
         // NOTE: skip first row. It's PlaybackControlsRow
         int realIndex = rowIndex + SUGGESTIONS_START_INDEX;
-        Object row = mRowsAdapter != null && mRowsAdapter.size() > realIndex ? mRowsAdapter.get(realIndex) : null;
+        Object row = mSuggestionRows != null && mSuggestionRows.size() > realIndex ? mSuggestionRows.get(realIndex) : null;
 
         VideoGroup result = null;
 
@@ -1918,13 +2024,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public void focusSuggestedItem(int index) {
-        if (mRowsSupportFragment != null) {
-            ViewHolder vh = mRowsSupportFragment.getRowViewHolder(SUGGESTIONS_START_INDEX);
-            // Skip PlaybackRowPresenter.ViewHolder
-            if (vh instanceof ListRowPresenter.ViewHolder) {
-                ((ListRowPresenter.ViewHolder) vh).getGridView().setSelectedPosition(index);
-            }
-        }
+        // YouNew: the suggestions are a pop-up list now; nothing to focus under the controls
     }
 
     @Override
@@ -1939,32 +2039,8 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     }
 
     private void focusPendingSuggestedItem(ViewHolder holder) {
-        if (mPendingFocus == null || mPendingFocus.getGroup() == null || mRowsSupportFragment == null) {
-            return;
-        }
-
-        VideoGroupObjectAdapter existingAdapter = mVideoGroupAdapters.get(mPendingFocus.getGroup().getId());
-
-        if (existingAdapter == null) {
-            mPendingFocus = null; // probably a leftover from the previous player instance
-            return;
-        }
-
-        ViewHolder rowViewHolder;
-
-        if (holder != null && holder.getRow() instanceof ListRow && ((ListRow) holder.getRow()).getAdapter() == existingAdapter) {
-            rowViewHolder = holder;
-        } else {
-            int rowIndex = getRowAdapterIndex(existingAdapter);
-            rowViewHolder = mRowsSupportFragment.getRowViewHolder(rowIndex);
-        }
-
-        // Skip PlaybackRowPresenter.ViewHolder
-        if (rowViewHolder instanceof ListRowPresenter.ViewHolder) {
-            int index = existingAdapter.indexOf(mPendingFocus);
-            ((ListRowPresenter.ViewHolder) rowViewHolder).getGridView().setSelectedPosition(index);
-            mPendingFocus = null;
-        }
+        // YouNew: the suggestions are a pop-up list now; nothing to focus under the controls
+        mPendingFocus = null;
     }
 
     @Override
@@ -1974,8 +2050,8 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public void clearSuggestions() {
-        if (mRowsAdapter != null && mRowsAdapter.size() > 1) {
-            mRowsAdapter.removeItems(SUGGESTIONS_START_INDEX, mRowsAdapter.size() - 1);
+        if (mSuggestionRows != null && mSuggestionRows.size() > 0) {
+            mSuggestionRows.removeItems(0, mSuggestionRows.size());
         }
 
         mVideoGroupAdapters.clear();
@@ -1985,7 +2061,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     @Override
     public boolean isSuggestionsEmpty() {
         // Ignore first row. It's player controls row.
-        return mRowsAdapter == null || mRowsAdapter.size() <= SUGGESTIONS_START_INDEX;
+        return mSuggestionRows == null || mSuggestionRows.size() <= SUGGESTIONS_START_INDEX;
     }
 
     /**
