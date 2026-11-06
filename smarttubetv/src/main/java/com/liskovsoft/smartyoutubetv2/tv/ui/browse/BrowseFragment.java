@@ -156,7 +156,7 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                 }
         );
 
-        setOnSearchClickedListener(view -> SearchPresenter.instance(getContext()).startSearch(null));
+        // YouNew: no search button at the top; Search is the first entry of the sidebar now
     }
 
     /**

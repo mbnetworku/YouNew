@@ -788,4 +788,7 @@
     <string name="younew_gesture_brightness">السطوع %1$d%%</string>
     <string name="younew_gesture_volume">الصوت %1$d%%</string>
     <string name="younew_gesture_speed">سرعة %1$sx</string>
+    <string name="younew_header_search">بحث</string>
+    <string name="younew_search_hint">اكتب أو تحدث للبحث</string>
+    <string name="younew_search_space">مسافة</string>
 </resources>

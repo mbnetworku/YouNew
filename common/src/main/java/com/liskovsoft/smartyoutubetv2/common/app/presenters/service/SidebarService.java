@@ -21,6 +21,7 @@ public class SidebarService implements ProfileChangeListener {
     @SuppressLint("StaticFieldLeak")
     private static SidebarService sInstance;
     private static final String KEY_HISTORY_ADDED = "history_added";
+    private static final String KEY_SEARCH_ADDED = "search_added";
     private final Context mContext;
     private List<Video> mPinnedItems;
     private final Map<Integer, Integer> mDefaultSections = new LinkedHashMap<>();
@@ -256,6 +257,7 @@ public class SidebarService implements ProfileChangeListener {
     }
 
     private void initSections() {
+        mDefaultSections.put(R.string.younew_header_search, MediaGroup.TYPE_SEARCH); // YouNew: first entry, like YouTube TV
         mDefaultSections.put(R.string.header_notifications, MediaGroup.TYPE_NOTIFICATIONS);
         mDefaultSections.put(R.string.header_home, MediaGroup.TYPE_HOME);
         mDefaultSections.put(R.string.header_shorts, MediaGroup.TYPE_SHORTS);
@@ -282,6 +284,7 @@ public class SidebarService implements ProfileChangeListener {
             // All of them work without signing in (History then lists the videos watched on this box).
             // The other sections (Music, Gaming, Playlists...) can be switched on in Settings > General > Set-up sections.
             enableSection(sectionId, Helpers.equalsAny(sectionId, new int[] {
+                    MediaGroup.TYPE_SEARCH,
                     MediaGroup.TYPE_HOME,
                     MediaGroup.TYPE_SHORTS,
                     MediaGroup.TYPE_NEWS,
@@ -332,6 +335,8 @@ public class SidebarService implements ProfileChangeListener {
 
         addHistoryOnce();
 
+        addSearchOnce();
+
         cleanupPinnedItems();
     }
 
@@ -345,6 +350,19 @@ public class SidebarService implements ProfileChangeListener {
         if (!prefs.getBoolean(KEY_HISTORY_ADDED, false)) {
             enableSection(MediaGroup.TYPE_HISTORY, true);
             prefs.edit().putBoolean(KEY_HISTORY_ADDED, true).apply();
+        }
+    }
+
+    /**
+     * YouNew: Search became an entry of the sidebar. Boxes that already have saved sections get it once, at the top;
+     * if the user hides it later in Set-up sections, it stays hidden.
+     */
+    private void addSearchOnce() {
+        android.content.SharedPreferences prefs = mContext.getSharedPreferences("younew_sidebar", Context.MODE_PRIVATE);
+
+        if (!prefs.getBoolean(KEY_SEARCH_ADDED, false)) {
+            enableSection(MediaGroup.TYPE_SEARCH, true);
+            prefs.edit().putBoolean(KEY_SEARCH_ADDED, true).apply();
         }
     }
 

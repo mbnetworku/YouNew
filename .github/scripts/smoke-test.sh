@@ -231,6 +231,24 @@ PY
   else
     echo "CHECK skipped: no screen dump on this emulator"
   fi
+  # Search inside the Home screen: open the sidebar, go up to Search (the first entry): its panel must show the
+  # keyboard (SEARCH key) and the hint text
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 6
+  adb shell input keyevent KEYCODE_DPAD_LEFT || true
+  sleep 1
+  for i in 1 2 3 4 5 6 7; do adb shell input keyevent KEYCODE_UP || true; done
+  sleep 4
+  check_crash "search panel"
+  if ui_dump home-search; then
+    if has_text ui-home-search.xml "SEARCH" && grep -q "Type or speak to search" ui-home-search.xml; then
+      echo "CHECK search panel in the Home screen: SHOWN"
+      check_inside_screen ui-home-search.xml "search panel"
+    else
+      echo "CHECK search panel in the Home screen: MISSING (no keyboard or hint on the screen)"
+      FAILED=1
+    fi
+  fi
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"

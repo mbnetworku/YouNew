@@ -202,6 +202,8 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         String country = LocaleUtility.getCurrentLocale(getContext()).getCountry();
         int uploadsType = getMainUIData().isUploadsOldLookEnabled() ? BrowseSection.TYPE_GRID : BrowseSection.TYPE_MULTI_GRID;
 
+        // YouNew: Search is an entry of the sidebar (like YouTube TV); it opens right here, next to the sidebar
+        mSectionsMapping.put(MediaGroup.TYPE_SEARCH, new BrowseSection(MediaGroup.TYPE_SEARCH, getContext().getString(R.string.younew_header_search), BrowseSection.TYPE_SEARCH_PANEL, R.drawable.icon_search, false));
         mSectionsMapping.put(MediaGroup.TYPE_HOME, new BrowseSection(MediaGroup.TYPE_HOME, getContext().getString(R.string.header_home), BrowseSection.TYPE_ROW, R.drawable.icon_home, false));
         mSectionsMapping.put(MediaGroup.TYPE_SHORTS, new BrowseSection(MediaGroup.TYPE_SHORTS, getContext().getString(R.string.header_shorts), BrowseSection.TYPE_SHORTS_GRID, R.drawable.icon_shorts));
         mSectionsMapping.put(MediaGroup.TYPE_TRENDING, new BrowseSection(MediaGroup.TYPE_TRENDING, getContext().getString(R.string.header_trending), BrowseSection.TYPE_ROW, R.drawable.icon_trending));
@@ -767,6 +769,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                 Observable<MediaGroup> group2 = mGridMapping.get(section.getId());
                 updateVideoGrid(section, group2, 0, section.isAuthOnly());
                 break;
+            case BrowseSection.TYPE_SEARCH_PANEL:
             case BrowseSection.TYPE_ERROR:
                 getView().showProgressBar(false);
                 break;

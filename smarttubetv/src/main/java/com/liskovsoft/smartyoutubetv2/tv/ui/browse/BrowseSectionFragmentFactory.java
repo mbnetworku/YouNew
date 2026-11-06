@@ -75,6 +75,9 @@ public class BrowseSectionFragmentFactory extends BrowseSupportFragment.Fragment
             case BrowseSection.TYPE_SETTINGS_GRID:
                 fragment = new SettingsPanelFragment(); // YouNew: Settings inside the Home screen
                 break;
+            case BrowseSection.TYPE_SEARCH_PANEL:
+                fragment = new com.liskovsoft.smartyoutubetv2.tv.ui.search.SearchPanelFragment(); // YouNew: Search inside the Home screen
+                break;
             case BrowseSection.TYPE_MULTI_GRID:
                 fragment = new MultiVideoGridFragment();
                 break;
