@@ -221,6 +221,11 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             public boolean isOverlayPlaying() {
                 return getPlayWhenReady();
             }
+
+            @Override
+            public boolean isOverlaySuggestionsRow() {
+                return isControlsOverlayVisible() && getPlayerRowIndex() != 0;
+            }
         });
         root.addView(mPlayerOverlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 

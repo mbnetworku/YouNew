@@ -39,6 +39,7 @@ Last updated: 2026-11-05, after version 32.86.
 | 32.93 | Player compact after the owner's screenshot: big description card hidden (title + channel line now in the top bar of `PlayerOverlayView`), smaller round buttons, Play/Prev/Next no longer repeated in the bottom row, Share button on by default, swipe up shows the Recommended/playlist row |
 | 32.94 | Suggestions as a pop-up (`SuggestionsPanelView`): the owner did not like it, going back to the rows under the controls |
 | 32.95 | Suggestions are the Leanback rows under the controls again (as in 32.93); the big middle buttons hide while a suggestion card is in front (`PlayerOverlayView.setMiddleVisible`). The pop-up commit was reverted |
+| 32.96 | The big middle buttons hide as soon as the Suggestions row is in front (checked every 150 ms through `isOverlaySuggestionsRow`, also when scrolled by touch), return with the controls |
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept

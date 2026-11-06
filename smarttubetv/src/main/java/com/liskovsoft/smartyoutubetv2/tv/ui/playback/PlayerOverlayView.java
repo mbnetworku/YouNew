@@ -32,10 +32,12 @@ public class PlayerOverlayView extends FrameLayout {
         void onOverlayNext();
         void onOverlayPlayPause();
         boolean isOverlayPlaying();
+        /** True while the Suggestions row (not the controls row) is in front. */
+        boolean isOverlaySuggestionsRow();
     }
 
     private static final int FADE_MS = 160;
-    private static final int TICK_MS = 400;
+    private static final int TICK_MS = 150;
 
     private Host mHost;
     private final FrameLayout mControls;
@@ -240,6 +242,8 @@ public class PlayerOverlayView extends FrameLayout {
 
     private void updatePlayIcon() {
         if (mHost != null) {
+            // The big buttons hide as soon as the Suggestions come up (and return with the controls)
+            setMiddleVisible(!mHost.isOverlaySuggestionsRow());
             mPlay.setKind(mHost.isOverlayPlaying() ? RoundButton.PAUSE : RoundButton.PLAY);
         }
     }
