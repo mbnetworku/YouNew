@@ -801,4 +801,6 @@
     <string name="younew_header_search">Search</string>
     <string name="younew_search_hint">Type or speak to search</string>
     <string name="younew_search_space">SPACE</string>
+    <string name="younew_group_language">Language &amp; Location</string>
+    <string name="younew_group_about">About</string>
 </resources>

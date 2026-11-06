@@ -791,4 +791,6 @@
     <string name="younew_header_search">بحث</string>
     <string name="younew_search_hint">اكتب أو تحدث للبحث</string>
     <string name="younew_search_space">مسافة</string>
+    <string name="younew_group_language">اللغة والموقع</string>
+    <string name="younew_group_about">حول</string>
 </resources>

@@ -318,6 +318,12 @@ public class SettingsPanelView extends FrameLayout {
 
         for (int i = 0; i < mPages.size(); i++) {
             final int index = i;
+            // YouNew: section headers like the YouTube TV Settings list
+            if (i == 3) {
+                left.addView(groupHeader(R.string.younew_group_language));
+            } else if (i == 6) {
+                left.addView(groupHeader(R.string.younew_group_about));
+            }
             LinearLayout item = new LinearLayout(getContext());
             item.setOrientation(LinearLayout.HORIZONTAL);
             item.setGravity(Gravity.CENTER_VERTICAL);
@@ -893,6 +899,13 @@ public class SettingsPanelView extends FrameLayout {
         }
 
         return block;
+    }
+
+    /** A small grey section title in the list of pages (not clickable). */
+    private TextView groupHeader(int resId) {
+        TextView header = text(getString(resId).toUpperCase(), 14, 0xFFAAAAAA, true);
+        header.setPadding(dp(20), dp(22), dp(20), dp(8));
+        return header;
     }
 
     // ---------------------------------------------------------------- icons
