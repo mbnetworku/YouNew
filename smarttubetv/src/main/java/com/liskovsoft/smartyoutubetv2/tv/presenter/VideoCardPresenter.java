@@ -108,7 +108,8 @@ public class VideoCardPresenter extends LongClickPresenter {
         // and a white rounded ring around the thumbnail when the card is focused.
         View infoField = view.findViewById(R.id.info_field);
         if (infoField != null) {
-            infoField.setBackgroundColor(Color.TRANSPARENT);
+            // Liquid glass: a translucent rounded strip under the thumbnail, brighter when the card has the focus
+            infoField.setBackgroundResource(selected ? R.drawable.glass_card_info_focused : R.drawable.glass_card_info);
         }
 
         TextView titleText = view.findViewById(R.id.title_text);
@@ -135,7 +136,7 @@ public class VideoCardPresenter extends LongClickPresenter {
             preview.setPadding(ring, ring, ring, ring);
         }
         if (VERSION.SDK_INT >= 21) {
-            final float radius = 12 * density;
+            final float radius = 16 * density;
             View image = view.getMainImageView();
             image.setOutlineProvider(new ViewOutlineProvider() {
                 @Override
