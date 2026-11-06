@@ -231,14 +231,18 @@ PY
   else
     echo "CHECK skipped: no screen dump on this emulator"
   fi
-  # Search inside the Home screen: open the sidebar, go up to Search (the first entry): its panel must show the
-  # keyboard (SEARCH key) and the hint text
+  # Search inside the Home screen: start the app fresh, open the sidebar, go up to Search (the first entry), OK:
+  # its panel must show the keyboard (SEARCH key) and the hint text, and the old search pill at the top must be gone
+  adb shell am force-stop "$PKG" || true
+  sleep 2
   adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
-  sleep 6
+  sleep 9
   adb shell input keyevent KEYCODE_DPAD_LEFT || true
   sleep 1
-  for i in 1 2 3 4 5 6 7; do adb shell input keyevent KEYCODE_UP || true; done
-  sleep 4
+  for i in 1 2 3 4 5 6 7; do adb shell input keyevent KEYCODE_DPAD_UP || true; done
+  sleep 1
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 5
   check_crash "search panel"
   if ui_dump home-search; then
     if has_text ui-home-search.xml "SEARCH" && grep -q "Type or speak to search" ui-home-search.xml; then
@@ -247,6 +251,12 @@ PY
     else
       echo "CHECK search panel in the Home screen: MISSING (no keyboard or hint on the screen)"
       FAILED=1
+    fi
+    if grep -q "Search for videos" ui-home-search.xml; then
+      echo "CHECK no search pill at the top: FAILED (it is still there)"
+      FAILED=1
+    else
+      echo "CHECK no search pill at the top: OK"
     fi
   fi
   adb logcat -d > logcat.txt
