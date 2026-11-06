@@ -32,7 +32,6 @@ public class PlayerOverlayView extends FrameLayout {
         void onOverlayNext();
         void onOverlayPlayPause();
         boolean isOverlayPlaying();
-        void onOverlaySuggestions();
     }
 
     private static final int FADE_MS = 160;
@@ -44,7 +43,6 @@ public class PlayerOverlayView extends FrameLayout {
     private final RoundButton mPrev;
     private final RoundButton mPlay;
     private final RoundButton mNext;
-    private RoundButton mListButton;
     private final TextView mTitle;
     private final TextView mSubtitle;
     private final TextView mPill;
@@ -114,16 +112,6 @@ public class PlayerOverlayView extends FrameLayout {
         mSubtitle.setEllipsize(TextUtils.TruncateAt.END);
         mSubtitle.setShadowLayer(dp(3), 0, dp(1), 0xCC000000);
         titles.addView(mSubtitle, new LinearLayout.LayoutParams(-1, -2));
-
-        // Top right: opens the Suggestions / playlist pop-up
-        RoundButton list = new RoundButton(context, RoundButton.LIST);
-        mListButton = list;
-        list.setOnClickListener(v -> {
-            if (mHost != null) mHost.onOverlaySuggestions();
-        });
-        LinearLayout.LayoutParams listLp = new LinearLayout.LayoutParams(dp(46), dp(46));
-        listLp.leftMargin = dp(10);
-        topBar.addView(list, listLp);
 
         LinearLayout middle = new LinearLayout(context);
         middle.setOrientation(LinearLayout.HORIZONTAL);
@@ -230,7 +218,7 @@ public class PlayerOverlayView extends FrameLayout {
         if (mControls.getVisibility() != VISIBLE) {
             return false;
         }
-        return hits(mBack, rawX, rawY) || (mListButton != null && hits(mListButton, rawX, rawY)) || hits(mPrev, rawX, rawY) || hits(mPlay, rawX, rawY) || hits(mNext, rawX, rawY);
+        return hits(mBack, rawX, rawY) || hits(mPrev, rawX, rawY) || hits(mPlay, rawX, rawY) || hits(mNext, rawX, rawY);
     }
 
     private boolean hits(View v, float rawX, float rawY) {
@@ -266,8 +254,6 @@ public class PlayerOverlayView extends FrameLayout {
         static final int PLAY = 2;
         static final int PAUSE = 3;
         static final int NEXT = 4;
-        static final int CLOSE = 5;
-        static final int LIST = 6;
 
         private int mKind;
         private final Paint mFill = new Paint(Paint.ANTI_ALIAS_FLAG);
@@ -345,28 +331,6 @@ public class PlayerOverlayView extends FrameLayout {
                     mPath.close();
                     canvas.drawPath(mPath, mGlyph);
                     canvas.drawRect(cx - g * 0.98f, cy - g * 0.85f, cx - g * 0.7f, cy + g * 0.85f, mGlyph);
-                    break;
-                case CLOSE:
-                    mGlyph.setStyle(Paint.Style.STROKE);
-                    mGlyph.setStrokeWidth(g * 0.3f);
-                    mGlyph.setStrokeCap(Paint.Cap.ROUND);
-                    mPath.moveTo(cx - g * 0.7f, cy - g * 0.7f);
-                    mPath.lineTo(cx + g * 0.7f, cy + g * 0.7f);
-                    mPath.moveTo(cx + g * 0.7f, cy - g * 0.7f);
-                    mPath.lineTo(cx - g * 0.7f, cy + g * 0.7f);
-                    canvas.drawPath(mPath, mGlyph);
-                    mGlyph.setStyle(Paint.Style.FILL);
-                    break;
-                case LIST:
-                    // three lines and a small play triangle: the playlist sign
-                    canvas.drawRect(cx - g * 0.95f, cy - g * 0.7f, cx + g * 0.3f, cy - g * 0.5f, mGlyph);
-                    canvas.drawRect(cx - g * 0.95f, cy - g * 0.1f, cx + g * 0.3f, cy + g * 0.1f, mGlyph);
-                    canvas.drawRect(cx - g * 0.95f, cy + g * 0.5f, cx - g * 0.1f, cy + g * 0.7f, mGlyph);
-                    mPath.moveTo(cx + g * 0.45f, cy + g * 0.05f);
-                    mPath.lineTo(cx + g * 0.45f, cy + g * 0.95f);
-                    mPath.lineTo(cx + g * 1.0f, cy + g * 0.5f);
-                    mPath.close();
-                    canvas.drawPath(mPath, mGlyph);
                     break;
                 case BACK:
                 default:
