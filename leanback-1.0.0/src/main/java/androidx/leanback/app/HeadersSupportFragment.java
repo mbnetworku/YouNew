@@ -126,6 +126,13 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
         }
     }
 
+    private int mClickedPosition = -1;
+
+    /** YouNew: adapter position of the entry that was clicked or tapped last. */
+    int getClickedPosition() {
+        return mClickedPosition;
+    }
+
     private final ItemBridgeAdapter.AdapterListener mAdapterListener =
             new ItemBridgeAdapter.AdapterListener() {
         @Override
@@ -134,6 +141,9 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
             headerView.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
+                    // YouNew: remember which entry was tapped (a tap does not move focus, so the selection
+                    // would otherwise stay on the old section)
+                    mClickedPosition = viewHolder.getAdapterPosition();
                     if (mOnHeaderClickedListener != null) {
                         mOnHeaderClickedListener.onHeaderClicked(
                                 (RowHeaderPresenter.ViewHolder) viewHolder.getViewHolder(),

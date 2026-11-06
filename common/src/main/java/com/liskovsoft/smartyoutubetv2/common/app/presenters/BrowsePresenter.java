@@ -74,6 +74,17 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     private final BrowseProcessorManager mBrowseProcessor;
     private final List<Disposable> mActions;
     private final Runnable mRefreshSection = this::refresh;
+    // YouNew: the loading arrow must never spin forever (a request that neither answers nor fails)
+    private static final long PROGRESS_TIMEOUT_MS = 25_000;
+    private final Runnable mProgressWatchdog = () -> {
+        if (getView() == null) {
+            return;
+        }
+        getView().showProgressBar(false);
+        if (getView().isEmpty()) {
+            handleLoadError(new IllegalStateException("Loading took too long"));
+        }
+    };
     private BrowseSection mCurrentSection;
     private Video mCurrentVideo;
     private long mLastUpdateTimeMs = -1;
@@ -214,11 +225,46 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         }
     }
 
+    /**
+     * YouNew: a NEW Google account has no watch history, so YouTube gives it an empty (or failing) personal Home.
+     * When the personal Home brings no video at all, the public Home (topics + music) is shown instead, so a
+     * freshly signed-in account never lands on an empty screen. Once there is history, the personal Home returns.
+     */
+    private Observable<List<MediaGroup>> signedHomeWithFallback() {
+        final boolean[] gotVideos = {false};
+        final boolean[] usedFallback = {false};
+
+        return getContentService().getHomeObserve()
+                .doOnNext(groups -> {
+                    if (groups != null) {
+                        for (MediaGroup group : groups) {
+                            if (group != null && !group.isEmpty()) {
+                                gotVideos[0] = true;
+                            }
+                        }
+                    }
+                })
+                .onErrorResumeNext((Throwable error) -> {
+                    if (gotVideos[0]) {
+                        return Observable.<List<MediaGroup>>error(error);
+                    }
+                    usedFallback[0] = true;
+                    return getContentService().getAnonymousHomeObserve();
+                })
+                .concatWith(Observable.defer(() -> {
+                    if (gotVideos[0] || usedFallback[0]) {
+                        return Observable.<List<MediaGroup>>empty();
+                    }
+                    usedFallback[0] = true;
+                    return getContentService().getAnonymousHomeObserve();
+                }));
+    }
+
     private void initRowAndGridMapping() {
         // YouNew: Home must work without signing in. YouTube's personal home feed is empty for
         // signed-out users, so they get the public Music feed instead (all videos stay playable).
         mRowMapping.put(MediaGroup.TYPE_HOME, Observable.defer(() ->
-                getSignInService().isSigned() ? getContentService().getHomeObserve() : getContentService().getAnonymousHomeObserve()));
+                getSignInService().isSigned() ? signedHomeWithFallback() : getContentService().getAnonymousHomeObserve()));
         mRowMapping.put(MediaGroup.TYPE_TRENDING, getContentService().getTrendingObserve());
         mRowMapping.put(MediaGroup.TYPE_KIDS_HOME, getContentService().getKidsHomeObserve());
         mRowMapping.put(MediaGroup.TYPE_SPORTS, getContentService().getSportsObserve());
@@ -723,7 +769,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
             return;
         }
         
-        getView().showProgressBar(true);
+        startProgress();
 
         VideoGroup firstGroup = VideoGroup.from(section);
         firstGroup.setAction(VideoGroup.ACTION_REPLACE);
@@ -740,6 +786,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         Disposable updateAction = groups
                 .subscribe(
                         mediaGroups -> {
+                            Utils.removeCallbacks(mProgressWatchdog);
                             getView().showProgressBar(false);
 
                             filterHomeIfNeeded(mediaGroups);
@@ -781,7 +828,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
 
         Log.d(TAG, "updateGridHeader: Start loading section: " + section.getTitle());
 
-        getView().showProgressBar(true);
+        startProgress();
 
         // Stay on the same group in case of multiple subscribe calls
         VideoGroup baseGroup = VideoGroup.from(section, column);
@@ -797,6 +844,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         Disposable updateAction = group
                 .subscribe(
                         mediaGroup -> {
+                            Utils.removeCallbacks(mProgressWatchdog);
                             getView().showProgressBar(false);
 
                             if (getView() == null) {
@@ -929,9 +977,15 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         }
     }
 
+    private void startProgress() {
+        getView().showProgressBar(true);
+        Utils.postDelayed(mProgressWatchdog, PROGRESS_TIMEOUT_MS);
+    }
+
     private void disposeActions() {
         RxHelper.disposeActions(mActions);
         Utils.removeCallbacks(mRefreshSection);
+        Utils.removeCallbacks(mProgressWatchdog);
         mLastUpdateTimeMs = -1;
         mBrowseProcessor.dispose();
     }
@@ -1196,6 +1250,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
             return;
         }
 
+        Utils.removeCallbacks(mProgressWatchdog);
         getView().showProgressBar(false);
 
         if (getView().isEmpty() || error != null) {

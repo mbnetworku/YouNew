@@ -1155,6 +1155,9 @@ public class BrowseSupportFragment extends BaseSupportFragment {
                 return;
             }
             if (!mCanShowHeaders || isInHeadersTransition()) return;
+            // YouNew: with a finger or mouse (touch mode) the bar opens and closes only by what the person taps,
+            // not by focus jumping around (that made it open and hide by itself)
+            if (getView() != null && getView().isInTouchMode()) return;
             int childId = child.getId();
             if (childId == R.id.browse_container_dock && mShowingHeaders) {
                 startHeadersTransitionInternal(false);
@@ -1293,6 +1296,14 @@ public class BrowseSupportFragment extends BaseSupportFragment {
         mBrowseFrame = (BrowseFrameLayout) root.findViewById(R.id.browse_frame);
         mBrowseFrame.setOnChildFocusListener(mOnChildFocusListener);
         mBrowseFrame.setOnFocusSearchListener(mOnFocusSearchListener);
+        // YouNew: touching or clicking the content while the bar is open closes the bar (the touch still goes through)
+        mBrowseFrame.setOnTouchDownListener(event -> {
+            if (mShowingHeaders && mCanShowHeaders && !isInHeadersTransition()
+                    && mHeadersSupportFragment.getView() != null
+                    && event.getX() > mHeadersSupportFragment.getView().getRight()) {
+                startHeadersTransitionInternal(false);
+            }
+        });
 
         installTitleView(inflater, mBrowseFrame, savedInstanceState);
 
@@ -1485,11 +1496,25 @@ public class BrowseSupportFragment extends BaseSupportFragment {
         new HeadersSupportFragment.OnHeaderClickedListener() {
             @Override
             public void onHeaderClicked(RowHeaderPresenter.ViewHolder viewHolder, Row row) {
-                if (!mCanShowHeaders || !mShowingHeaders || isInHeadersTransition()) {
+                if (!mCanShowHeaders || isInHeadersTransition()) {
                     return;
                 }
                 if (mMainFragment == null || mMainFragment.getView() == null) {
                     return;
+                }
+                // YouNew: mouse and finger do not move focus, so the tapped entry is selected here by hand
+                int position = mHeadersSupportFragment.getClickedPosition();
+                if (!mShowingHeaders) {
+                    // Collapsed bar: tapping another icon opens that section; tapping the open one expands the bar
+                    if (position >= 0 && position != mSelectedPosition) {
+                        setSelectedPosition(position, false);
+                    } else {
+                        startHeadersTransitionInternal(true);
+                    }
+                    return;
+                }
+                if (position >= 0 && position != mSelectedPosition) {
+                    setSelectedPosition(position, false);
                 }
                 startHeadersTransitionInternal(false);
                 mMainFragment.getView().requestFocus();

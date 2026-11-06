@@ -775,4 +775,17 @@
     <string name="younew_update_allow">اسمح لـ YouTv Plus بتثبيت التطبيقات، ثم اضغط التحديث مرة أخرى.</string>
     <string name="younew_update_other_key">هذا التحديث موقّع بمفتاح مختلف، لذلك لا يستطيع أندرويد تثبيته فوق هذا التطبيق. احذف YouTv Plus مرة واحدة ثم ثبّت التحديث. بعدها تعمل التحديثات اللاحقة.</string>
     <string name="younew_subscriptions_feed">خلاصة الاشتراكات (حساب Google)</string>
+    <string name="younew_signin_title">تسجيل الدخول إلى YouTube</string>
+    <string name="younew_signin_subtitle">اختياري. اشتراكاتك تعمل أيضًا بدون حساب.</string>
+    <string name="younew_signin_steps">اختر طريقة:\n1. اضغط \"تسجيل الدخول هنا\"، اكتب بريد Google وكلمة المرور، ثم اضغط سماح.\n2. أو امسح رمز QR بهاتفك (أو افتح العنوان تحت الرمز واكتب الرمز)، اختر حسابك، ثم اضغط سماح.\nتُغلق هذه الشاشة وحدها بعد تسجيل الدخول.</string>
+    <string name="younew_signin_qr_hint">أو افتح %s واكتب الرمز</string>
+    <string name="younew_sign_in_here">تسجيل الدخول هنا</string>
+    <string name="younew_sign_in_here_desc">تُفتح صفحة Google داخل هذه الشاشة</string>
+    <string name="younew_sign_in_in_tv_browser">استخدم متصفح التلفاز</string>
+    <string name="younew_sign_in_in_tv_browser_desc">فقط إذا لم تعمل الصفحة هنا</string>
+    <string name="younew_sign_in_back">رجوع</string>
+    <string name="younew_sign_in_google_page">تسجيل الدخول عبر Google</string>
+    <string name="younew_gesture_brightness">السطوع %1$d%%</string>
+    <string name="younew_gesture_volume">الصوت %1$d%%</string>
+    <string name="younew_gesture_speed">سرعة %1$sx</string>
 </resources>

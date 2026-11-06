@@ -129,7 +129,7 @@ jobs:
             screen.png
             signin.png
             signin-tv.png
-            signin-popup.png
+            signin-page.png
             settings-*.png
             ui-*.xml
 
