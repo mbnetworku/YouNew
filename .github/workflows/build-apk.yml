@@ -172,3 +172,11 @@ jobs:
           else
             gh release edit "$TAG" --repo "${{ github.repository }}" --prerelease=false
           fi
+          # Also fix the releases made before this rule: every beta release is a pre-release, every other one is not
+          gh release list --repo "${{ github.repository }}" --limit 50 --json tagName -q '.[].tagName' | while read -r T; do
+            if [[ "$T" == *beta* ]]; then
+              gh release edit "$T" --repo "${{ github.repository }}" --prerelease || true
+            else
+              gh release edit "$T" --repo "${{ github.repository }}" --prerelease=false || true
+            fi
+          done
