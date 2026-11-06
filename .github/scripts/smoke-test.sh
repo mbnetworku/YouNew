@@ -231,17 +231,15 @@ PY
   else
     echo "CHECK skipped: no screen dump on this emulator"
   fi
-  # Search inside the Home screen: start the app fresh, open the sidebar, go up to Search (the first entry), OK:
-  # its panel must show the keyboard (SEARCH key) and the hint text, and the old search pill at the top must be gone
+  # Search inside the Home screen: start the app fresh and TAP the Search entry of the sidebar (like a finger or a
+  # mouse does; key presses ended on the topic buttons at the top), then its panel must show the keyboard
+  # (SEARCH key) and the hint text, and the old search pill at the top must be gone
   adb shell am force-stop "$PKG" || true
   sleep 2
   adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
-  sleep 9
-  adb shell input keyevent KEYCODE_DPAD_LEFT || true
-  sleep 1
-  for i in 1 2 3 4 5 6 7; do adb shell input keyevent KEYCODE_DPAD_UP || true; done
-  sleep 1
-  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 10
+  ui_dump home-start || true
+  tap_text ui-home-start.xml "Search" || true
   sleep 5
   check_crash "search panel"
   if ui_dump home-search; then
