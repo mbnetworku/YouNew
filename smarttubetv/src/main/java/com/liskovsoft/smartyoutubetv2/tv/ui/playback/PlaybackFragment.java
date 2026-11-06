@@ -1152,6 +1152,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         @Override
         public void onItemSelected(Presenter.ViewHolder itemViewHolder, Object item,
                                    RowPresenter.ViewHolder rowViewHolder, Row row) {
+            // YouNew: the big middle buttons would cover the suggestion cards: hide them while a card is in front
+            if (mPlayerOverlay != null && item != null) {
+                mPlayerOverlay.setMiddleVisible(!(item instanceof Video));
+            }
             if (item instanceof Video) {
                 mBackgroundManager.setBackgroundFrom((Video) item);
 

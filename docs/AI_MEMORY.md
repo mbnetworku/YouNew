@@ -37,6 +37,8 @@ Last updated: 2026-11-05, after version 32.86.
 | 32.91 | Player look like modern YouTube: glass round buttons (focus ring, mouse hover), see-through track, red progress with always-visible red knob (`SeekBar`, `lb_control_button_*.xml`, dimens) |
 | 32.92 | Player redesigned like YouTube: `PlayerOverlayView` (back arrow + title on top, big round Previous / Play-Pause / Next in the middle, feedback pill) and `PlayerGestures` (swipe left half = brightness, right half = volume, press and hold = 2x speed, tap on video hides controls, swipe down hides); double-tap 10 s is the older `DoubleTapPlayerAdapter` |
 | 32.93 | Player compact after the owner's screenshot: big description card hidden (title + channel line now in the top bar of `PlayerOverlayView`), smaller round buttons, Play/Prev/Next no longer repeated in the bottom row, Share button on by default, swipe up shows the Recommended/playlist row |
+| 32.94 | Suggestions as a pop-up (`SuggestionsPanelView`): the owner did not like it, going back to the rows under the controls |
+| 32.95 | Suggestions are the Leanback rows under the controls again (as in 32.93); the big middle buttons hide while a suggestion card is in front (`PlayerOverlayView.setMiddleVisible`). The pop-up commit was reverted |
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept

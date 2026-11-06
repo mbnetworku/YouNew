@@ -43,6 +43,7 @@ public class PlayerOverlayView extends FrameLayout {
     private final RoundButton mPrev;
     private final RoundButton mPlay;
     private final RoundButton mNext;
+    private LinearLayout mMiddle;
     private final TextView mTitle;
     private final TextView mSubtitle;
     private final TextView mPill;
@@ -114,6 +115,7 @@ public class PlayerOverlayView extends FrameLayout {
         titles.addView(mSubtitle, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout middle = new LinearLayout(context);
+        mMiddle = middle;
         middle.setOrientation(LinearLayout.HORIZONTAL);
         middle.setGravity(Gravity.CENTER);
         mControls.addView(middle, new LayoutParams(-2, -2, Gravity.CENTER));
@@ -213,12 +215,19 @@ public class PlayerOverlayView extends FrameLayout {
         postDelayed(mHidePill, delayMs);
     }
 
+    /** The big middle buttons are hidden while the Suggestions row is in front (they would cover its cards). */
+    public void setMiddleVisible(boolean visible) {
+        if (mMiddle != null) {
+            mMiddle.setVisibility(visible ? VISIBLE : INVISIBLE);
+        }
+    }
+
     /** True if the screen point (raw coordinates) is on one of the round buttons. */
     public boolean hitsControl(float rawX, float rawY) {
         if (mControls.getVisibility() != VISIBLE) {
             return false;
         }
-        return hits(mBack, rawX, rawY) || hits(mPrev, rawX, rawY) || hits(mPlay, rawX, rawY) || hits(mNext, rawX, rawY);
+        return hits(mBack, rawX, rawY) || (mMiddle.getVisibility() == VISIBLE && (hits(mPrev, rawX, rawY) || hits(mPlay, rawX, rawY) || hits(mNext, rawX, rawY)));
     }
 
     private boolean hits(View v, float rawX, float rawY) {
