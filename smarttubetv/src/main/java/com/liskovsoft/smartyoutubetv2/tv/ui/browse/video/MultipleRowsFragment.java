@@ -359,6 +359,17 @@ public abstract class MultipleRowsFragment extends RowsSupportFragment implement
                 mMainPresenter.onVideoItemSelected((Video) item);
 
                 checkScrollEnd((Video)item);
+                checkRowsEnd(row);
+            }
+        }
+
+        /** YouNew: near the last rows of Home: ask for more rows (endless feed). */
+        private void checkRowsEnd(Row row) {
+            if (mRowsAdapter != null && row != null && mMainPresenter instanceof com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter) {
+                int index = mRowsAdapter.indexOf(row);
+                if (index != -1 && index >= mRowsAdapter.size() - 2) {
+                    ((com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter) mMainPresenter).onRowsEnd();
+                }
             }
         }
 

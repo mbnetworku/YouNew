@@ -45,8 +45,10 @@ public class OnScreenKeyboard extends LinearLayout {
             {"8", "9", "0", ".", "@", "_", "&"},
             {"#", "!", "?", "+", "/", ":", "ؤ"}
     };
-    private static final int KEY_DP = 44;
-    private static final int SIDE_DP = 110;
+    // YouNew: compact keys that follow the screen (a phone gets 28 dp keys, a big TV up to 36 dp);
+    // before they were always 44 dp and the keyboard filled most of a phone screen.
+    private final int KEY_DP;
+    private final int SIDE_DP;
 
     private final Listener mListener;
     private final StringBuilder mText = new StringBuilder();
@@ -55,18 +57,28 @@ public class OnScreenKeyboard extends LinearLayout {
     public OnScreenKeyboard(Context context, Listener listener) {
         super(context);
         mListener = listener;
+        KEY_DP = keyDp(context);
+        SIDE_DP = Math.round(KEY_DP * 2.7f);
         setOrientation(VERTICAL);
         build();
     }
 
+    /** Key size in dp: 7 % of the shorter screen side, between 28 and 36 dp. */
+    static int keyDp(Context context) {
+        android.util.DisplayMetrics m = context.getResources().getDisplayMetrics();
+        float shortSideDp = Math.min(m.widthPixels, m.heightPixels) / m.density;
+        return Math.max(28, Math.min(36, Math.round(shortSideDp * 0.07f)));
+    }
+
     /** Width of the keyboard in pixels. */
     public static int getWidthPx(Context context) {
-        return dp(context, 7 * KEY_DP + SIDE_DP + 16);
+        int key = keyDp(context);
+        return dp(context, 7 * key + Math.round(key * 2.7f) + 16);
     }
 
     /** Height of the keyboard in pixels (5 rows of keys + the Space/Search row). */
     public static int getHeightPx(Context context) {
-        return dp(context, 6 * KEY_DP + 8);
+        return dp(context, 6 * keyDp(context) + 8);
     }
 
     private void build() {
@@ -83,7 +95,7 @@ public class OnScreenKeyboard extends LinearLayout {
             for (int pad = row.length; pad < 7; pad++) {
                 line.addView(spacer(KEY_DP));
             }
-            line.addView(spacer(16));
+            line.addView(spacer(10));
             if (i < side.length) {
                 line.addView(newKey(side[i], SIDE_DP, sideAction(i)));
             }
@@ -150,7 +162,7 @@ public class OnScreenKeyboard extends LinearLayout {
         TextView key = new TextView(context);
         key.setText(label);
         key.setGravity(Gravity.CENTER);
-        key.setTextSize(label.length() > 1 ? 17 : 22);
+        key.setTextSize(label.length() > 1 ? 12 : 17);
         key.setTypeface(Typeface.DEFAULT_BOLD);
         key.setFocusable(true);
         key.setClickable(true);
@@ -171,7 +183,7 @@ public class OnScreenKeyboard extends LinearLayout {
     private static StateListDrawable keyBackground(Context context) {
         GradientDrawable focused = new GradientDrawable();
         focused.setColor(Color.parseColor("#F1F1F1"));
-        focused.setCornerRadius(dp(context, 6));
+        focused.setCornerRadius(dp(context, 8));
         StateListDrawable states = new StateListDrawable();
         states.addState(new int[]{android.R.attr.state_focused}, focused);
         states.addState(new int[]{android.R.attr.state_pressed}, focused);

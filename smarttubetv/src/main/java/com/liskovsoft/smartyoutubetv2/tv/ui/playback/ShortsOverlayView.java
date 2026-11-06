@@ -83,7 +83,6 @@ public class ShortsOverlayView extends FrameLayout {
     private final Paint mProgressPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mPausePaint = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Paint mPlayIconPaint = new Paint(Paint.ANTI_ALIAS_FLAG);
-    private final Paint mGlassRing = new Paint(Paint.ANTI_ALIAS_FLAG);
     private final Path mPath = new Path();
     private final RectF mHole = new RectF();
     private final LinearLayout mInfo;
@@ -168,9 +167,7 @@ public class ShortsOverlayView extends FrameLayout {
 
         void refresh(boolean selected) {
             boolean on = state == PlayerUI.BUTTON_ON;
-            // Liquid glass: see-through circle with a bright hairline; solid white when chosen
             circle.setColor(selected ? Color.WHITE : Color.parseColor("#33FFFFFF"));
-            circle.setStroke(dp(selected ? 2 : 1), selected ? Color.WHITE : Color.parseColor("#80FFFFFF"));
 
             if (isPicture) {
                 icon.clearColorFilter();
@@ -193,28 +190,15 @@ public class ShortsOverlayView extends FrameLayout {
         setFocusable(false);
 
         mFramePaint.setStyle(Paint.Style.STROKE);
-        mFramePaint.setColor(Color.parseColor("#E6FFFFFF"));
-        mFramePaint.setStrokeWidth(dp(3));
+        mFramePaint.setColor(Color.WHITE);
+        mFramePaint.setStrokeWidth(dp(4));
         mTrackPaint.setColor(Color.parseColor("#66FFFFFF"));
         mProgressPaint.setColor(Color.parseColor("#FF0000"));
-        mPausePaint.setColor(Color.parseColor("#66000000"));
+        mPausePaint.setColor(Color.parseColor("#99000000"));
         mPlayIconPaint.setColor(Color.WHITE);
 
         mInfo = new LinearLayout(context);
         mInfo.setOrientation(LinearLayout.VERTICAL);
-
-        // Title and channel sit on a liquid glass card
-        LinearLayout titleCard = new LinearLayout(context);
-        titleCard.setOrientation(LinearLayout.VERTICAL);
-        titleCard.setPadding(dp(16), dp(12), dp(16), dp(4));
-        GradientDrawable cardBg = new GradientDrawable(GradientDrawable.Orientation.TOP_BOTTOM,
-                new int[]{Color.parseColor("#47FFFFFF"), Color.parseColor("#1AFFFFFF")});
-        cardBg.setStroke(dp(1), Color.parseColor("#66FFFFFF"));
-        cardBg.setCornerRadius(dp(20));
-        titleCard.setBackground(cardBg);
-        LinearLayout.LayoutParams cardLp = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.MATCH_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
-        cardLp.bottomMargin = dp(14);
-        mInfo.addView(titleCard, cardLp);
 
         mTitle = new TextView(context);
         mTitle.setTextColor(Color.WHITE);
@@ -222,15 +206,15 @@ public class ShortsOverlayView extends FrameLayout {
         mTitle.setTypeface(Typeface.DEFAULT_BOLD);
         mTitle.setMaxLines(2); // YouNew: 2 lines max, long titles must not push the buttons off screen
         mTitle.setEllipsize(TextUtils.TruncateAt.END);
-        titleCard.addView(mTitle);
+        mInfo.addView(mTitle);
 
         mChannel = new TextView(context);
         mChannel.setTextColor(Color.parseColor("#DDDDDD"));
         mChannel.setTextSize(16);
         mChannel.setSingleLine(true);
         mChannel.setEllipsize(TextUtils.TruncateAt.END);
-        mChannel.setPadding(0, dp(8), 0, dp(10));
-        titleCard.addView(mChannel);
+        mChannel.setPadding(0, dp(8), 0, dp(20));
+        mInfo.addView(mChannel);
 
         addButton(context, R.id.action_thumbs_up, R.drawable.lb_ic_thumb_up, R.string.action_like);
         addButton(context, R.id.action_thumbs_down, R.drawable.lb_ic_thumb_down, R.string.action_dislike);
@@ -340,9 +324,8 @@ public class ShortsOverlayView extends FrameLayout {
             boolean selected = i == mRailSelected;
             if (selected) {
                 GradientDrawable pill = new GradientDrawable();
-                pill.setColor(Color.parseColor("#47FFFFFF")); // liquid glass highlight, like the main sidebar
-                pill.setStroke(dp(1), Color.parseColor("#CCFFFFFF"));
-                pill.setCornerRadius(dp(24));
+                pill.setColor(Color.parseColor("#CC0000")); // same red highlight as the main sidebar
+                pill.setCornerRadius(dp(12));
                 icon.setBackground(pill);
             } else {
                 icon.setBackground(null);
@@ -635,11 +618,8 @@ public class ShortsOverlayView extends FrameLayout {
         float lineTop = mHole.bottom - dp(10);
         float lineBottom = lineTop + dp(4);
         if (lineRight > lineLeft) {
-            float cap = (lineBottom - lineTop) / 2f; // round ends, like the YouTube progress line
-            canvas.drawRoundRect(lineLeft, lineTop, lineRight, lineBottom, cap, cap, mTrackPaint);
-            if (mProgress > 0f) {
-                canvas.drawRoundRect(lineLeft, lineTop, Math.max(lineLeft + cap * 2, lineLeft + (lineRight - lineLeft) * mProgress), lineBottom, cap, cap, mProgressPaint);
-            }
+            canvas.drawRect(lineLeft, lineTop, lineRight, lineBottom, mTrackPaint);
+            canvas.drawRect(lineLeft, lineTop, lineLeft + (lineRight - lineLeft) * mProgress, lineBottom, mProgressPaint);
         }
 
         // Play sign while paused
@@ -648,10 +628,6 @@ public class ShortsOverlayView extends FrameLayout {
             float cy = mHole.centerY();
             float r = dp(48);
             canvas.drawCircle(cx, cy, r, mPausePaint);
-            mGlassRing.setStyle(Paint.Style.STROKE);
-            mGlassRing.setStrokeWidth(dp(2));
-            mGlassRing.setColor(Color.parseColor("#99FFFFFF"));
-            canvas.drawCircle(cx, cy, r, mGlassRing); // glass edge
             mPath.reset();
             mPath.moveTo(cx - r * 0.3f, cy - r * 0.45f);
             mPath.lineTo(cx + r * 0.5f, cy);

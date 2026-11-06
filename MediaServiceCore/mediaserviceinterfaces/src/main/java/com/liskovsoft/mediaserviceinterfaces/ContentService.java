@@ -55,6 +55,8 @@ public interface ContentService {
     Observable<List<MediaGroup>> getMusicObserve();
     /** YouNew: Home without a Google account - topic rows mixed with the music feed, in a new order each time. */
     Observable<List<MediaGroup>> getAnonymousHomeObserve();
+    /** YouNew: the next few topic rows for the endless Home (call again each time the end of Home is reached). */
+    Observable<List<MediaGroup>> getHomeMoreRowsObserve();
     Observable<List<MediaGroup>> getNewsObserve();
     Observable<List<MediaGroup>> getGamingObserve();
     Observable<List<MediaGroup>> getChannelObserve(String channelId);

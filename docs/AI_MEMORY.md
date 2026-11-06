@@ -40,7 +40,8 @@ Last updated: 2026-11-05, after version 32.86.
 | 32.94 | Suggestions as a pop-up (`SuggestionsPanelView`): the owner did not like it, going back to the rows under the controls |
 | 32.95 | Suggestions are the Leanback rows under the controls again (as in 32.93); the big middle buttons hide while a suggestion card is in front (`PlayerOverlayView.setMiddleVisible`). The pop-up commit was reverted |
 | 32.96 | The big middle buttons hide as soon as the Suggestions row is in front (checked every 150 ms through `isOverlaySuggestionsRow`, also when scrolled by touch), return with the controls |
-| 32.97 | Liquid glass look (translucent gradient + hairline edge, no blur): video cards (glass info strip, 16 dp thumbnails, glass focus ring), topic chips, sidebar pills; Shorts screen: glass round buttons, title/channel on a glass card, round progress line, glass pause sign. Backgrounds and themes unchanged |
+| 32.97 | Liquid glass look (published, the owner disliked it: plain YouTube TV look is wanted) |
+| 32.98 | Liquid glass removed again (plain YouTube TV look, as the owner's reference pictures). Endless Home: `BrowsePresenter.onRowsEnd` + `ContentService.getHomeMoreRowsObserve` add 4 topic rows each time the last rows are reached. Search screen compact: `OnScreenKeyboard` keys 28-36 dp (were 44), keyboard on the right (narrow phone: centred, results below), search bar capped to the screen width |
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept

@@ -110,15 +110,37 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
             }
         });
 
+        // YouNew: compact, on the right under the search bar (like YouTube TV). On a narrow upright phone there is
+        // no room beside the suggestions, so the keyboard takes the full width and the results go below it.
+        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+        boolean narrow = metrics.widthPixels / density < 620;
+        int keyboardWidth = OnScreenKeyboard.getWidthPx(getContext());
+        int keyboardHeight = OnScreenKeyboard.getHeightPx(getContext());
+
         android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        lp.leftMargin = (int) (400 * density); // keyboard on the right, like YouTube TV
-        lp.topMargin = (int) (110 * density);
+        lp.topMargin = (int) (72 * density);
+        if (narrow) {
+            lp.gravity = android.view.Gravity.CENTER_HORIZONTAL | android.view.Gravity.TOP;
+        } else {
+            lp.gravity = android.view.Gravity.END | android.view.Gravity.TOP;
+            lp.rightMargin = (int) (32 * density);
+        }
         searchFrame.addView(keyboard, lp);
 
-        // Results (suggestions and videos) go below the keyboard
+        // The search bar must not be wider than the screen
+        View bar = root.findViewById(androidx.leanback.R.id.lb_search_bar_items);
+        if (bar != null && bar.getLayoutParams() != null) {
+            int maxBar = metrics.widthPixels - (int) (150 * density);
+            if (bar.getLayoutParams().width > maxBar) {
+                bar.getLayoutParams().width = maxBar;
+                bar.setLayoutParams(bar.getLayoutParams());
+            }
+        }
+
+        // Results (suggestions and videos) start under the search bar on the left; when narrow, below the keyboard
         ViewGroup.MarginLayoutParams resultsLp = (ViewGroup.MarginLayoutParams) results.getLayoutParams();
-        resultsLp.topMargin = (int) (160 * density); // the result rows have their own top offset
+        resultsLp.topMargin = narrow ? lp.topMargin + keyboardHeight : (int) (96 * density);
         results.setLayoutParams(resultsLp);
 
         // When you move down into the video rows they slide up over the keyboard's place, so hide the keyboard then.

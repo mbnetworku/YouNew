@@ -74,6 +74,9 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     private final BrowseProcessorManager mBrowseProcessor;
     private final List<Disposable> mActions;
     private final Runnable mRefreshSection = this::refresh;
+    // YouNew: endless Home
+    private AtomicInteger mGroupIndex = new AtomicInteger(-1);
+    private boolean mLoadingMoreRows;
     // YouNew: the loading arrow must never spin forever (a request that neither answers nor fails)
     private static final long PROGRESS_TIMEOUT_MS = 25_000;
     private final Runnable mProgressWatchdog = () -> {
@@ -530,6 +533,50 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         }
     }
 
+    /**
+     * YouNew: the user reached the last rows of Home: add the next topic rows, again and again,
+     * so there is no end to the list while scrolling down.
+     */
+    public void onRowsEnd() {
+        if (getView() == null || mLoadingMoreRows || mCurrentSection == null || !isHomeSection()) {
+            return;
+        }
+
+        mLoadingMoreRows = true;
+        final BrowseSection section = mCurrentSection;
+
+        Disposable moreAction = getContentService().getHomeMoreRowsObserve()
+                .subscribe(
+                        mediaGroups -> {
+                            if (getView() == null || mCurrentSection != section) {
+                                return;
+                            }
+
+                            for (MediaGroup mediaGroup : mediaGroups) {
+                                if (mediaGroup == null || mediaGroup.isEmpty()) {
+                                    continue;
+                                }
+
+                                VideoGroup videoGroup = VideoGroup.from(mediaGroup, section, mGroupIndex.incrementAndGet());
+
+                                if (TextUtils.isEmpty(videoGroup.getTitle())) {
+                                    videoGroup.setTitle(getContext().getString(R.string.suggestions));
+                                }
+
+                                getView().updateSection(videoGroup);
+                                mBrowseProcessor.process(videoGroup);
+                            }
+                        },
+                        error -> {
+                            Log.e(TAG, "onRowsEnd error: %s", error.getMessage());
+                            mLoadingMoreRows = false;
+                        },
+                        () -> mLoadingMoreRows = false
+                );
+
+        mActions.add(moreAction);
+    }
+
     @Override
     public void onScrollEnd(Video item) {
         if (item == null) {
@@ -781,7 +828,8 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
             return;
         }
 
-        AtomicInteger groupIndex = new AtomicInteger(-1);
+        mGroupIndex = new AtomicInteger(-1);
+        AtomicInteger groupIndex = mGroupIndex;
 
         Disposable updateAction = groups
                 .subscribe(
@@ -986,6 +1034,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
         RxHelper.disposeActions(mActions);
         Utils.removeCallbacks(mRefreshSection);
         Utils.removeCallbacks(mProgressWatchdog);
+        mLoadingMoreRows = false;
         mLastUpdateTimeMs = -1;
         mBrowseProcessor.dispose();
     }

@@ -398,6 +398,63 @@ class YouTubeContentService implements ContentService {
         });
     }
 
+    // YouNew: endless Home. Topics are used in a shuffled order with changing endings, so the queries
+    // (and the rows) are different for a very long time: 28 topics x 4 endings = 112 rows.
+    private static final String[] HOME_TOPIC_VARIANTS = {"", " 2026", " best", " new"};
+    private static final int HOME_MORE_BATCH = 4;
+    private static final java.util.List<String> sHomeQueue = new ArrayList<>();
+    private static final java.util.Map<String, String> sHomeQueryToTitle = new java.util.HashMap<>();
+
+    private static synchronized List<String> nextHomeQueries() {
+        if (sHomeQueue.isEmpty()) {
+            List<String> topics = new ArrayList<>(java.util.Arrays.asList(HOME_TOPICS));
+            Collections.shuffle(topics);
+            for (String variant : HOME_TOPIC_VARIANTS) {
+                for (String topic : topics) {
+                    String query = topic + variant;
+                    sHomeQueue.add(query);
+                    sHomeQueryToTitle.put(query, topic);
+                }
+            }
+        }
+
+        List<String> batch = new ArrayList<>(sHomeQueue.subList(0, Math.min(HOME_MORE_BATCH, sHomeQueue.size())));
+        sHomeQueue.subList(0, batch.size()).clear();
+        return batch;
+    }
+
+    @Override
+    public Observable<List<MediaGroup>> getHomeMoreRowsObserve() {
+        return RxHelper.create(emitter -> {
+            checkSigned();
+
+            for (String query : nextHomeQueries()) {
+                if (emitter.isDisposed()) {
+                    return;
+                }
+
+                try {
+                    List<MediaGroup> result = getSearchService2().getSearch(query);
+
+                    if (result != null) {
+                        for (MediaGroup group : result) {
+                            if (group != null && !group.isEmpty() && group instanceof BaseMediaGroup) {
+                                String title = sHomeQueryToTitle.get(query);
+                                ((BaseMediaGroup) group).setTitle(title != null ? title : query);
+                                emitter.onNext(Collections.singletonList(group));
+                                break;
+                            }
+                        }
+                    }
+                } catch (Exception e) {
+                    Log.e(TAG, "Home more: '%s' failed: %s", query, e.getMessage()); // skip this row
+                }
+            }
+
+            emitter.onComplete();
+        });
+    }
+
     /** One row per topic: the first result list of a search for it, titled with the topic. Stops when you leave Home. */
     private void emitHomeTopics(ObservableEmitter<List<MediaGroup>> emitter, List<String> topics) {
         for (String topic : topics) {
