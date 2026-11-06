@@ -110,6 +110,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     private VideoCardPresenter mCardPresenter;
     private ShortsCardPresenter mShortsPresenter;
     private ShortsOverlayView mShortsOverlay;
+    // YouNew: YouTube-like layer (back arrow, title, big play/pause/prev/next) and swipe/hold gestures
+    private PlayerOverlayView mPlayerOverlay;
+    private PlayerGestures mGestures;
     private boolean mConsumeShortsBackUp;
     private boolean mStayInShorts;
     private long mLastShortsWheelMs;
@@ -177,8 +180,115 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         ProgressBarManager.setup(getProgressBarManager(), (ViewGroup) root);
 
         addShortsOverlay(root);
+        addPlayerOverlay((ViewGroup) root);
 
         return root;
+    }
+
+    /**
+     * YouNew: the YouTube-like layer on top of the video: back arrow and title at the top, big Previous /
+     * Play-Pause / Next buttons in the middle, and a pill for volume / brightness / 2x speed feedback.
+     */
+    private void addPlayerOverlay(ViewGroup root) {
+        mPlayerOverlay = new PlayerOverlayView(getContext());
+        mPlayerOverlay.setHost(new PlayerOverlayView.Host() {
+            @Override
+            public void onOverlayBack() {
+                if (getActivity() != null) {
+                    getActivity().onBackPressed();
+                }
+            }
+
+            @Override
+            public void onOverlayPrevious() {
+                skipToPrevious();
+            }
+
+            @Override
+            public void onOverlayNext() {
+                skipToNext();
+            }
+
+            @Override
+            public void onOverlayPlayPause() {
+                setPlayWhenReady(!getPlayWhenReady());
+                if (mPlaybackPresenter != null) {
+                    mPlaybackPresenter.onKeyDown(-1); // restart the hide timer
+                }
+            }
+
+            @Override
+            public boolean isOverlayPlaying() {
+                return getPlayWhenReady();
+            }
+        });
+        root.addView(mPlayerOverlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        mGestures = new PlayerGestures(getContext(), new PlayerGestures.Host() {
+            @Override
+            public android.app.Activity getGestureActivity() {
+                return getActivity();
+            }
+
+            @Override
+            public boolean isGestureOverlayShown() {
+                return isOverlayShown();
+            }
+
+            @Override
+            public void hideGestureOverlay() {
+                hideControlsOverlay(true);
+            }
+
+            @Override
+            public boolean isGesturePlaying() {
+                return getPlayWhenReady();
+            }
+
+            @Override
+            public float getGestureSpeed() {
+                return getSpeed();
+            }
+
+            @Override
+            public void setGestureSpeed(float speed) {
+                setSpeed(speed);
+            }
+
+            @Override
+            public boolean isOnOverlayButton(float rawX, float rawY) {
+                return mPlayerOverlay != null && mPlayerOverlay.hitsControl(rawX, rawY);
+            }
+
+            @Override
+            public void showGesturePill(String text, long autoHideMs) {
+                if (mPlayerOverlay != null) {
+                    mPlayerOverlay.showPill(text, autoHideMs);
+                }
+            }
+
+            @Override
+            public void hideGesturePill(long delayMs) {
+                if (mPlayerOverlay != null) {
+                    mPlayerOverlay.hidePill(delayMs);
+                }
+            }
+
+            @Override
+            public String getBrightnessText(int percent) {
+                return getString(R.string.younew_gesture_brightness, percent);
+            }
+
+            @Override
+            public String getVolumeText(int percent) {
+                return getString(R.string.younew_gesture_volume, percent);
+            }
+
+            @Override
+            public String getSpeedText(float speed) {
+                return getString(R.string.younew_gesture_speed, String.valueOf(Math.round(speed)));
+            }
+        });
     }
 
     /**
@@ -506,8 +616,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             return onShortsMouse(event, true);
         }
 
-        // YouNew: swipe down (finger or mouse drag) hides the player bar / video info / suggestions
-        trackSwipeDown(event);
+        // YouNew: swipes (volume, brightness, hide), press-and-hold 2x speed, tap to hide
+        if (mGestures != null && mGestures.onTouch(event)) {
+            return true;
+        }
 
         if (mDoubleTapPlayerAdapter != null && !isOverlayShown()) {
             boolean handled = mDoubleTapPlayerAdapter.onTouchEvent(event);
@@ -518,37 +630,6 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
         applyTickle(event);
         return false;
-    }
-
-    private float mSwipeStartX;
-    private float mSwipeStartY;
-    private boolean mSwipeTracking;
-
-    private void trackSwipeDown(MotionEvent event) {
-        switch (event.getActionMasked()) {
-            case MotionEvent.ACTION_DOWN:
-                mSwipeStartX = event.getX();
-                mSwipeStartY = event.getY();
-                mSwipeTracking = isOverlayShown();
-                break;
-            case MotionEvent.ACTION_UP:
-                if (mSwipeTracking && isOverlayShown()) {
-                    float density = getResources().getDisplayMetrics().density;
-                    float dx = event.getX() - mSwipeStartX;
-                    float dy = event.getY() - mSwipeStartY;
-                    // a clear downward move of about 1 cm that is more vertical than sideways
-                    if (dy > 60 * density && Math.abs(dy) > Math.abs(dx) * 1.5f) {
-                        hideControlsOverlay(true);
-                    }
-                }
-                mSwipeTracking = false;
-                break;
-            case MotionEvent.ACTION_CANCEL:
-                mSwipeTracking = false;
-                break;
-            default:
-                break;
-        }
     }
 
     /**
@@ -1139,6 +1220,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         if (mPlayerGlue != null && video != null) {
             // Preserve player formatting
             mPlayerGlue.setTitle(video.getTitleFull() != null ? video.getTitleFull() : "...");
+            if (mPlayerOverlay != null) {
+                mPlayerOverlay.setTitle(video.getTitleFull());
+            }
             mPlayerGlue.setSubtitle(video.getSecondTitleFull() != null ? createSubtitle(video) : "...");
             mPlayerGlue.setVideo(video);
         }
@@ -1198,6 +1282,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     @Override
     public void setTitle(String title) {
         mPlayerGlue.setTitle(title);
+        if (mPlayerOverlay != null) {
+            mPlayerOverlay.setTitle(title);
+        }
     }
 
     @Override
@@ -1467,6 +1554,9 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
     @Override
     public void onDestroy() {
+        if (mGestures != null) {
+            mGestures.release();
+        }
         super.onDestroy();
 
         Log.d(TAG, "Destroying PlaybackFragment...");
@@ -1533,6 +1623,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
 
         super.showControlsOverlay(mIsUIAnimationsEnabled);
 
+        if (mPlayerOverlay != null) {
+            mPlayerOverlay.setControlsShown(true);
+        }
+
         // Do throttle. Called so many times. Rely on boxing because initial state is unknown.
         if (mIsControlsShownPreviously != null && mIsControlsShownPreviously) {
             return;
@@ -1554,6 +1648,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     @Override
     public void hideControlsOverlay(boolean runAnimation) {
         super.hideControlsOverlay(mIsUIAnimationsEnabled);
+
+        if (mPlayerOverlay != null) {
+            mPlayerOverlay.setControlsShown(false);
+        }
 
         // Do throttle. Called so many times. Rely on boxing because initial state is unknown.
         if (mIsControlsShownPreviously != null && !mIsControlsShownPreviously) {

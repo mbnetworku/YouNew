@@ -785,4 +785,7 @@
     <string name="younew_sign_in_in_tv_browser_desc">فقط إذا لم تعمل الصفحة هنا</string>
     <string name="younew_sign_in_back">رجوع</string>
     <string name="younew_sign_in_google_page">تسجيل الدخول عبر Google</string>
+    <string name="younew_gesture_brightness">السطوع %1$d%%</string>
+    <string name="younew_gesture_volume">الصوت %1$d%%</string>
+    <string name="younew_gesture_speed">سرعة %1$sx</string>
 </resources>

@@ -795,4 +795,7 @@
     <string name="younew_sign_in_in_tv_browser_desc">Only if the page does not work here</string>
     <string name="younew_sign_in_back">Back</string>
     <string name="younew_sign_in_google_page">Google sign-in</string>
+    <string name="younew_gesture_brightness">Brightness %1$d%%</string>
+    <string name="younew_gesture_volume">Volume %1$d%%</string>
+    <string name="younew_gesture_speed">%1$sx speed</string>
 </resources>
