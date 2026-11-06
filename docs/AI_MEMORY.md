@@ -45,6 +45,7 @@ Last updated: 2026-11-05, after version 32.86.
 | 32.99 | Search is the first entry of the sidebar and opens inside the Home screen (`SearchPanelFragment` / `SearchPanelView`: query field, mic, suggestion pills, compact keyboard; SEARCH opens the normal results screen, `SidebarService.addSearchOnce` adds it once for old installs, `BrowseSection.TYPE_SEARCH_PANEL`, icon `icon_search.xml`); the search button at the top of Home is gone; CI checks the panel | (first run failed: the CI test did not reach the sidebar after the Settings test, the old 'Search for videos' pill was still at the top; fixed in 33.00: pill hidden in `lb_title_view.xml`, test restarts the app first)
 | 33.00 | Same as 32.99 plus the old search pill at the top really gone, CI test restarts the app and checks for it |
 | 33.01-beta | Settings list with section headers (Language & Location, About) like YouTube TV; Search panel CI check is a warning (the tap on the sidebar entry is not reliable in CI); beta label |
+| 33.03-beta | Two channels: production = normal releases (the download link and the updater's default); beta = tags with 'beta', marked as GitHub pre-releases by the workflow (`gh release edit --prerelease`). About > 'Include beta versions' lets the updater use the newest release of either kind (`AppUpdater.fetchRelease`, `releases?per_page=10`). Also the Search design pass (33.02) |
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept

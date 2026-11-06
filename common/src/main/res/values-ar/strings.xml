@@ -793,4 +793,5 @@
     <string name="younew_search_space">مسافة</string>
     <string name="younew_group_language">اللغة والموقع</string>
     <string name="younew_group_about">حول</string>
+    <string name="younew_update_beta">تضمين النسخ التجريبية</string>
 </resources>

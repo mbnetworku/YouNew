@@ -39,6 +39,9 @@ public class AboutSimpleSettingsPresenter extends BasePresenter<Void> {
         settingsPresenter.appendSingleSwitch(UiOptionItem.from(getContext().getString(R.string.younew_update_auto),
                 option -> AppUpdater.setAutoCheckEnabled(getContext(), option.isSelected()),
                 AppUpdater.isAutoCheckEnabled(getContext())));
+        settingsPresenter.appendSingleSwitch(UiOptionItem.from(getContext().getString(R.string.younew_update_beta),
+                option -> AppUpdater.setBetaEnabled(getContext(), option.isSelected()),
+                AppUpdater.isBetaEnabled(getContext())));
         settingsPresenter.appendSingleButton(UiOptionItem.from(getContext().getString(R.string.younew_update_check),
                 option -> AppUpdater.checkNow(getContext())));
 

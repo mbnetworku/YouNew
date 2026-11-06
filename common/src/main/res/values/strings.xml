@@ -803,4 +803,5 @@
     <string name="younew_search_space">SPACE</string>
     <string name="younew_group_language">Language &amp; Location</string>
     <string name="younew_group_about">About</string>
+    <string name="younew_update_beta">Include beta versions (test builds)</string>
 </resources>
