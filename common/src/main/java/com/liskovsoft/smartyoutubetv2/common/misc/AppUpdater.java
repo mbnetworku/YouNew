@@ -52,7 +52,7 @@ public final class AppUpdater {
     private static final long CHECK_EVERY_MS = 12L * 60 * 60 * 1000;
     private static final int TIMEOUT_MS = 15_000;
     private static final Handler sHandler = new Handler(Looper.getMainLooper());
-    private static boolean sBusy;
+    private static volatile boolean sBusy; // set on the main thread, cleared on a worker
 
     private AppUpdater() {
     }
@@ -199,6 +199,9 @@ public final class AppUpdater {
 
         dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.younew_update_now, version), option -> {
             dialog.closeDialog();
+            if (askForInstallPermission(context)) {
+                return; // ask before the download, not after it (the file would be fetched for nothing)
+            }
             download(context, version, url);
         }));
         dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.younew_update_later), option -> dialog.closeDialog()));
@@ -336,14 +339,31 @@ public final class AppUpdater {
         return info.signatures;
     }
 
+    /**
+     * Android 8+: the user must allow this app to install apps, once.
+     * Returns true when the permission is missing and Android's page for it was opened.
+     */
+    private static boolean askForInstallPermission(Context context) {
+        if (Build.VERSION.SDK_INT < 26 || context.getPackageManager().canRequestPackageInstalls()) {
+            return false;
+        }
+
+        try {
+            Intent allow = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + context.getPackageName()));
+            allow.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(allow);
+        } catch (Exception e) { // some TV boxes have no such page: go on and let Android's installer ask
+            Log.e(TAG, "Install permission page error: %s", e.getMessage());
+            return false;
+        }
+
+        MessageHelpers.showLongMessage(context, R.string.younew_update_allow);
+        return true;
+    }
+
     private static void install(Context context, File apk) {
         try {
-            if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
-                // Android 8+: the user must allow this app to install apps, once
-                MessageHelpers.showLongMessage(context, R.string.younew_update_allow);
-                Intent allow = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + context.getPackageName()));
-                allow.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(allow);
+            if (askForInstallPermission(context)) {
                 return;
             }
 

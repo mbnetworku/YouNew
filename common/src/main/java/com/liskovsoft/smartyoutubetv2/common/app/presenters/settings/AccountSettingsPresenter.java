@@ -53,16 +53,19 @@ public class AccountSettingsPresenter extends BasePresenter<Void> {
     }
 
     public void show() {
-        mMediaServiceManager.loadAccounts(this::fetchImagesAndShowDialog);
+        // YouNew: the accounts arrive later. Keep the Settings panel's capture for this request, so the list is
+        // drawn in the panel that asked for it (and dropped if that panel moved on), never as a pop-up.
+        final AppDialogPresenter.OnCapture capture = AppDialogPresenter.instance(getContext()).takeCapture();
+        mMediaServiceManager.loadAccounts(accounts -> fetchImagesAndShowDialog(accounts, capture));
     }
 
-    private void fetchImagesAndShowDialog(List<Account> accounts) {
+    private void fetchImagesAndShowDialog(List<Account> accounts, AppDialogPresenter.OnCapture capture) {
         GlideIconFetcher.fetchDrawables(getContext(),
                 Helpers.map(accounts, Account::getAvatarImageUrl),
-                icons -> createAndShowDialog(accounts, icons));
+                icons -> createAndShowDialog(accounts, icons, capture));
     }
 
-    private void createAndShowDialog(List<Account> accounts, List<Drawable> icons) {
+    private void createAndShowDialog(List<Account> accounts, List<Drawable> icons, AppDialogPresenter.OnCapture capture) {
         AppDialogPresenter settingsPresenter = AppDialogPresenter.instance(getContext());
 
         appendSelectAccountSection(accounts, icons, settingsPresenter);
@@ -76,7 +79,7 @@ public class AccountSettingsPresenter extends BasePresenter<Void> {
         int accountIndex = accounts != null ? accounts.indexOf(account) : -1;
         CharSequence accountIcon = accountIndex != -1 ? Utils.icon(icons.get(accountIndex)) : null;
         settingsPresenter.showDialog(account != null ? TextUtils.concat(accountIcon, " ", account.getName())
-                : getContext().getString(R.string.settings_accounts), this::unhold);
+                : getContext().getString(R.string.settings_accounts), this::unhold, capture);
     }
 
     private void appendSelectAccountSection(List<Account> accounts, List<Drawable> icons, AppDialogPresenter settingsPresenter) {

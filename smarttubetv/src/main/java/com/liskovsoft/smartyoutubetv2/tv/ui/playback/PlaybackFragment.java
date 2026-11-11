@@ -590,6 +590,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     public void onPause() {
         super.onPause();
 
+        if (mGestures != null) {
+            mGestures.release(); // YouNew: leaving while the finger holds 2x must not keep the video at 2x
+        }
+
         // NOTE: don't move this into another place! Multiple components rely on it.
         mPlaybackPresenter.onViewPaused();
 
