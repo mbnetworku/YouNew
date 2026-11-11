@@ -24,6 +24,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.search.vineyard.Tag;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.SearchPresenter;
 import com.liskovsoft.smartyoutubetv2.tv.R;
 import com.liskovsoft.smartyoutubetv2.tv.ui.search.tags.OnScreenKeyboard;
+import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.VisibleAreaFrameLayout;
 
 import java.util.List;
 
@@ -34,10 +35,13 @@ import java.util.List;
  *     keyboard on the right</li>
  *     <li>narrow screen (phone upright): the keyboard on top, the suggestions below it</li>
  * </ul>
+ * It takes only the part of the screen it can be seen in (see VisibleAreaFrameLayout): the Home screen gives it
+ * the whole screen width and shifts it to the right of the sidebar, so its right part used to be off the screen.
+ * <br>
  * The typed text shows in a rounded field above. SEARCH (or a tap on a suggestion) opens the search results,
  * the mic opens voice search.
  */
-public class SearchPanelView extends FrameLayout {
+public class SearchPanelView extends VisibleAreaFrameLayout {
     private static final int SUGGEST_DELAY_MS = 250;
     private static final int MAX_CHIPS = 10;
 
@@ -74,7 +78,7 @@ public class SearchPanelView extends FrameLayout {
     private boolean isNarrow(int widthPx) {
         android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
         float widthDp = widthPx > 0 ? widthPx / metrics.density : metrics.widthPixels / metrics.density - 72;
-        return widthDp < 548;
+        return widthDp < 520;
     }
 
     /** The panel got its size, or another one (phone turned): choose the layout again and fit the keyboard. */

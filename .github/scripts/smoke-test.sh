@@ -138,6 +138,20 @@ PY
   return 1
 }
 
+# If the sidebar is open (its entries show their names), closes it the way a finger does: a touch on the content.
+# The touch goes to the bottom right corner, where the panels have nothing to press. $1 dump file, $2 dump label.
+close_sidebar() {
+  has_text "$1" "Subscriptions" || return 0
+  local size
+  size=$(python3 -c "import re,sys; m=re.search(r'bounds=\"\[0,0\]\[(\d+),(\d+)\]\"', open(sys.argv[1], errors='ignore').read()); print(m.group(1), m.group(2)) if m else None" "$1")
+  [ -n "$size" ] || return 0
+  set -- "$1" "$2" $size
+  adb shell input tap $(($3 - 6)) $(($4 - 10))
+  echo "sidebar was open: touched the content at $(($3 - 6)) $(($4 - 10)) to close it"
+  sleep 4
+  ui_dump "$2" || true
+}
+
 # The Home screen as a finger uses it: fresh start, tap Search (first sidebar icon), check its panel and keyboard;
 # then tap Settings (last icon) and check that its page names are not cut off. $1 is a label for files and lines.
 check_home_panels() {
@@ -151,8 +165,9 @@ check_home_panels() {
   tap_sidebar_icon "ui-home-$1.xml" 1 || true
   sleep 6
   check_crash "search panel ($1)"
-  adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "search-home-$1.png" || true
   if ui_dump "search-home-$1"; then
+    close_sidebar "ui-search-home-$1.xml" "search-home-$1"
+    adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "search-home-$1.png" || true
     if has_text "ui-search-home-$1.xml" "SEARCH" && grep -q "Type or speak to search" "ui-search-home-$1.xml"; then
       echo "CHECK search panel in the Home screen ($1): SHOWN"
       check_keyboard "ui-search-home-$1.xml" "Home search panel, $1"
@@ -174,8 +189,9 @@ check_home_panels() {
     tap_sidebar_icon "ui-search-home-$1.xml" last || true
     sleep 6
     check_crash "settings panel ($1)"
-    adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "settings-home-$1.png" || true
     if ui_dump "settings-home-$1"; then
+      close_sidebar "ui-settings-home-$1.xml" "settings-home-$1"
+      adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "settings-home-$1.png" || true
       check_not_clipped "ui-settings-home-$1.xml" "settings pages, $1"
     fi
   fi

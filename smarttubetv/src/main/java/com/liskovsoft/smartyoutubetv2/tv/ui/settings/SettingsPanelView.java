@@ -31,6 +31,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionItem;
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 import com.liskovsoft.smartyoutubetv2.common.misc.AppDataSourceManager;
 import com.liskovsoft.smartyoutubetv2.tv.R;
+import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.VisibleAreaFrameLayout;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -41,6 +42,7 @@ import java.util.List;
  * <br>
  * It is a plain view, so it can live inside the Home screen (next to the sidebar, see SettingsPanelFragment)
  * or fill a screen of its own (SettingsScreenActivity).
+ * Inside the Home screen it takes only the part of the screen it can be seen in (see VisibleAreaFrameLayout).
  * <br>
  * Remote: Up/Down choose a page, Right goes into its options, Left goes back. Mouse or touch: click a page on
  * the left, click an option on the right.
@@ -60,7 +62,7 @@ import java.util.List;
  * The options come from the same presenters as before (they build option lists for AppDialogPresenter);
  * this panel draws those lists itself. See {@link AppDialogPresenter#setCapture}.
  */
-public class SettingsPanelView extends FrameLayout {
+public class SettingsPanelView extends VisibleAreaFrameLayout {
     /** Who shows the panel: told when the user leaves the list of pages with the back arrow. */
     public interface Host {
         void onClose();
@@ -94,8 +96,6 @@ public class SettingsPanelView extends FrameLayout {
     private Runnable mCollapseOpenChoices;
     private ViewGroup mLeftPanel; // scrolls when the list of pages is taller than the screen
     private LinearLayout mLeftList;
-    private int mLastLeft = -1;
-    private int mLastTop = -1;
     private boolean mTwoPane;
     private boolean mShowingOptions;
     private int mCurrentPage = -1;
@@ -127,44 +127,6 @@ public class SettingsPanelView extends FrameLayout {
 
         if (takeFocus && start < mPageViews.size()) {
             mPageViews.get(start).requestFocus();
-        }
-    }
-
-    /**
-     * The Home screen moves this panel to the right when the sidebar is expanded, but gives it the same width as
-     * before, so its right part would be cut off by the edge of the screen. The panel takes only the part of the
-     * screen that is really left (and the same for the height).
-     */
-    @Override
-    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-        int[] at = new int[2];
-        getLocationOnScreen(at);
-
-        widthMeasureSpec = fitSpec(widthMeasureSpec, metrics.widthPixels - Math.max(0, at[0]));
-        heightMeasureSpec = fitSpec(heightMeasureSpec, metrics.heightPixels - Math.max(0, at[1]));
-        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-    }
-
-    private static int fitSpec(int spec, int max) {
-        int mode = MeasureSpec.getMode(spec);
-        if (mode != MeasureSpec.UNSPECIFIED && max > 0 && MeasureSpec.getSize(spec) > max) {
-            return MeasureSpec.makeMeasureSpec(max, mode);
-        }
-        return spec;
-    }
-
-    @Override
-    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
-        super.onLayout(changed, left, top, right, bottom);
-
-        // The panel was moved (the sidebar opened or closed): measure again with what is visible now
-        int[] at = new int[2];
-        getLocationOnScreen(at);
-        if (at[0] != mLastLeft || at[1] != mLastTop) {
-            mLastLeft = at[0];
-            mLastTop = at[1];
-            post(this::requestLayout);
         }
     }
 
@@ -246,33 +208,14 @@ public class SettingsPanelView extends FrameLayout {
         mHandler.postDelayed(mSettle, 1500);
     }
 
-    // The Home screen slides the panel when the sidebar opens or closes WITHOUT laying the panel out again, so
-    // onLayout never saw the move: a panel made while the sidebar was open stayed as narrow as it was then, and
-    // its page names were cut off on a phone. Its place is now looked at before every frame; when it has moved
-    // and come to rest, the panel is measured again.
-    private final int[] mPlace = new int[2];
-    private final Runnable mMeasureAgain = this::requestLayout;
-    private final android.view.ViewTreeObserver.OnPreDrawListener mWatchPlace = () -> {
-        getLocationOnScreen(mPlace);
-        if (mPlace[0] != mLastLeft || mPlace[1] != mLastTop) {
-            mLastLeft = mPlace[0];
-            mLastTop = mPlace[1];
-            mHandler.removeCallbacks(mMeasureAgain);
-            mHandler.postDelayed(mMeasureAgain, 80);
-        }
-        return true;
-    };
-
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         scheduleSettle();
-        getViewTreeObserver().addOnPreDrawListener(mWatchPlace);
     }
 
     @Override
     protected void onDetachedFromWindow() {
-        getViewTreeObserver().removeOnPreDrawListener(mWatchPlace);
         mHandler.removeCallbacksAndMessages(null);
         AppDialogPresenter.instance(getContext()).setCapture(null);
         runFinishCallbacks(); // some pages ask for a restart or a refresh when you leave them
