@@ -794,4 +794,6 @@
     <string name="younew_group_language">اللغة والموقع</string>
     <string name="younew_group_about">حول</string>
     <string name="younew_update_beta">تضمين النسخ التجريبية</string>
+    <string name="younew_saved_to_watch_later">تم الحفظ في المشاهدة لاحقًا</string>
+    <string name="add_video_to_watch_later">إضافة إلى المشاهدة لاحقًا</string>
 </resources>

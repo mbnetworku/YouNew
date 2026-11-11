@@ -289,8 +289,28 @@ public class MainUIData extends DataChangeBase implements ProfileChangeListener 
         persistState();
     }
 
+    /**
+     * YouNew: the menu of a video (long press, or the menu key) has one fixed set of entries, like the player buttons
+     * (the checklist in Settings is hidden). Added: Save to Watch later (it was missing) and, on a phone, Share.
+     * Removed: Pin to sidebar, Move section up/down and Rename section (the sidebar is fixed).
+     */
+    public static final long MENU_ITEM_YOUNEW = MENU_ITEM_ADD_TO_WATCH_LATER | MENU_ITEM_ADD_TO_PLAYLIST
+            | MENU_ITEM_ADD_TO_NEW_PLAYLIST | MENU_ITEM_CREATE_PLAYLIST | MENU_ITEM_RENAME_PLAYLIST | MENU_ITEM_SAVE_REMOVE_PLAYLIST
+            | MENU_ITEM_PLAY_NEXT | MENU_ITEM_OPEN_CHANNEL | MENU_ITEM_OPEN_PLAYLIST | MENU_ITEM_SUBSCRIBE
+            | MENU_ITEM_REMOVE_FROM_SUBSCRIPTIONS | MENU_ITEM_NOT_INTERESTED | MENU_ITEM_NOT_RECOMMEND_CHANNEL
+            | MENU_ITEM_BLOCK_CHANNEL | MENU_ITEM_REMOVE_FROM_HISTORY | MENU_ITEM_CLEAR_HISTORY | MENU_ITEM_STREAM_REMINDER
+            | MENU_ITEM_PLAYLIST_ORDER | MENU_ITEM_EXIT_FROM_PIP;
+
     public boolean isMenuItemEnabled(long menuItems) {
-        return (mMenuItems & menuItems) == menuItems;
+        long enabled = MENU_ITEM_YOUNEW;
+
+        // Share only where it is useful: a phone (a TV box has no touch screen)
+        if (mContext != null && mContext.getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_TOUCHSCREEN)
+                && !mContext.getPackageManager().hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)) {
+            enabled |= MENU_ITEM_SHARE_LINK;
+        }
+
+        return (enabled & menuItems) == menuItems;
     }
 
     public void setMenuItemEnabled(long menuItems) {

@@ -804,4 +804,5 @@
     <string name="younew_group_language">Language &amp; Location</string>
     <string name="younew_group_about">About</string>
     <string name="younew_update_beta">Include beta versions (test builds)</string>
+    <string name="younew_saved_to_watch_later">Saved to Watch later</string>
 </resources>

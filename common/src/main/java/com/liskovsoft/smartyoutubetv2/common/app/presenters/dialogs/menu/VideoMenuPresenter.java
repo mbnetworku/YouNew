@@ -230,7 +230,13 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
                 UiOptionItem.from(
                         getContext().getString(R.string.add_video_to_watch_later),
                         optionItem -> {
-                            MediaServiceManager.instance().addToWatchLaterPlaylist(mVideo);
+                            // YouNew: Watch later belongs to a YouTube account; without one this did nothing at all
+                            if (!getSignInService().isSigned()) {
+                                MessageHelpers.showMessage(getContext(), R.string.msg_signed_users_only);
+                            } else {
+                                MediaServiceManager.instance().addToWatchLaterPlaylist(mVideo);
+                                MessageHelpers.showMessage(getContext(), R.string.younew_saved_to_watch_later);
+                            }
                             mDialogPresenter.closeDialog();
                         }
                 ));
