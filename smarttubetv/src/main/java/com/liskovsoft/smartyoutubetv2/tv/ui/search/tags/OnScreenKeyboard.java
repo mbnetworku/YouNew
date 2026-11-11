@@ -49,8 +49,8 @@ public class OnScreenKeyboard extends LinearLayout {
     };
     // YouNew: compact keys that follow the screen (a phone gets 28 dp keys, a big TV up to 36 dp);
     // before they were always 44 dp and the keyboard filled most of a phone screen.
-    private final int KEY_DP;
-    private final int SIDE_DP;
+    private int KEY_DP;
+    private int SIDE_DP;
 
     private final Listener mListener;
     private int mMode = MODE_EN;
@@ -62,6 +62,24 @@ public class OnScreenKeyboard extends LinearLayout {
         SIDE_DP = Math.round(KEY_DP * 2.7f);
         setOrientation(VERTICAL);
         build();
+    }
+
+    /**
+     * The room the keyboard really has (the Home screen's search panel on an upright phone is narrower than the
+     * screen: the sidebar takes a part). The keys shrink until all of them fit, down to 20 dp; with more room
+     * they go back to their normal size. Before, the DELETE / CLEAR column was cut off there.
+     */
+    public void setMaxWidthPx(int maxWidthPx) {
+        float density = getResources().getDisplayMetrics().density;
+        // one row = 7 keys + a 10 dp gap + the side key (2.7 keys)
+        int fitting = (int) ((maxWidthPx / density - 10) / 9.7f);
+        int key = Math.max(20, Math.min(keyDp(getContext()), fitting));
+
+        if (key != KEY_DP) {
+            KEY_DP = key;
+            SIDE_DP = Math.round(KEY_DP * 2.7f);
+            build();
+        }
     }
 
     /** Key size in dp: 7 % of the shorter screen side, between 28 and 36 dp. */
@@ -170,7 +188,8 @@ public class OnScreenKeyboard extends LinearLayout {
         TextView key = new TextView(context);
         key.setText(label);
         key.setGravity(Gravity.CENTER);
-        key.setTextSize(label.length() > 1 ? 12 : 17);
+        boolean small = KEY_DP < 26; // shrunk keys: smaller letters, so the side labels still fit
+        key.setTextSize(label.length() > 1 ? (small ? 10 : 12) : (small ? 15 : 17));
         key.setTypeface(Typeface.DEFAULT_BOLD);
         key.setFocusable(true);
         key.setClickable(true);

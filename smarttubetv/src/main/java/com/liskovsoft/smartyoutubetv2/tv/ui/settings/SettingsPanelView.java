@@ -246,14 +246,33 @@ public class SettingsPanelView extends FrameLayout {
         mHandler.postDelayed(mSettle, 1500);
     }
 
+    // The Home screen slides the panel when the sidebar opens or closes WITHOUT laying the panel out again, so
+    // onLayout never saw the move: a panel made while the sidebar was open stayed as narrow as it was then, and
+    // its page names were cut off on a phone. Its place is now looked at before every frame; when it has moved
+    // and come to rest, the panel is measured again.
+    private final int[] mPlace = new int[2];
+    private final Runnable mMeasureAgain = this::requestLayout;
+    private final android.view.ViewTreeObserver.OnPreDrawListener mWatchPlace = () -> {
+        getLocationOnScreen(mPlace);
+        if (mPlace[0] != mLastLeft || mPlace[1] != mLastTop) {
+            mLastLeft = mPlace[0];
+            mLastTop = mPlace[1];
+            mHandler.removeCallbacks(mMeasureAgain);
+            mHandler.postDelayed(mMeasureAgain, 80);
+        }
+        return true;
+    };
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         scheduleSettle();
+        getViewTreeObserver().addOnPreDrawListener(mWatchPlace);
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        getViewTreeObserver().removeOnPreDrawListener(mWatchPlace);
         mHandler.removeCallbacksAndMessages(null);
         AppDialogPresenter.instance(getContext()).setCapture(null);
         runFinishCallbacks(); // some pages ask for a restart or a refresh when you leave them
@@ -337,7 +356,15 @@ public class SettingsPanelView extends FrameLayout {
             item.addView(icon(pageIcon(i), 34));
 
             TextView label = text(mPages.get(i).title, 22, TEXT, false);
-            label.setSingleLine(true);
+            if (mTwoPane) {
+                label.setSingleLine(true);
+            } else {
+                // An upright phone: a long name ("Language & Location") takes two lines instead of being cut off
+                label.setMaxLines(2);
+                label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+                label.setLineSpacing(0, 0.9f);
+            }
+            label.setEllipsize(android.text.TextUtils.TruncateAt.END);
             label.setTextColor(onPill);
             label.setPadding(dp(16), 0, 0, 0);
             item.addView(label);

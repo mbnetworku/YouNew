@@ -85,6 +85,43 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         // findViewById is null in constructor. Init mAccountView later.
     }
 
+    private boolean mBadgeHiddenByButtons;
+    private final int[] mBadgePlace = new int[2];
+    private final int[] mButtonsPlace = new int[2];
+
+    @Override
+    protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
+        hideBadgeUnderButtons();
+    }
+
+    /**
+     * YouNew: on a narrow screen (a phone held upright) the row of buttons reaches the logo on the other side and
+     * was drawn over it (a red spot between two buttons). The logo is hidden while the buttons cover its place.
+     */
+    private void hideBadgeUnderButtons() {
+        View badge = findViewById(R.id.title_badge);
+        View buttons = findViewById(R.id.title_buttons_scroll);
+
+        if (badge == null || buttons == null || badge.getVisibility() == View.GONE || badge.getWidth() == 0) {
+            return;
+        }
+
+        badge.getLocationOnScreen(mBadgePlace);
+        buttons.getLocationOnScreen(mButtonsPlace);
+        boolean covered = buttons.getVisibility() == View.VISIBLE
+                && mBadgePlace[0] < mButtonsPlace[0] + buttons.getWidth()
+                && mButtonsPlace[0] < mBadgePlace[0] + badge.getWidth();
+
+        if (covered && badge.getVisibility() == View.VISIBLE) {
+            badge.setVisibility(View.INVISIBLE);
+            mBadgeHiddenByButtons = true;
+        } else if (!covered && mBadgeHiddenByButtons && badge.getVisibility() == View.INVISIBLE) {
+            badge.setVisibility(View.VISIBLE);
+            mBadgeHiddenByButtons = false;
+        }
+    }
+
     @Override
     public View focusSearch(View focused, int direction) {
         View nextFoundFocusableViewInLayout = null;

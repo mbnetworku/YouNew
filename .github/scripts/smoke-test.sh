@@ -98,17 +98,117 @@ PY
   case "$result" in OK*) ;; *) FAILED=1 ;; esac
 }
 
-# Prints what the search box (the first text field in the dump) shows.
+# Prints what the search box of the results screen shows.
 box_text() {
   python3 - "$1" <<'PY'
 import sys, re
 s = open(sys.argv[1], errors='ignore').read()
 for n in re.findall(r'<node[^>]*>', s):
-    if 'class="android.widget.EditText"' in n:
+    if 'lb_search_text_editor"' in n:
         t = re.search(r' text="([^"]*)"', n)
         print(t.group(1) if t else '')
         break
 PY
+}
+
+# Taps the Nth icon of the sidebar (1 = Search, the first; "last" = Settings), like a finger does.
+# The collapsed sidebar shows icons without text, so they cannot be found by their name.
+tap_sidebar_icon() {
+  local coords
+  coords=$(python3 - "$1" "$2" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+icons = []
+for n in re.findall(r'<node[^>]*>', s):
+    if 'id/header_icon"' in n:
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+        if b:
+            icons.append(tuple(map(int, b.groups())))
+if icons:
+    x1, y1, x2, y2 = icons[-1] if sys.argv[2] == 'last' else icons[min(int(sys.argv[2]), len(icons)) - 1]
+    print((x1 + x2) // 2, (y1 + y2) // 2)
+PY
+)
+  if [ -n "$coords" ]; then
+    adb shell input tap $coords
+    echo "tapped sidebar icon $2 at $coords"
+    return 0
+  fi
+  echo "no sidebar icons found on the screen, cannot tap"
+  return 1
+}
+
+# The Home screen as a finger uses it: fresh start, tap Search (first sidebar icon), check its panel and keyboard;
+# then tap Settings (last icon) and check that its page names are not cut off. $1 is a label for files and lines.
+check_home_panels() {
+  adb shell am force-stop "$PKG" || true
+  sleep 2
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 12
+  check_crash "home ($1)"
+  adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "home-$1.png" || true
+  ui_dump "home-$1" || return 0
+  tap_sidebar_icon "ui-home-$1.xml" 1 || true
+  sleep 6
+  check_crash "search panel ($1)"
+  adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "search-home-$1.png" || true
+  if ui_dump "search-home-$1"; then
+    if has_text "ui-search-home-$1.xml" "SEARCH" && grep -q "Type or speak to search" "ui-search-home-$1.xml"; then
+      echo "CHECK search panel in the Home screen ($1): SHOWN"
+      check_keyboard "ui-search-home-$1.xml" "Home search panel, $1"
+      tap_text "ui-search-home-$1.xml" "A" || true
+      sleep 1
+      tap_text "ui-search-home-$1.xml" "B" || true
+      sleep 2
+      ui_dump "search-home-$1-typed" || true
+      if has_text "ui-search-home-$1-typed.xml" "ab"; then
+        echo "CHECK Home search panel keys type ($1): WORKS"
+      else
+        echo "CHECK Home search panel keys type ($1): FAILED (no 'ab' on the screen)"
+        FAILED=1
+      fi
+    else
+      echo "CHECK search panel in the Home screen ($1): MISSING"
+      FAILED=1
+    fi
+    tap_sidebar_icon "ui-search-home-$1.xml" last || true
+    sleep 6
+    check_crash "settings panel ($1)"
+    adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "settings-home-$1.png" || true
+    if ui_dump "settings-home-$1"; then
+      check_not_clipped "ui-settings-home-$1.xml" "settings pages, $1"
+    fi
+  fi
+}
+
+# Fails when one of the Settings page names is clipped at its right side: its text box then ends exactly where
+# the box of the panel ends (the dump clips boxes), instead of ending before it.
+check_not_clipped() {
+  local result
+  result=$(python3 - "$1" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+names = ('Accounts', 'General', 'Player', 'Language and country', 'Language/Country', 'Subtitles', 'Appearance', 'About')
+boxes = []
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    t = re.search(r' text="([^"]*)"', n)
+    if b and t and t.group(1):
+        boxes.append((t.group(1), tuple(map(int, b.groups()))))
+found = [(t, b) for t, b in boxes if t in ('Accounts', 'General', 'Player', 'Subtitles', 'About')]
+if len(found) < 5:
+    print("NOT SHOWN (page list not found)")
+else:
+    # every label of the list starts at the same x; a clipped one ends at the common right edge
+    left = found[0][1][0]
+    labels = [(t, b) for t, b in boxes if b[0] == left and abs(b[3] - b[1] - (found[0][1][3] - found[0][1][1])) <= 2]
+    right = max(b[2] for t, b in labels)
+    clipped = [t for t, b in labels if b[2] == right]
+    print("OK" if len(clipped) <= 1 else "CLIPPED: " + ", ".join(clipped))
+PY
+)
+  echo "CHECK names not cut off ($2): $result"
+  case "$result" in OK*) ;; *) FAILED=1 ;; esac
 }
 
 has_text() { [ -s "$1" ] && grep -q "text=\"$2\"" "$1"; }
@@ -280,30 +380,22 @@ PY
   else
     echo "CHECK skipped: no screen dump on this emulator"
   fi
-  # Search inside the Home screen: start the app fresh and TAP the Search entry of the sidebar (like a finger or a
-  # mouse does; key presses ended on the topic buttons at the top), then its panel must show the keyboard
-  # (SEARCH key) and the hint text, and the old search pill at the top must be gone
-  adb shell am force-stop "$PKG" || true
-  sleep 2
-  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
-  sleep 10
-  ui_dump home-start || true
-  tap_text ui-home-start.xml "Search" || true
-  sleep 5
-  check_crash "search panel"
-  # Not blocking: the tap on the sidebar entry has not been reliable in CI yet; the result is shown as a warning
-  if ui_dump home-search; then
-    if has_text ui-home-search.xml "SEARCH" && grep -q "Type or speak to search" ui-home-search.xml; then
-      echo "CHECK search panel in the Home screen: SHOWN"
-    else
-      echo "CHECK search panel in the Home screen: WARNING (not confirmed by the test; check on a device)"
-    fi
-    adb shell screencap -p /data/local/tmp/search-home.png && adb pull /data/local/tmp/search-home.png search-home.png || true
-    if grep -q "Search for videos" ui-home-search.xml; then
-      echo "CHECK no search pill at the top: WARNING (the old pill is still there)"
-    else
-      echo "CHECK no search pill at the top: OK"
-    fi
+  # Search and Settings inside the Home screen, opened by taps on the sidebar icons (like a finger or a mouse).
+  # First on this emulator as it is, then with the screen as wide as a usual phone held upright (360 dp): the
+  # emulator's own screen is wider than that and hid a keyboard that did not fit a real phone.
+  check_home_panels "emulator"
+  if grep -q "Search for videos" ui-home-emulator.xml 2>/dev/null; then
+    echo "CHECK no search pill at the top: WARNING (the old pill is still there)"
+  else
+    echo "CHECK no search pill at the top: OK"
+  fi
+  WIDTH=$(adb shell wm size | tr -d '\r' | sed -n 's/.*: \([0-9]*\)x.*/\1/p' | tail -1)
+  if [ -n "$WIDTH" ]; then
+    adb shell wm density $((WIDTH * 160 / 360)) || true
+    sleep 5
+    check_home_panels "phone"
+    adb shell wm density reset || true
+    sleep 5
   fi
   # Search results screen (it has the search box and the same keyboard): the whole keyboard must be on the screen,
   # upright and sideways, and a key must add to what the box shows, also to text that did not come from the keys.

@@ -23,11 +23,21 @@
     <include layout="@layout/lb_title_view_logo"/>
 
     <!-- MOD: add additional buttons -->
+    <!-- YouNew: the buttons scroll sideways when the screen is narrower than the row (a phone held upright):
+         before, News and Sports were cut off there and could not be reached. On a TV nothing changes. -->
+    <HorizontalScrollView android:id="@+id/title_buttons_scroll"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_marginStart="88dp"
+                  android:layout_gravity="center_vertical|start"
+                  android:scrollbars="none"
+                  android:overScrollMode="never"
+                  android:clipToPadding="false"
+                  android:paddingTop="8dp"
+                  android:paddingBottom="8dp">
     <LinearLayout android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:orientation="horizontal"
-                  android:layout_marginStart="88dp"
-                  android:layout_gravity="center_vertical|start">
+                  android:orientation="horizontal">
         <androidx.leanback.widget.SearchOrbView
             android:id="@+id/title_orb"
             android:layout_height="wrap_content"
@@ -123,4 +133,5 @@
             android:ellipsize="marquee"
             android:visibility="gone" />
     </LinearLayout>
+    </HorizontalScrollView>
 </merge>

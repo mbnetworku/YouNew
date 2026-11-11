@@ -42,11 +42,14 @@ public class SearchPanelView extends FrameLayout {
     private static final int MAX_CHIPS = 10;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
-    private final TextView mQuery;
-    private final LinearLayout mChips;
+    private TextView mQuery;
+    private LinearLayout mChips;
+    private OnScreenKeyboard mKeyboard;
     private final MediaServiceSearchTagProvider mTagProvider;
     private String mText = "";
     private boolean mReleased;
+    private boolean mNarrow;
+    private List<Tag> mTags;
 
     private final Runnable mSuggest = new Runnable() {
         @Override
@@ -59,12 +62,61 @@ public class SearchPanelView extends FrameLayout {
         super(context);
         mTagProvider = new MediaServiceSearchTagProvider(false);
 
-        float density = getResources().getDisplayMetrics().density;
-        boolean narrow = getResources().getDisplayMetrics().widthPixels / density < 620;
+        build(isNarrow(0));
+
+        loadSuggestions(""); // history / trending when nothing is typed yet
+    }
+
+    /**
+     * Narrow = a phone held upright. Decided by the room the panel really has (the sidebar takes a part of the
+     * screen); before the panel is measured, by the screen without the collapsed sidebar.
+     */
+    private boolean isNarrow(int widthPx) {
+        android.util.DisplayMetrics metrics = getResources().getDisplayMetrics();
+        float widthDp = widthPx > 0 ? widthPx / metrics.density : metrics.widthPixels / metrics.density - 72;
+        return widthDp < 548;
+    }
+
+    /** The panel got its size, or another one (phone turned): choose the layout again and fit the keyboard. */
+    @Override
+    protected void onSizeChanged(int w, int h, int oldw, int oldh) {
+        super.onSizeChanged(w, h, oldw, oldh);
+
+        if (w <= 0) {
+            return;
+        }
+
+        // Not inside the layout pass that reported the size
+        post(() -> {
+            if (mReleased || getWidth() <= 0) {
+                return;
+            }
+
+            boolean narrow = isNarrow(getWidth());
+            if (narrow != mNarrow) {
+                build(narrow);
+                showChips(mTags);
+            }
+            fitKeyboard();
+        });
+    }
+
+    /** Upright phone: the keyboard may use the whole width of the panel, and no more. */
+    private void fitKeyboard() {
+        if (mKeyboard != null && mNarrow && getWidth() > 0) {
+            mKeyboard.setMaxWidthPx(getWidth() - 2 * dp(12));
+        }
+    }
+
+    private void build(boolean narrow) {
+        Context context = getContext();
+        mNarrow = narrow;
+        removeAllViews();
 
         LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
-        root.setPadding(dp(24), dp(8), dp(24), dp(8));
+        int side = dp(narrow ? 12 : 24); // an upright phone needs every bit of width for the keyboard
+        root.setPadding(side, dp(8), side, dp(8));
         addView(root, new LayoutParams(-1, -1));
 
         // Title and the typed text
@@ -87,10 +139,6 @@ public class SearchPanelView extends FrameLayout {
         queryBg.setCornerRadius(dp(22));
         queryBg.setStroke(dp(1), 0xFF3A3A3A); // soft edge, like the YouTube search field
         mQuery.setBackground(queryBg);
-        LinearLayout.LayoutParams queryLp = new LinearLayout.LayoutParams(narrow ? -1 : dp(420), dp(44));
-        queryLp.topMargin = dp(8);
-        queryLp.bottomMargin = dp(10);
-        root.addView(mQuery, queryLp);
         showQuery();
 
         // Suggestions (chips)
@@ -101,7 +149,7 @@ public class SearchPanelView extends FrameLayout {
         chipsScroll.addView(mChips, new ViewGroup.LayoutParams(-1, -2));
 
         // Mic + keyboard
-        OnScreenKeyboard keyboard = new OnScreenKeyboard(context, new OnScreenKeyboard.Listener() {
+        mKeyboard = new OnScreenKeyboard(context, new OnScreenKeyboard.Listener() {
             @Override
             public String getText() {
                 return mText;
@@ -124,16 +172,32 @@ public class SearchPanelView extends FrameLayout {
         mic.setOnClickListener(v -> SearchPresenter.instance(getContext()).startVoice());
 
         if (narrow) {
-            LinearLayout inputRow = new LinearLayout(context);
-            inputRow.setOrientation(LinearLayout.HORIZONTAL);
-            inputRow.setGravity(Gravity.CENTER_VERTICAL);
-            inputRow.addView(mic, new LinearLayout.LayoutParams(dp(48), dp(48)));
+            // The typed text and the mic share a line; the keyboard has the whole width below them, then the
+            // suggestions. (Mic and keyboard side by side were wider than a phone: the right keys were cut off.)
+            LinearLayout queryRow = new LinearLayout(context);
+            queryRow.setOrientation(LinearLayout.HORIZONTAL);
+            queryRow.setGravity(Gravity.CENTER_VERTICAL);
+            queryRow.addView(mQuery, new LinearLayout.LayoutParams(0, dp(44), 1f));
+            LinearLayout.LayoutParams micLp = new LinearLayout.LayoutParams(dp(44), dp(44));
+            micLp.leftMargin = dp(8);
+            queryRow.addView(mic, micLp);
+            LinearLayout.LayoutParams rowLp = new LinearLayout.LayoutParams(-1, -2);
+            rowLp.topMargin = dp(8);
+            rowLp.bottomMargin = dp(8);
+            root.addView(queryRow, rowLp);
+
             LinearLayout.LayoutParams kbLp = new LinearLayout.LayoutParams(-2, -2);
-            kbLp.leftMargin = dp(8);
-            inputRow.addView(keyboard, kbLp);
-            root.addView(inputRow, new LinearLayout.LayoutParams(-1, -2));
+            kbLp.gravity = Gravity.CENTER_HORIZONTAL;
+            kbLp.bottomMargin = dp(8);
+            root.addView(mKeyboard, kbLp);
             root.addView(chipsScroll, new LinearLayout.LayoutParams(-1, 0, 1f));
+            fitKeyboard();
         } else {
+            LinearLayout.LayoutParams queryLp = new LinearLayout.LayoutParams(dp(420), dp(44));
+            queryLp.topMargin = dp(8);
+            queryLp.bottomMargin = dp(10);
+            root.addView(mQuery, queryLp);
+
             LinearLayout body = new LinearLayout(context);
             body.setOrientation(LinearLayout.HORIZONTAL);
             root.addView(body, new LinearLayout.LayoutParams(-1, 0, 1f));
@@ -145,11 +209,9 @@ public class SearchPanelView extends FrameLayout {
             micLp.topMargin = dp(40);
             micLp.rightMargin = dp(12);
             right.addView(mic, micLp);
-            right.addView(keyboard, new LinearLayout.LayoutParams(-2, -2));
+            right.addView(mKeyboard, new LinearLayout.LayoutParams(-2, -2));
             body.addView(right, new LinearLayout.LayoutParams(-2, -1));
         }
-
-        loadSuggestions(""); // history / trending when nothing is typed yet
     }
 
     private void showQuery() {
@@ -182,6 +244,7 @@ public class SearchPanelView extends FrameLayout {
             return;
         }
 
+        mTags = tags; // kept, so they can be drawn again when the layout changes (phone turned)
         mChips.removeAllViews();
         if (tags == null) {
             return;
@@ -216,7 +279,6 @@ public class SearchPanelView extends FrameLayout {
         chip.setGravity(Gravity.CENTER_VERTICAL);
         chip.setPadding(dp(18), 0, dp(18), 0);
         chip.setMaxWidth(dp(420));
-        chip.setTextColor(0xFFF1F1F1);
         chip.setFocusable(true);
         chip.setClickable(true);
 
@@ -232,7 +294,10 @@ public class SearchPanelView extends FrameLayout {
         states.addState(new int[]{android.R.attr.state_pressed}, lit);
         states.addState(new int[]{}, normal);
         chip.setBackground(states);
-        chip.setOnFocusChangeListener((v, focused) -> ((TextView) v).setTextColor(focused ? 0xFF0F0F0F : 0xFFF1F1F1));
+        // Dark text on the white pill when focused, hovered or pressed (a finger presses without focusing)
+        chip.setTextColor(new android.content.res.ColorStateList(
+                new int[][]{{android.R.attr.state_focused}, {android.R.attr.state_hovered}, {android.R.attr.state_pressed}, {}},
+                new int[]{0xFF0F0F0F, 0xFF0F0F0F, 0xFF0F0F0F, 0xFFF1F1F1}));
         chip.setOnClickListener(v -> search(text));
         return chip;
     }
