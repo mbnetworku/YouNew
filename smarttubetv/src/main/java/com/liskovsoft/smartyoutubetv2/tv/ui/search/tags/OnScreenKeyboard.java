@@ -19,6 +19,8 @@ import android.widget.TextView;
 public class OnScreenKeyboard extends LinearLayout {
     /** What the keyboard asks the Search screen to do. */
     public interface Listener {
+        /** What is in the search box now (it also changes without the keyboard: a suggestion, voice, a real keyboard). */
+        String getText();
         void onTextChanged(String text);
         void onSearch(String text);
     }
@@ -45,28 +47,57 @@ public class OnScreenKeyboard extends LinearLayout {
             {"8", "9", "0", ".", "@", "_", "&"},
             {"#", "!", "?", "+", "/", ":", "ؤ"}
     };
-    private static final int KEY_DP = 44;
-    private static final int SIDE_DP = 110;
+    // YouNew: compact keys that follow the screen (a phone gets 28 dp keys, a big TV up to 36 dp);
+    // before they were always 44 dp and the keyboard filled most of a phone screen.
+    private int KEY_DP;
+    private int SIDE_DP;
 
     private final Listener mListener;
-    private final StringBuilder mText = new StringBuilder();
     private int mMode = MODE_EN;
 
     public OnScreenKeyboard(Context context, Listener listener) {
         super(context);
         mListener = listener;
+        KEY_DP = keyDp(context);
+        SIDE_DP = Math.round(KEY_DP * 2.7f);
         setOrientation(VERTICAL);
         build();
     }
 
+    /**
+     * The room the keyboard really has (the Home screen's search panel on an upright phone is narrower than the
+     * screen: the sidebar takes a part). The keys shrink until all of them fit, down to 20 dp; with more room
+     * they go back to their normal size. Before, the DELETE / CLEAR column was cut off there.
+     */
+    public void setMaxWidthPx(int maxWidthPx) {
+        float density = getResources().getDisplayMetrics().density;
+        // one row = 7 keys + a 10 dp gap + the side key (2.7 keys)
+        int fitting = (int) ((maxWidthPx / density - 10) / 9.7f);
+        int key = Math.max(20, Math.min(keyDp(getContext()), fitting));
+
+        if (key != KEY_DP) {
+            KEY_DP = key;
+            SIDE_DP = Math.round(KEY_DP * 2.7f);
+            build();
+        }
+    }
+
+    /** Key size in dp: 7 % of the shorter screen side, between 28 and 36 dp. */
+    static int keyDp(Context context) {
+        android.util.DisplayMetrics m = context.getResources().getDisplayMetrics();
+        float shortSideDp = Math.min(m.widthPixels, m.heightPixels) / m.density;
+        return Math.max(28, Math.min(36, Math.round(shortSideDp * 0.07f)));
+    }
+
     /** Width of the keyboard in pixels. */
     public static int getWidthPx(Context context) {
-        return dp(context, 7 * KEY_DP + SIDE_DP + 16);
+        int key = keyDp(context);
+        return dp(context, 7 * key + Math.round(key * 2.7f) + 16);
     }
 
     /** Height of the keyboard in pixels (5 rows of keys + the Space/Search row). */
     public static int getHeightPx(Context context) {
-        return dp(context, 6 * KEY_DP + 8);
+        return dp(context, 6 * keyDp(context) + 8);
     }
 
     private void build() {
@@ -78,12 +109,12 @@ public class OnScreenKeyboard extends LinearLayout {
             LinearLayout line = newLine();
             String[] row = i < rows.length ? rows[i] : new String[0];
             for (String key : row) {
-                line.addView(newKey(mMode == MODE_EN ? key.toUpperCase() : key, KEY_DP, v -> type(key)));
+                line.addView(newKey(mMode == MODE_EN ? key.toUpperCase(java.util.Locale.ROOT) : key, KEY_DP, v -> type(key)));
             }
             for (int pad = row.length; pad < 7; pad++) {
                 line.addView(spacer(KEY_DP));
             }
-            line.addView(spacer(16));
+            line.addView(spacer(10));
             if (i < side.length) {
                 line.addView(newKey(side[i], SIDE_DP, sideAction(i)));
             }
@@ -94,7 +125,7 @@ public class OnScreenKeyboard extends LinearLayout {
         bottom.addView(spacer(KEY_DP));
         bottom.addView(newKey(mMode == MODE_AR ? "مسافة" : "SPACE", 2 * KEY_DP + 20, v -> type(" ")));
         bottom.addView(spacer(8));
-        bottom.addView(newKey(mMode == MODE_AR ? "بحث" : "SEARCH", 2 * KEY_DP + 20, v -> mListener.onSearch(mText.toString())));
+        bottom.addView(newKey(mMode == MODE_AR ? "بحث" : "SEARCH", 2 * KEY_DP + 20, v -> mListener.onSearch(currentText())));
         addView(bottom);
     }
 
@@ -115,20 +146,27 @@ public class OnScreenKeyboard extends LinearLayout {
         line.getChildAt(line.getChildCount() - 1).requestFocus();
     }
 
+    // The keys always work on what the search box shows now. (Before, the keyboard kept its own copy of the text:
+    // when the results screen opened with a search, or a suggestion or a voice search filled the box, the next key
+    // threw that text away.)
+    private String currentText() {
+        String text = mListener.getText();
+        return text != null ? text : "";
+    }
+
     private void type(String s) {
-        mText.append(s);
-        mListener.onTextChanged(mText.toString());
+        mListener.onTextChanged(currentText() + s);
     }
 
     private void backspace() {
-        if (mText.length() > 0) {
-            mText.setLength(mText.length() - 1);
-            mListener.onTextChanged(mText.toString());
+        String text = currentText();
+        if (text.length() > 0) {
+            // one whole character, also when it is stored as two (emoji)
+            mListener.onTextChanged(text.substring(0, text.offsetByCodePoints(text.length(), -1)));
         }
     }
 
     private void clear() {
-        mText.setLength(0);
         mListener.onTextChanged("");
     }
 
@@ -150,15 +188,17 @@ public class OnScreenKeyboard extends LinearLayout {
         TextView key = new TextView(context);
         key.setText(label);
         key.setGravity(Gravity.CENTER);
-        key.setTextSize(label.length() > 1 ? 17 : 22);
+        boolean small = KEY_DP < 26; // shrunk keys: smaller letters, so the side labels still fit
+        key.setTextSize(label.length() > 1 ? (small ? 10 : 12) : (small ? 15 : 17));
         key.setTypeface(Typeface.DEFAULT_BOLD);
         key.setFocusable(true);
         key.setClickable(true);
         key.setOnClickListener(onClick);
         key.setBackground(keyBackground(context));
-        key.setTextColor(Color.parseColor("#F1F1F1"));
-        key.setOnFocusChangeListener((v, focused) ->
-                ((TextView) v).setTextColor(focused ? Color.parseColor("#0F0F0F") : Color.parseColor("#F1F1F1")));
+        // Dark text on the white box of a focused or pressed key (a finger presses without focusing)
+        key.setTextColor(new android.content.res.ColorStateList(
+                new int[][]{{android.R.attr.state_focused}, {android.R.attr.state_pressed}, {}},
+                new int[]{Color.parseColor("#0F0F0F"), Color.parseColor("#0F0F0F"), Color.parseColor("#F1F1F1")}));
         // Mouse: hovering a key focuses it, so the highlight follows the pointer
         key.setOnHoverListener((v, event) -> {
             v.requestFocus();
@@ -171,7 +211,7 @@ public class OnScreenKeyboard extends LinearLayout {
     private static StateListDrawable keyBackground(Context context) {
         GradientDrawable focused = new GradientDrawable();
         focused.setColor(Color.parseColor("#F1F1F1"));
-        focused.setCornerRadius(dp(context, 6));
+        focused.setCornerRadius(dp(context, 8));
         StateListDrawable states = new StateListDrawable();
         states.addState(new int[]{android.R.attr.state_focused}, focused);
         states.addState(new int[]{android.R.attr.state_pressed}, focused);

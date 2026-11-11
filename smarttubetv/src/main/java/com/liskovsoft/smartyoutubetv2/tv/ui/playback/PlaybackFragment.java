@@ -116,6 +116,8 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     private boolean mConsumeShortsBackUp;
     private boolean mStayInShorts;
     private long mLastShortsWheelMs;
+    private float mShortsDownX;
+    private float mShortsDownY;
     private Map<Integer, VideoGroupObjectAdapter> mVideoGroupAdapters;
     private ExoPlayerController mExoPlayerController;
     private ExoPlayerInitializer mPlayerInitializer;
@@ -221,6 +223,11 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             public boolean isOverlayPlaying() {
                 return getPlayWhenReady();
             }
+
+            @Override
+            public boolean isOverlaySuggestionsRow() {
+                return isControlsOverlayVisible() && getPlayerRowIndex() != 0;
+            }
         });
         root.addView(mPlayerOverlay, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
 
@@ -238,6 +245,11 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             @Override
             public void hideGestureOverlay() {
                 hideControlsOverlay(true);
+            }
+
+            @Override
+            public void showGestureSuggestions() {
+                showSuggestions(true);
             }
 
             @Override
@@ -513,6 +525,23 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         local.offsetLocation(-loc[0], -loc[1]);
 
         if (isTouch) {
+            // A finger (or a mouse drag) swiped up or down: next or previous Short, like in the YouTube app.
+            // Without this a phone, which has no remote and no wheel, could never leave the first Short.
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                mShortsDownX = event.getX();
+                mShortsDownY = event.getY();
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                float dx = event.getX() - mShortsDownX;
+                float dy = event.getY() - mShortsDownY;
+                if (Math.abs(dy) > 70 * getResources().getDisplayMetrics().density && Math.abs(dy) > Math.abs(dx) * 1.5f) {
+                    local.setAction(MotionEvent.ACTION_CANCEL); // not a click: no pause, no button
+                    mShortsOverlay.dispatchTouchEvent(local);
+                    local.recycle();
+                    switchShort(dy < 0);
+                    return true;
+                }
+            }
+
             mShortsOverlay.dispatchTouchEvent(local);
         } else if (event.getAction() == MotionEvent.ACTION_HOVER_MOVE) {
             mShortsOverlay.onPointerMoved(local.getX(), local.getY());
@@ -589,6 +618,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     @Override
     public void onPause() {
         super.onPause();
+
+        if (mGestures != null) {
+            mGestures.release(); // YouNew: leaving while the finger holds 2x must not keep the video at 2x
+        }
 
         // NOTE: don't move this into another place! Multiple components rely on it.
         mPlaybackPresenter.onViewPaused();
@@ -1147,6 +1180,10 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         @Override
         public void onItemSelected(Presenter.ViewHolder itemViewHolder, Object item,
                                    RowPresenter.ViewHolder rowViewHolder, Row row) {
+            // YouNew: the big middle buttons would cover the suggestion cards: hide them while a card is in front
+            if (mPlayerOverlay != null && item != null) {
+                mPlayerOverlay.setMiddleVisible(!(item instanceof Video));
+            }
             if (item instanceof Video) {
                 mBackgroundManager.setBackgroundFrom((Video) item);
 
@@ -1222,6 +1259,7 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
             mPlayerGlue.setTitle(video.getTitleFull() != null ? video.getTitleFull() : "...");
             if (mPlayerOverlay != null) {
                 mPlayerOverlay.setTitle(video.getTitleFull());
+                mPlayerOverlay.setSubtitle(video.getSecondTitleFull() != null ? createSubtitle(video) : "");
             }
             mPlayerGlue.setSubtitle(video.getSecondTitleFull() != null ? createSubtitle(video) : "...");
             mPlayerGlue.setVideo(video);

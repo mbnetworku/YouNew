@@ -32,10 +32,12 @@ public class PlayerOverlayView extends FrameLayout {
         void onOverlayNext();
         void onOverlayPlayPause();
         boolean isOverlayPlaying();
+        /** True while the Suggestions row (not the controls row) is in front. */
+        boolean isOverlaySuggestionsRow();
     }
 
     private static final int FADE_MS = 160;
-    private static final int TICK_MS = 400;
+    private static final int TICK_MS = 150;
 
     private Host mHost;
     private final FrameLayout mControls;
@@ -43,7 +45,9 @@ public class PlayerOverlayView extends FrameLayout {
     private final RoundButton mPrev;
     private final RoundButton mPlay;
     private final RoundButton mNext;
+    private LinearLayout mMiddle;
     private final TextView mTitle;
+    private final TextView mSubtitle;
     private final TextView mPill;
     private boolean mShown;
 
@@ -89,18 +93,31 @@ public class PlayerOverlayView extends FrameLayout {
         });
         topBar.addView(mBack, new LinearLayout.LayoutParams(dp(46), dp(46)));
 
+        LinearLayout titles = new LinearLayout(context);
+        titles.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams titlesLp = new LinearLayout.LayoutParams(0, -2, 1f);
+        titlesLp.leftMargin = dp(14);
+        topBar.addView(titles, titlesLp);
+
         mTitle = new TextView(context);
         mTitle.setTextColor(Color.WHITE);
-        mTitle.setTextSize(18);
+        mTitle.setTextSize(17);
         mTitle.setTypeface(Typeface.DEFAULT_BOLD);
         mTitle.setSingleLine(true);
         mTitle.setEllipsize(TextUtils.TruncateAt.END);
         mTitle.setShadowLayer(dp(3), 0, dp(1), 0xCC000000);
-        LinearLayout.LayoutParams titleLp = new LinearLayout.LayoutParams(0, -2, 1f);
-        titleLp.leftMargin = dp(14);
-        topBar.addView(mTitle, titleLp);
+        titles.addView(mTitle, new LinearLayout.LayoutParams(-1, -2));
+
+        mSubtitle = new TextView(context);
+        mSubtitle.setTextColor(0xFFD8D8E4);
+        mSubtitle.setTextSize(12);
+        mSubtitle.setSingleLine(true);
+        mSubtitle.setEllipsize(TextUtils.TruncateAt.END);
+        mSubtitle.setShadowLayer(dp(3), 0, dp(1), 0xCC000000);
+        titles.addView(mSubtitle, new LinearLayout.LayoutParams(-1, -2));
 
         LinearLayout middle = new LinearLayout(context);
+        mMiddle = middle;
         middle.setOrientation(LinearLayout.HORIZONTAL);
         middle.setGravity(Gravity.CENTER);
         mControls.addView(middle, new LayoutParams(-2, -2, Gravity.CENTER));
@@ -109,7 +126,7 @@ public class PlayerOverlayView extends FrameLayout {
         mPrev.setOnClickListener(v -> {
             if (mHost != null) mHost.onOverlayPrevious();
         });
-        middle.addView(mPrev, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        middle.addView(mPrev, new LinearLayout.LayoutParams(dp(46), dp(46)));
 
         mPlay = new RoundButton(context, RoundButton.PLAY);
         mPlay.setOnClickListener(v -> {
@@ -118,16 +135,16 @@ public class PlayerOverlayView extends FrameLayout {
                 postDelayed(this::updatePlayIcon, 150);
             }
         });
-        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(dp(78), dp(78));
-        playLp.leftMargin = dp(34);
-        playLp.rightMargin = dp(34);
+        LinearLayout.LayoutParams playLp = new LinearLayout.LayoutParams(dp(62), dp(62));
+        playLp.leftMargin = dp(26);
+        playLp.rightMargin = dp(26);
         middle.addView(mPlay, playLp);
 
         mNext = new RoundButton(context, RoundButton.NEXT);
         mNext.setOnClickListener(v -> {
             if (mHost != null) mHost.onOverlayNext();
         });
-        middle.addView(mNext, new LinearLayout.LayoutParams(dp(58), dp(58)));
+        middle.addView(mNext, new LinearLayout.LayoutParams(dp(46), dp(46)));
 
         // Feedback pill for swipes and the 2x hold
         mPill = new TextView(context);
@@ -152,6 +169,11 @@ public class PlayerOverlayView extends FrameLayout {
 
     public void setTitle(String title) {
         mTitle.setText(title != null ? title : "");
+    }
+
+    public void setSubtitle(CharSequence subtitle) {
+        mSubtitle.setText(subtitle != null ? subtitle : "");
+        mSubtitle.setVisibility(TextUtils.isEmpty(subtitle) ? GONE : VISIBLE);
     }
 
     /** Shows or hides the layer together with the player controls. */
@@ -195,12 +217,19 @@ public class PlayerOverlayView extends FrameLayout {
         postDelayed(mHidePill, delayMs);
     }
 
+    /** The big middle buttons are hidden while the Suggestions row is in front (they would cover its cards). */
+    public void setMiddleVisible(boolean visible) {
+        if (mMiddle != null) {
+            mMiddle.setVisibility(visible ? VISIBLE : INVISIBLE);
+        }
+    }
+
     /** True if the screen point (raw coordinates) is on one of the round buttons. */
     public boolean hitsControl(float rawX, float rawY) {
         if (mControls.getVisibility() != VISIBLE) {
             return false;
         }
-        return hits(mBack, rawX, rawY) || hits(mPrev, rawX, rawY) || hits(mPlay, rawX, rawY) || hits(mNext, rawX, rawY);
+        return hits(mBack, rawX, rawY) || (mMiddle.getVisibility() == VISIBLE && (hits(mPrev, rawX, rawY) || hits(mPlay, rawX, rawY) || hits(mNext, rawX, rawY)));
     }
 
     private boolean hits(View v, float rawX, float rawY) {
@@ -213,6 +242,8 @@ public class PlayerOverlayView extends FrameLayout {
 
     private void updatePlayIcon() {
         if (mHost != null) {
+            // The big buttons hide as soon as the Suggestions come up (and return with the controls)
+            setMiddleVisible(!mHost.isOverlaySuggestionsRow());
             mPlay.setKind(mHost.isOverlayPlaying() ? RoundButton.PAUSE : RoundButton.PLAY);
         }
     }

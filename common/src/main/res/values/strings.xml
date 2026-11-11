@@ -798,4 +798,10 @@
     <string name="younew_gesture_brightness">Brightness %1$d%%</string>
     <string name="younew_gesture_volume">Volume %1$d%%</string>
     <string name="younew_gesture_speed">%1$sx speed</string>
+    <string name="younew_header_search">Search</string>
+    <string name="younew_search_hint">Type or speak to search</string>
+    <string name="younew_search_space">SPACE</string>
+    <string name="younew_group_language">Language &amp; Location</string>
+    <string name="younew_group_about">About</string>
+    <string name="younew_update_beta">Include beta versions (test builds)</string>
 </resources>

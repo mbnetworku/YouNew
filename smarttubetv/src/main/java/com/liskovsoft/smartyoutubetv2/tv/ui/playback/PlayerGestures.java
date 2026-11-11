@@ -27,6 +27,8 @@ public class PlayerGestures {
         Activity getGestureActivity();
         boolean isGestureOverlayShown();
         void hideGestureOverlay();
+        /** Swipe up while the controls are shown: open the Recommended / playlist row below. */
+        void showGestureSuggestions();
         boolean isGesturePlaying();
         float getGestureSpeed();
         void setGestureSpeed(float speed);
@@ -111,6 +113,10 @@ public class PlayerGestures {
         mStartY = e.getY();
         mStartTime = System.currentTimeMillis();
         mMoved = false;
+        if (mMode == MODE_SPEED) { // the last press-and-hold never got its "finger up": give the speed back
+            mHost.setGestureSpeed(mSavedSpeed);
+            mHost.hideGesturePill(0);
+        }
         mMode = MODE_NONE;
         mOverlayWasShown = mHost.isGestureOverlayShown();
 
@@ -184,6 +190,12 @@ public class PlayerGestures {
         // Swipe down while the controls are shown: hide them
         if (mOverlayWasShown && mHost.isGestureOverlayShown() && dy > 60 * mDensity && Math.abs(dy) > Math.abs(dx) * 1.5f) {
             mHost.hideGestureOverlay();
+            return false;
+        }
+
+        // Swipe up while the controls are shown: the Recommended row below (and the playlist)
+        if (mOverlayWasShown && mHost.isGestureOverlayShown() && dy < -60 * mDensity && Math.abs(dy) > Math.abs(dx) * 1.5f) {
+            mHost.showGestureSuggestions();
             return false;
         }
 
@@ -276,6 +288,7 @@ public class PlayerGestures {
         mHandler.removeCallbacks(mLongPress);
         if (mMode == MODE_SPEED) {
             mHost.setGestureSpeed(mSavedSpeed);
+            mHost.hideGesturePill(0);
         }
         mMode = MODE_NONE;
     }

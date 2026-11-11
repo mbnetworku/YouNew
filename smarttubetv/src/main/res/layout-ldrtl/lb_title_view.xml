@@ -25,11 +25,21 @@
     <!-- MOD: add additional buttons -->
     <!-- YouNew: same top bar as the English layout (search button, "Search" pill, account),
          mirrored for Arabic: it starts next to the sidebar on the right and Left/Right are swapped -->
+    <!-- YouNew: the buttons scroll sideways when the screen is narrower than the row (a phone held upright):
+         before, News and Sports were cut off there and could not be reached. On a TV nothing changes. -->
+    <HorizontalScrollView android:id="@+id/title_buttons_scroll"
+                  android:layout_width="wrap_content"
+                  android:layout_height="wrap_content"
+                  android:layout_marginStart="88dp"
+                  android:layout_gravity="center_vertical|start"
+                  android:scrollbars="none"
+                  android:overScrollMode="never"
+                  android:clipToPadding="false"
+                  android:paddingTop="8dp"
+                  android:paddingBottom="8dp">
     <LinearLayout android:layout_width="wrap_content"
                   android:layout_height="wrap_content"
-                  android:orientation="horizontal"
-                  android:layout_marginStart="88dp"
-                  android:layout_gravity="center_vertical|start">
+                  android:orientation="horizontal">
         <androidx.leanback.widget.SearchOrbView
             android:id="@+id/title_orb"
             android:layout_height="wrap_content"
@@ -41,6 +51,7 @@
 
         <TextView
             android:id="@+id/search_pill"
+            android:visibility="gone"
             android:layout_width="200dp"
             android:layout_height="44dp"
             android:layout_gravity="center_vertical"
@@ -123,4 +134,5 @@
             android:ellipsize="marquee"
             android:visibility="gone" />
     </LinearLayout>
+    </HorizontalScrollView>
 </merge>

@@ -52,7 +52,8 @@ public class PlayerTweaksData implements ProfileChangeListener {
     // and the gear for video quality (Advanced playback settings).
     public static final int PLAYER_BUTTON_YOUNEW = PLAYER_BUTTON_PLAY_PAUSE | PLAYER_BUTTON_NEXT | PLAYER_BUTTON_PREVIOUS |
             PLAYER_BUTTON_LIKE | PLAYER_BUTTON_SUBSCRIBE | PLAYER_BUTTON_VIDEO_SPEED | PLAYER_BUTTON_SUBTITLES |
-            PLAYER_BUTTON_ADD_TO_PLAYLIST | PLAYER_BUTTON_SEARCH | PLAYER_BUTTON_SEEK_INTERVAL | PLAYER_BUTTON_HIGH_QUALITY;
+            PLAYER_BUTTON_ADD_TO_PLAYLIST | PLAYER_BUTTON_SEARCH | PLAYER_BUTTON_SEEK_INTERVAL | PLAYER_BUTTON_HIGH_QUALITY |
+            PLAYER_BUTTON_SHARE;
     public static final int DNS_TYPE_SYSTEM = GlobalPreferences.DNS_TYPE_SYSTEM;
     public static final int DNS_TYPE_IPV4 = GlobalPreferences.DNS_TYPE_IPV4;
     public static final int DNS_TYPE_GOOGLE = GlobalPreferences.DNS_TYPE_GOOGLE;

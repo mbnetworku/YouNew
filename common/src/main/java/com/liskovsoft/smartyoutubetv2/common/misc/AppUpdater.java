@@ -22,6 +22,7 @@ import com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.UiOptionItem
 import com.liskovsoft.smartyoutubetv2.common.app.presenters.AppDialogPresenter;
 
 import org.json.JSONArray;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 import java.io.File;
@@ -46,19 +47,47 @@ import java.util.Scanner;
 public final class AppUpdater {
     private static final String TAG = AppUpdater.class.getSimpleName();
     private static final String RELEASES_URL = "https://api.github.com/repos/mbnetworku/YouNew/releases/latest";
+    // YouNew: beta channel: the newest release of any kind (production or beta), for people who opted in
+    private static final String RELEASES_LIST_URL = "https://api.github.com/repos/mbnetworku/YouNew/releases?per_page=10";
+    private static final String KEY_BETA = "include_beta";
     private static final String PREFS = "younew_update";
     private static final String KEY_AUTO = "auto";
     private static final String KEY_LAST_CHECK = "last_check";
     private static final long CHECK_EVERY_MS = 12L * 60 * 60 * 1000;
     private static final int TIMEOUT_MS = 15_000;
     private static final Handler sHandler = new Handler(Looper.getMainLooper());
-    private static boolean sBusy;
+    private static volatile boolean sBusy; // set on the main thread, cleared on a worker
 
     private AppUpdater() {
     }
 
     public static boolean isAutoCheckEnabled(Context context) {
         return prefs(context).getBoolean(KEY_AUTO, true);
+    }
+
+    public static boolean isBetaEnabled(Context context) {
+        return prefs(context).getBoolean(KEY_BETA, false);
+    }
+
+    public static void setBetaEnabled(Context context, boolean enabled) {
+        prefs(context).edit().putBoolean(KEY_BETA, enabled).apply();
+    }
+
+    /** Production only: the latest release. With the beta channel: the newest release (beta or not). */
+    private static JSONObject fetchRelease(Context context) throws Exception {
+        if (!isBetaEnabled(context)) {
+            return new JSONObject(readText(RELEASES_URL));
+        }
+
+        JSONArray list = new JSONArray(readText(RELEASES_LIST_URL));
+        for (int i = 0; i < list.length(); i++) {
+            JSONObject release = list.optJSONObject(i);
+            if (release != null && !release.optBoolean("draft", false)) {
+                return release;
+            }
+        }
+
+        return new JSONObject();
     }
 
     public static void setAutoCheckEnabled(Context context, boolean enabled) {
@@ -100,7 +129,7 @@ public final class AppUpdater {
 
         new Thread(() -> {
             try {
-                JSONObject release = new JSONObject(readText(RELEASES_URL));
+                JSONObject release = fetchRelease(context);
                 prefs(context).edit().putLong(KEY_LAST_CHECK, System.currentTimeMillis()).apply();
 
                 String tag = release.optString("tag_name", "");
@@ -199,6 +228,9 @@ public final class AppUpdater {
 
         dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.younew_update_now, version), option -> {
             dialog.closeDialog();
+            if (askForInstallPermission(context)) {
+                return; // ask before the download, not after it (the file would be fetched for nothing)
+            }
             download(context, version, url);
         }));
         dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.younew_update_later), option -> dialog.closeDialog()));
@@ -336,14 +368,31 @@ public final class AppUpdater {
         return info.signatures;
     }
 
+    /**
+     * Android 8+: the user must allow this app to install apps, once.
+     * Returns true when the permission is missing and Android's page for it was opened.
+     */
+    private static boolean askForInstallPermission(Context context) {
+        if (Build.VERSION.SDK_INT < 26 || context.getPackageManager().canRequestPackageInstalls()) {
+            return false;
+        }
+
+        try {
+            Intent allow = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + context.getPackageName()));
+            allow.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+            context.startActivity(allow);
+        } catch (Exception e) { // some TV boxes have no such page: go on and let Android's installer ask
+            Log.e(TAG, "Install permission page error: %s", e.getMessage());
+            return false;
+        }
+
+        MessageHelpers.showLongMessage(context, R.string.younew_update_allow);
+        return true;
+    }
+
     private static void install(Context context, File apk) {
         try {
-            if (Build.VERSION.SDK_INT >= 26 && !context.getPackageManager().canRequestPackageInstalls()) {
-                // Android 8+: the user must allow this app to install apps, once
-                MessageHelpers.showLongMessage(context, R.string.younew_update_allow);
-                Intent allow = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES, Uri.parse("package:" + context.getPackageName()));
-                allow.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-                context.startActivity(allow);
+            if (askForInstallPermission(context)) {
                 return;
             }
 

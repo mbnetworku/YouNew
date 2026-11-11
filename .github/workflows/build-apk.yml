@@ -131,6 +131,8 @@ jobs:
             signin-tv.png
             signin-page.png
             settings-*.png
+            search*.png
+            home-*.png
             ui-*.xml
 
   # When a GitHub Release is published, attach the release APKs with simple names:
@@ -165,3 +167,18 @@ jobs:
               --notes "YouTv Plus ${TAG#v}. Works on Android 5.0 and newer. Not sure which file? Take **YouTvPlus.apk**. Most TV boxes can also use YouTvPlus-armeabi-v7a.apk (smaller)."
           fi
           gh release upload "$TAG" out/*.apk --clobber --repo "${{ github.repository }}"
+          # Beta tags (for example v33.02-beta) are marked as pre-releases: the normal download link keeps
+          # pointing at the newest production release; beta testers see them in the app (About > beta) and on the page
+          if [[ "$TAG" == *beta* ]]; then
+            gh release edit "$TAG" --repo "${{ github.repository }}" --prerelease
+          else
+            gh release edit "$TAG" --repo "${{ github.repository }}" --prerelease=false
+          fi
+          # Also fix the releases made before this rule: every beta release is a pre-release, every other one is not
+          gh release list --repo "${{ github.repository }}" --limit 50 --json tagName -q '.[].tagName' | while read -r T; do
+            if [[ "$T" == *beta* ]]; then
+              gh release edit "$T" --repo "${{ github.repository }}" --prerelease || true
+            else
+              gh release edit "$T" --repo "${{ github.repository }}" --prerelease=false || true
+            fi
+          done

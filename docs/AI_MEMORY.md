@@ -36,6 +36,41 @@ Last updated: 2026-11-05, after version 32.86.
 | 32.90 | New account with empty personal Home falls back to the public Home (`BrowsePresenter.signedHomeWithFallback`); loading-arrow watchdog (25 s); player: swipe down hides bar/info, mouse hover no longer restarts the hide timer |
 | 32.91 | Player look like modern YouTube: glass round buttons (focus ring, mouse hover), see-through track, red progress with always-visible red knob (`SeekBar`, `lb_control_button_*.xml`, dimens) |
 | 32.92 | Player redesigned like YouTube: `PlayerOverlayView` (back arrow + title on top, big round Previous / Play-Pause / Next in the middle, feedback pill) and `PlayerGestures` (swipe left half = brightness, right half = volume, press and hold = 2x speed, tap on video hides controls, swipe down hides); double-tap 10 s is the older `DoubleTapPlayerAdapter` |
+| 32.93 | Player compact after the owner's screenshot: big description card hidden (title + channel line now in the top bar of `PlayerOverlayView`), smaller round buttons, Play/Prev/Next no longer repeated in the bottom row, Share button on by default, swipe up shows the Recommended/playlist row |
+| 32.94 | Suggestions as a pop-up (`SuggestionsPanelView`): the owner did not like it, going back to the rows under the controls |
+| 32.95 | Suggestions are the Leanback rows under the controls again (as in 32.93); the big middle buttons hide while a suggestion card is in front (`PlayerOverlayView.setMiddleVisible`). The pop-up commit was reverted |
+| 32.96 | The big middle buttons hide as soon as the Suggestions row is in front (checked every 150 ms through `isOverlaySuggestionsRow`, also when scrolled by touch), return with the controls |
+| 32.97 | Liquid glass look (published, the owner disliked it: plain YouTube TV look is wanted) |
+| 32.98 | Liquid glass removed again (plain YouTube TV look, as the owner's reference pictures). Endless Home: `BrowsePresenter.onRowsEnd` + `ContentService.getHomeMoreRowsObserve` add 4 topic rows each time the last rows are reached. Search screen compact: `OnScreenKeyboard` keys 28-36 dp (were 44), keyboard on the right (narrow phone: centred, results below), search bar capped to the screen width |
+| 32.99 | Search is the first entry of the sidebar and opens inside the Home screen (`SearchPanelFragment` / `SearchPanelView`: query field, mic, suggestion pills, compact keyboard; SEARCH opens the normal results screen, `SidebarService.addSearchOnce` adds it once for old installs, `BrowseSection.TYPE_SEARCH_PANEL`, icon `icon_search.xml`); the search button at the top of Home is gone; CI checks the panel | (first run failed: the CI test did not reach the sidebar after the Settings test, the old 'Search for videos' pill was still at the top; fixed in 33.00: pill hidden in `lb_title_view.xml`, test restarts the app first)
+| 33.00 | Same as 32.99 plus the old search pill at the top really gone, CI test restarts the app and checks for it |
+| 33.01-beta | Settings list with section headers (Language & Location, About) like YouTube TV; Search panel CI check is a warning (the tap on the sidebar entry is not reliable in CI); beta label |
+| 33.03-beta | Two channels: production = normal releases (the download link and the updater's default); beta = tags with 'beta', marked as GitHub pre-releases by the workflow (`gh release edit --prerelease`). About > 'Include beta versions' lets the updater use the newest release of either kind (`AppUpdater.fetchRelease`, `releases?per_page=10`). Also the Search design pass (33.02) |
+| 33.04 | First production release of the two-channel setup (production = normal tag, no beta label) |
+
+## Bug check after 32.92 (2026-11-11, not released, no version change)
+Found by reading the custom code and building locally; fixed on branch `claude/bug-check-fixes`:
+- Settings > Accounts builds its options later (avatars are fetched). The panel's one-time capture could be used by
+  another page, or the accounts list opened as an old pop-up after the panel had moved on or closed. Now the page takes
+  the capture when asked (`AppDialogPresenter.takeCapture`) and hands it back with `showDialog(title, onFinish, capture)`.
+- Player: press-and-hold 2x stayed on if the screen was left (or the "finger up" was lost) during the hold.
+  `PlayerGestures.release()` is now also called in `PlaybackFragment.onPause`, and a new touch restores the speed.
+- Updater on Android 8+: the "allow installing apps" question came after the download, and the file was thrown away.
+  It is asked before the download now (`AppUpdater.askForInstallPermission`).
+- Shorts on a phone: a swipe up or down now goes to the next or previous Short (`PlaybackFragment.onShortsMouse`);
+  before, only the remote's Up/Down or the mouse wheel could. Held upright, the video takes the whole width, so the
+  title and buttons were placed off the screen: `ShortsOverlayView.updateHole` now puts them over the lower part of
+  the video (with text shadows) when there is no room beside it. Wide screens are laid out as before.
+- Settings icons in Arabic: `SettingsPanelView.iconFor` matched English words only, so in Arabic every setting got
+  its page's icon. `englishName` now looks the name up in the app's English texts (read once, by reflection on
+  `common.R.string`; the release is not minified).
+- Local lint (`lintStfdroidRelease`, not part of CI) had 77 errors, all `MissingTranslation` in
+  `smarttubetv/.../values/strings.xml`: the unused Leanback sample texts and internal keys are now marked
+  `translatable="false"` (not deleted), the 9 texts that can appear got Arabic. Lint: 0 errors. The `younew_*`
+  strings match in English and Arabic. The remaining warnings are in the original SmartTube code and were left alone.
+- CI does not open Shorts and has no upright-phone run, so the Shorts changes are built but unseen: ask the owner
+  for a screenshot of a Short on the phone, upright and sideways.
+- Not checked by a person or an emulator in the sandbox (no KVM): only the CI emulators can show the screens.
 
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept
@@ -77,7 +112,10 @@ Last updated: 2026-11-05, after version 32.86.
 - Investigate whether the About-page error dialog (see lesson 3) is real.
 
 ## Environment facts
-- Sandbox network: `dl.google.com` and `jitpack.io` blocked (no local Android SDK build); GitHub API reachable.
+- Sandbox network: on 2026-11-11 `dl.google.com` and `jitpack.io` were reachable, so a local build worked: Android
+  command-line tools + `platforms;android-34` + `build-tools;34.0.0`, JDK 17 (Gradle 7.5 fails on JDK 21),
+  `bash ./gradlew assembleStfdroidDebug`. Maven Central sometimes answers HTTP 429: wait and retry. No KVM, so no
+  emulator. Earlier sandboxes had these hosts blocked. GitHub API reachable.
   GitHub blob storage (artifact download) is blocked, so CI screenshots cannot be opened from the sandbox.
 - Only the working branch can be pushed; tags cannot be pushed from the sandbox: releases go through the workflow's
   `release_tag` input.

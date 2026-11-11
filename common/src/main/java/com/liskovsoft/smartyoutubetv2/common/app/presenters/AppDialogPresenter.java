@@ -135,6 +135,28 @@ public class AppDialogPresenter extends BasePresenter<AppDialogView> {
         mCapture = capture;
     }
 
+    /**
+     * YouNew: for a page that builds its options later (Accounts loads from the network). It takes the capture
+     * when the page is asked for, and hands it back to {@link #showDialog(CharSequence, Runnable, OnCapture)}
+     * when the options are ready. So the options can never go to another page, or open as a pop-up.
+     */
+    public OnCapture takeCapture() {
+        OnCapture capture = mCapture;
+        mCapture = null;
+        return capture;
+    }
+
+    public void showDialog(CharSequence dialogTitle, Runnable onFinish, OnCapture capture) {
+        if (capture != null) {
+            List<OptionCategory> categories = mCategories;
+            resetData();
+            capture.onCapture(categories, dialogTitle, onFinish);
+            return;
+        }
+
+        showDialog(dialogTitle, onFinish);
+    }
+
     public void showDialog(CharSequence dialogTitle, Runnable onFinish) {
         if (mCapture != null) {
             OnCapture capture = mCapture;

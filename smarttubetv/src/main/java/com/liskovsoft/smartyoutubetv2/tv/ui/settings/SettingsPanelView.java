@@ -246,14 +246,33 @@ public class SettingsPanelView extends FrameLayout {
         mHandler.postDelayed(mSettle, 1500);
     }
 
+    // The Home screen slides the panel when the sidebar opens or closes WITHOUT laying the panel out again, so
+    // onLayout never saw the move: a panel made while the sidebar was open stayed as narrow as it was then, and
+    // its page names were cut off on a phone. Its place is now looked at before every frame; when it has moved
+    // and come to rest, the panel is measured again.
+    private final int[] mPlace = new int[2];
+    private final Runnable mMeasureAgain = this::requestLayout;
+    private final android.view.ViewTreeObserver.OnPreDrawListener mWatchPlace = () -> {
+        getLocationOnScreen(mPlace);
+        if (mPlace[0] != mLastLeft || mPlace[1] != mLastTop) {
+            mLastLeft = mPlace[0];
+            mLastTop = mPlace[1];
+            mHandler.removeCallbacks(mMeasureAgain);
+            mHandler.postDelayed(mMeasureAgain, 80);
+        }
+        return true;
+    };
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         scheduleSettle();
+        getViewTreeObserver().addOnPreDrawListener(mWatchPlace);
     }
 
     @Override
     protected void onDetachedFromWindow() {
+        getViewTreeObserver().removeOnPreDrawListener(mWatchPlace);
         mHandler.removeCallbacksAndMessages(null);
         AppDialogPresenter.instance(getContext()).setCapture(null);
         runFinishCallbacks(); // some pages ask for a restart or a refresh when you leave them
@@ -318,6 +337,12 @@ public class SettingsPanelView extends FrameLayout {
 
         for (int i = 0; i < mPages.size(); i++) {
             final int index = i;
+            // YouNew: section headers like the YouTube TV Settings list
+            if (i == 3) {
+                left.addView(groupHeader(R.string.younew_group_language));
+            } else if (i == 6) {
+                left.addView(groupHeader(R.string.younew_group_about));
+            }
             LinearLayout item = new LinearLayout(getContext());
             item.setOrientation(LinearLayout.HORIZONTAL);
             item.setGravity(Gravity.CENTER_VERTICAL);
@@ -331,7 +356,15 @@ public class SettingsPanelView extends FrameLayout {
             item.addView(icon(pageIcon(i), 34));
 
             TextView label = text(mPages.get(i).title, 22, TEXT, false);
-            label.setSingleLine(true);
+            if (mTwoPane) {
+                label.setSingleLine(true);
+            } else {
+                // An upright phone: a long name ("Language & Location") takes two lines instead of being cut off
+                label.setMaxLines(2);
+                label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
+                label.setLineSpacing(0, 0.9f);
+            }
+            label.setEllipsize(android.text.TextUtils.TruncateAt.END);
             label.setTextColor(onPill);
             label.setPadding(dp(16), 0, 0, 0);
             item.addView(label);
@@ -895,6 +928,13 @@ public class SettingsPanelView extends FrameLayout {
         return block;
     }
 
+    /** A small grey section title in the list of pages (not clickable). */
+    private TextView groupHeader(int resId) {
+        TextView header = text(getString(resId).toUpperCase(), 14, 0xFFAAAAAA, true);
+        header.setPadding(dp(20), dp(22), dp(20), dp(8));
+        return header;
+    }
+
     // ---------------------------------------------------------------- icons
 
     private static final String[] PAGE_ICONS =
@@ -928,7 +968,7 @@ public class SettingsPanelView extends FrameLayout {
      * An icon for a setting, chosen by words in its (English) name; any other setting gets the icon of its page.
      */
     private int iconFor(CharSequence title) {
-        String name = title == null ? "" : title.toString().toLowerCase();
+        String name = title == null ? "" : englishName(title.toString()).toLowerCase(java.util.Locale.ROOT);
         String[][] words = {
                 {"update", "sparkle"}, {"shorts", "shorts"}, {"watched", "history"}, {"history", "history"},
                 {"upcoming", "live"}, {"live", "live"}, {"mix", "playlist"},
@@ -953,6 +993,54 @@ public class SettingsPanelView extends FrameLayout {
         }
 
         return mPageIconRes;
+    }
+
+    private static java.util.Map<String, String> sEnglishNames;
+    private static String sEnglishNamesLocale;
+
+    /**
+     * The icons are chosen by English words, but the app may run in another language (Arabic): then every setting
+     * got the icon of its page. This gives the English text of a setting's name: the app's texts are read once in
+     * both languages and matched. An unknown name (or English itself) is returned as it is.
+     */
+    private String englishName(String title) {
+        try {
+            android.content.res.Configuration now = getResources().getConfiguration();
+            String locale = String.valueOf(now.locale);
+
+            if (now.locale == null || "en".equals(now.locale.getLanguage())) {
+                return title;
+            }
+
+            if (sEnglishNames == null || !locale.equals(sEnglishNamesLocale)) {
+                java.util.Map<String, String> names = new java.util.HashMap<>();
+                android.content.res.Configuration english = new android.content.res.Configuration(now);
+                english.setLocale(java.util.Locale.ENGLISH);
+                android.content.res.Resources englishTexts = getContext().createConfigurationContext(english).getResources();
+                android.content.res.Resources texts = getResources();
+
+                for (java.lang.reflect.Field field : com.liskovsoft.smartyoutubetv2.common.R.string.class.getFields()) {
+                    try {
+                        int id = field.getInt(null);
+                        String local = texts.getString(id);
+                        if (!names.containsKey(local)) {
+                            names.put(local, englishTexts.getString(id));
+                        }
+                    } catch (Exception e) {
+                        // not a text: skip
+                    }
+                }
+
+                sEnglishNames = names;
+                sEnglishNamesLocale = locale;
+            }
+
+            String name = sEnglishNames.get(title);
+            return name != null ? name : title;
+        } catch (Exception e) {
+            Log.e(TAG, "English name error: %s", e.getMessage());
+            return title;
+        }
     }
 
     /** A scroll box that stops growing at a maximum height (long lists scroll inside it). */
