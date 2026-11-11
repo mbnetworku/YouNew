@@ -144,5 +144,5 @@ GitHub.
 ## Licence
 GNU GPL v3 (see `LICENSE`). Based on SmartTube by Yurii Liskov and contributors.
 Player button icons (quality, channel, like, dislike, subtitles, add to playlist, subscribe, speed, search, share) are
-Google's Material Symbols (rounded, weight 500), Apache License 2.0, rendered to PNG at the sizes of the old icons. Not affiliated with or endorsed by
+Google's Material Symbols (rounded, filled, weight 500), Apache License 2.0, rendered to PNG at the sizes of the old icons. Not affiliated with or endorsed by
 Google or YouTube.
