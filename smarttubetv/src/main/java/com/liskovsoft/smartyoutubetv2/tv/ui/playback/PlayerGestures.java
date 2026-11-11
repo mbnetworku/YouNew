@@ -113,6 +113,10 @@ public class PlayerGestures {
         mStartY = e.getY();
         mStartTime = System.currentTimeMillis();
         mMoved = false;
+        if (mMode == MODE_SPEED) { // the last press-and-hold never got its "finger up": give the speed back
+            mHost.setGestureSpeed(mSavedSpeed);
+            mHost.hideGesturePill(0);
+        }
         mMode = MODE_NONE;
         mOverlayWasShown = mHost.isGestureOverlayShown();
 
@@ -284,6 +288,7 @@ public class PlayerGestures {
         mHandler.removeCallbacks(mLongPress);
         if (mMode == MODE_SPEED) {
             mHost.setGestureSpeed(mSavedSpeed);
+            mHost.hideGesturePill(0);
         }
         mMode = MODE_NONE;
     }

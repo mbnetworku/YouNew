@@ -48,6 +48,19 @@ Last updated: 2026-11-05, after version 32.86.
 | 33.03-beta | Two channels: production = normal releases (the download link and the updater's default); beta = tags with 'beta', marked as GitHub pre-releases by the workflow (`gh release edit --prerelease`). About > 'Include beta versions' lets the updater use the newest release of either kind (`AppUpdater.fetchRelease`, `releases?per_page=10`). Also the Search design pass (33.02) |
 | 33.04 | First production release of the two-channel setup (production = normal tag, no beta label) |
 
+## Bug check after 32.92 (2026-11-11, not released, no version change)
+Found by reading the custom code and building locally; fixed on branch `claude/bug-check-fixes`:
+- Settings > Accounts builds its options later (avatars are fetched). The panel's one-time capture could be used by
+  another page, or the accounts list opened as an old pop-up after the panel had moved on or closed. Now the page takes
+  the capture when asked (`AppDialogPresenter.takeCapture`) and hands it back with `showDialog(title, onFinish, capture)`.
+- Player: press-and-hold 2x stayed on if the screen was left (or the "finger up" was lost) during the hold.
+  `PlayerGestures.release()` is now also called in `PlaybackFragment.onPause`, and a new touch restores the speed.
+- Updater on Android 8+: the "allow installing apps" question came after the download, and the file was thrown away.
+  It is asked before the download now (`AppUpdater.askForInstallPermission`).
+- Local lint (`lintStfdroidRelease`, not part of CI): 77 errors, all `MissingTranslation` of unused Leanback sample
+  strings in `smarttubetv/.../values/strings.xml`; no API-level errors. The `younew_*` strings match in English and Arabic.
+- Not checked by a person or an emulator in the sandbox (no KVM): only the CI emulators can show the screens.
+
 ## Decisions and why
 - **Settings panel is one custom view** drawn from the existing presenters' option lists (`setCapture`), so every kept
   setting still works and keeps its saved value. The old option dialog was a second transparent screen that
@@ -88,7 +101,10 @@ Last updated: 2026-11-05, after version 32.86.
 - Investigate whether the About-page error dialog (see lesson 3) is real.
 
 ## Environment facts
-- Sandbox network: `dl.google.com` and `jitpack.io` blocked (no local Android SDK build); GitHub API reachable.
+- Sandbox network: on 2026-11-11 `dl.google.com` and `jitpack.io` were reachable, so a local build worked: Android
+  command-line tools + `platforms;android-34` + `build-tools;34.0.0`, JDK 17 (Gradle 7.5 fails on JDK 21),
+  `bash ./gradlew assembleStfdroidDebug`. Maven Central sometimes answers HTTP 429: wait and retry. No KVM, so no
+  emulator. Earlier sandboxes had these hosts blocked. GitHub API reachable.
   GitHub blob storage (artifact download) is blocked, so CI screenshots cannot be opened from the sandbox.
 - Only the working branch can be pushed; tags cannot be pushed from the sandbox: releases go through the workflow's
   `release_tag` input.
