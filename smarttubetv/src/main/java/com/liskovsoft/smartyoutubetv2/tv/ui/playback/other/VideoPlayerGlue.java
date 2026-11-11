@@ -164,7 +164,8 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_SEARCH)) {
             adapter.add(mActions.get(R.id.action_search));
         }
-        if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_SHARE)) {
+        // YouNew: no Share button on a TV (nobody shares from the TV; the phone keeps it)
+        if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_SHARE) && !isTvDevice(getContext())) {
             adapter.add(mActions.get(R.id.action_share));
         }
         if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_SEEK_INTERVAL)) {
@@ -185,6 +186,26 @@ public class VideoPlayerGlue extends MaxControlsVideoPlayerGlue<PlayerAdapter> i
         if (mPlayerTweaksData.isPlayerButtonEnabled(PlayerTweaksData.PLAYER_BUTTON_AFR)) {
             adapter.add(mActions.get(R.id.action_afr));
         }
+    }
+
+    /**
+     * YouNew: a TV or TV box: Android says so (TV mode, TV/leanback feature), or there is no touch screen at all
+     * (a box used with a remote or a mouse, such as many Android 5 boxes that do not report the TV feature).
+     */
+    private static boolean isTvDevice(Context context) {
+        if (context == null) {
+            return false;
+        }
+
+        android.app.UiModeManager uiMode = (android.app.UiModeManager) context.getSystemService(Context.UI_MODE_SERVICE);
+        if (uiMode != null && uiMode.getCurrentModeType() == android.content.res.Configuration.UI_MODE_TYPE_TELEVISION) {
+            return true;
+        }
+
+        android.content.pm.PackageManager pm = context.getPackageManager();
+        return pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_LEANBACK)
+                || pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TELEVISION)
+                || !pm.hasSystemFeature(android.content.pm.PackageManager.FEATURE_TOUCHSCREEN);
     }
 
     @Override
