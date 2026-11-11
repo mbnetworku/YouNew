@@ -57,6 +57,12 @@ Found by reading the custom code and building locally; fixed on branch `claude/b
   `smarttubetv/.../values/strings.xml`: the unused Leanback sample texts and internal keys are now marked
   `translatable="false"` (not deleted), the 9 texts that can appear got Arabic. Lint: 0 errors. The `younew_*`
   strings match in English and Arabic. The remaining warnings are in the original SmartTube code and were left alone.
+- Search screen: the on-screen keyboard kept its own copy of the text, so after a suggestion, a voice search or a
+  real keyboard filled the box, the next key brought the old text back. The keys now work on what the box shows
+  (`OnScreenKeyboard.Listener.getText`). The keyboard (434 x 272 dp, 400 dp from the left) only fitted a TV: on a
+  phone its right keys, its bottom row or all of it were off the screen. `SearchTagsFragmentBase.fitKeyboard` now
+  makes it smaller and moves it left until it fits. A pressed key showed light text on its white box: fixed.
+  CI has a new search test (`check_keyboard`, typing A B, DELETE, upright and sideways).
 - CI does not open Shorts and has no upright-phone run, so the Shorts changes are built but unseen: ask the owner
   for a screenshot of a Short on the phone, upright and sideways.
 - Not checked by a person or an emulator in the sandbox (no KVM): only the CI emulators can show the screens.

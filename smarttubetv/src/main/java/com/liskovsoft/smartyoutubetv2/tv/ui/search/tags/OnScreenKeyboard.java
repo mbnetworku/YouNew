@@ -19,6 +19,8 @@ import android.widget.TextView;
 public class OnScreenKeyboard extends LinearLayout {
     /** What the keyboard asks the Search screen to do. */
     public interface Listener {
+        /** What is in the search box now (it also changes without the keyboard: a suggestion, voice, a real keyboard). */
+        String getText();
         void onTextChanged(String text);
         void onSearch(String text);
     }
@@ -49,7 +51,6 @@ public class OnScreenKeyboard extends LinearLayout {
     private static final int SIDE_DP = 110;
 
     private final Listener mListener;
-    private final StringBuilder mText = new StringBuilder();
     private int mMode = MODE_EN;
 
     public OnScreenKeyboard(Context context, Listener listener) {
@@ -78,7 +79,7 @@ public class OnScreenKeyboard extends LinearLayout {
             LinearLayout line = newLine();
             String[] row = i < rows.length ? rows[i] : new String[0];
             for (String key : row) {
-                line.addView(newKey(mMode == MODE_EN ? key.toUpperCase() : key, KEY_DP, v -> type(key)));
+                line.addView(newKey(mMode == MODE_EN ? key.toUpperCase(java.util.Locale.ROOT) : key, KEY_DP, v -> type(key)));
             }
             for (int pad = row.length; pad < 7; pad++) {
                 line.addView(spacer(KEY_DP));
@@ -94,7 +95,7 @@ public class OnScreenKeyboard extends LinearLayout {
         bottom.addView(spacer(KEY_DP));
         bottom.addView(newKey(mMode == MODE_AR ? "مسافة" : "SPACE", 2 * KEY_DP + 20, v -> type(" ")));
         bottom.addView(spacer(8));
-        bottom.addView(newKey(mMode == MODE_AR ? "بحث" : "SEARCH", 2 * KEY_DP + 20, v -> mListener.onSearch(mText.toString())));
+        bottom.addView(newKey(mMode == MODE_AR ? "بحث" : "SEARCH", 2 * KEY_DP + 20, v -> mListener.onSearch(currentText())));
         addView(bottom);
     }
 
@@ -115,20 +116,26 @@ public class OnScreenKeyboard extends LinearLayout {
         line.getChildAt(line.getChildCount() - 1).requestFocus();
     }
 
+    // The keys always work on what the search box shows now. (Before, the keyboard kept its own copy of the text:
+    // after a suggestion or a voice search filled the box, the next key brought the old text back.)
+    private String currentText() {
+        String text = mListener.getText();
+        return text != null ? text : "";
+    }
+
     private void type(String s) {
-        mText.append(s);
-        mListener.onTextChanged(mText.toString());
+        mListener.onTextChanged(currentText() + s);
     }
 
     private void backspace() {
-        if (mText.length() > 0) {
-            mText.setLength(mText.length() - 1);
-            mListener.onTextChanged(mText.toString());
+        String text = currentText();
+        if (text.length() > 0) {
+            // one whole character, also when it is stored as two (emoji)
+            mListener.onTextChanged(text.substring(0, text.offsetByCodePoints(text.length(), -1)));
         }
     }
 
     private void clear() {
-        mText.setLength(0);
         mListener.onTextChanged("");
     }
 
@@ -156,9 +163,10 @@ public class OnScreenKeyboard extends LinearLayout {
         key.setClickable(true);
         key.setOnClickListener(onClick);
         key.setBackground(keyBackground(context));
-        key.setTextColor(Color.parseColor("#F1F1F1"));
-        key.setOnFocusChangeListener((v, focused) ->
-                ((TextView) v).setTextColor(focused ? Color.parseColor("#0F0F0F") : Color.parseColor("#F1F1F1")));
+        // Dark text on the white box of a focused or pressed key (a finger presses without focusing)
+        key.setTextColor(new android.content.res.ColorStateList(
+                new int[][]{{android.R.attr.state_focused}, {android.R.attr.state_pressed}, {}},
+                new int[]{Color.parseColor("#0F0F0F"), Color.parseColor("#0F0F0F"), Color.parseColor("#F1F1F1")}));
         // Mouse: hovering a key focuses it, so the highlight follows the pointer
         key.setOnHoverListener((v, event) -> {
             v.requestFocus();

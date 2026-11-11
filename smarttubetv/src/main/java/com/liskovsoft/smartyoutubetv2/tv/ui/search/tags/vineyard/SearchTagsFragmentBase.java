@@ -98,6 +98,11 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
 
         OnScreenKeyboard keyboard = new OnScreenKeyboard(getContext(), new OnScreenKeyboard.Listener() {
             @Override
+            public String getText() {
+                return getView() != null ? getSearchBarText() : "";
+            }
+
+            @Override
             public void onTextChanged(String text) {
                 setSearchQuery(text, false);
             }
@@ -110,11 +115,20 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
             }
         });
 
+        // Its full width, also where the screen is narrower (then it is moved and made smaller, see fitKeyboard):
+        // with "as wide as there is room" the keys on the right were cut away
         android.widget.FrameLayout.LayoutParams lp = new android.widget.FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+                OnScreenKeyboard.getWidthPx(getContext()), ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.leftMargin = (int) (400 * density); // keyboard on the right, like YouTube TV
         lp.topMargin = (int) (110 * density);
         searchFrame.addView(keyboard, lp);
+
+        // A screen narrower than a TV (a phone, upright or sideways): keep the whole keyboard on the screen
+        searchFrame.addOnLayoutChangeListener((v, left, top, right, bottom, oldLeft, oldTop, oldRight, oldBottom) -> {
+            if (right - left != oldRight - oldLeft || bottom - top != oldBottom - oldTop) {
+                v.post(() -> fitKeyboard(keyboard, v.getWidth(), v.getHeight()));
+            }
+        });
 
         // Results (suggestions and videos) go below the keyboard
         ViewGroup.MarginLayoutParams resultsLp = (ViewGroup.MarginLayoutParams) results.getLayoutParams();
@@ -132,6 +146,39 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
             boolean inLowerRows = isInside(newFocus, results) && getResultsRow(newFocus) > 0;
             keyboard.setVisibility(inLowerRows ? View.INVISIBLE : View.VISIBLE);
         });
+    }
+
+    /**
+     * YouNew: the keyboard is 434 dp wide, 272 dp high and starts 400 dp from the left, which only fits a TV.
+     * On a smaller screen (a phone, upright or sideways) it is made smaller until all of it fits, and moved left
+     * as far as needed. Before, its right keys, its bottom row or all of it were off the screen there.
+     */
+    private void fitKeyboard(View keyboard, int frameWidth, int frameHeight) {
+        if (frameWidth <= 0 || frameHeight <= 0 || !(keyboard.getLayoutParams() instanceof android.widget.FrameLayout.LayoutParams)) {
+            return;
+        }
+
+        android.widget.FrameLayout.LayoutParams lp = (android.widget.FrameLayout.LayoutParams) keyboard.getLayoutParams();
+        float density = getResources().getDisplayMetrics().density;
+        int keyboardWidth = OnScreenKeyboard.getWidthPx(keyboard.getContext());
+        int keyboardHeight = OnScreenKeyboard.getHeightPx(keyboard.getContext());
+        int edge = (int) (8 * density);
+        int wanted = (int) (400 * density);
+
+        float scale = Math.min(1f, (frameWidth - 2 * edge) / (float) keyboardWidth);
+        scale = Math.min(scale, (frameHeight - lp.topMargin - edge) / (float) keyboardHeight);
+        scale = Math.max(0.5f, scale); // smaller keys could not be hit any more
+        int leftMargin = Math.max(edge, Math.min(wanted, (int) (frameWidth - keyboardWidth * scale - edge)));
+
+        keyboard.setPivotX(0);
+        keyboard.setPivotY(0);
+        keyboard.setScaleX(scale);
+        keyboard.setScaleY(scale);
+
+        if (lp.leftMargin != leftMargin) {
+            lp.leftMargin = leftMargin;
+            keyboard.setLayoutParams(lp);
+        }
     }
 
     /** Which results row (0 = first) holds the focused view, or -1 if it isn't in a row. */
