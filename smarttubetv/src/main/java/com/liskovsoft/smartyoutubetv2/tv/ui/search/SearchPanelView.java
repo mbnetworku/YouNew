@@ -92,7 +92,7 @@ public class SearchPanelView extends FrameLayout {
                 return;
             }
 
-            boolean narrow = isNarrow(getWidth());
+            boolean narrow = isNarrow(visibleWidth());
             if (narrow != mNarrow) {
                 build(narrow);
                 showChips(mTags);
@@ -101,10 +101,61 @@ public class SearchPanelView extends FrameLayout {
         });
     }
 
-    /** Upright phone: the keyboard may use the whole width of the panel, and no more. */
+    /**
+     * The keyboard may use the width that is really visible, and no more. The Home screen moves this panel right
+     * (next to the sidebar) without making it narrower, so its own width can reach past the screen edge: in
+     * landscape the DELETE key ended outside the screen. Wide layout: the mic and a column of suggestions share
+     * the row with the keyboard.
+     */
     private void fitKeyboard() {
-        if (mKeyboard != null && mNarrow && getWidth() > 0) {
-            mKeyboard.setMaxWidthPx(getWidth() - 2 * dp(12));
+        if (mKeyboard == null || getWidth() <= 0) {
+            return;
+        }
+
+        int visible = visibleWidth();
+
+        // Keep everything inside the visible part: the hidden strip on the right becomes extra padding
+        if (mRoot != null) {
+            int right = mSide + Math.max(0, getWidth() - visible);
+            if (mRoot.getPaddingRight() != right) {
+                mRoot.setPadding(mRoot.getPaddingLeft(), mRoot.getPaddingTop(), right, mRoot.getPaddingBottom());
+            }
+        }
+
+        if (mNarrow) {
+            mKeyboard.setMaxWidthPx(visible - 2 * dp(12));
+        } else {
+            mKeyboard.setMaxWidthPx(visible - 2 * dp(24) - dp(52 + 12) - dp(140));
+        }
+    }
+
+    /** The part of this panel's width that is on the screen. */
+    private int visibleWidth() {
+        int[] place = new int[2];
+        getLocationOnScreen(place);
+        int screen = getResources().getDisplayMetrics().widthPixels;
+        int visible = Math.min(getWidth(), screen - Math.max(0, place[0]));
+        return visible > 0 ? visible : getWidth();
+    }
+
+    private int mLastLeft = -1;
+    private LinearLayout mRoot;
+    private int mSide;
+
+    @Override
+    protected void onLayout(boolean changed, int l, int t, int r, int b) {
+        super.onLayout(changed, l, t, r, b);
+
+        // The sidebar opened or closed: the panel moved, so the visible width changed
+        int[] place = new int[2];
+        getLocationOnScreen(place);
+        if (place[0] != mLastLeft) {
+            mLastLeft = place[0];
+            post(() -> {
+                if (!mReleased && getWidth() > 0) {
+                    fitKeyboard();
+                }
+            });
         }
     }
 
@@ -118,6 +169,8 @@ public class SearchPanelView extends FrameLayout {
         int side = dp(narrow ? 12 : 24); // an upright phone needs every bit of width for the keyboard
         root.setPadding(side, dp(8), side, dp(8));
         addView(root, new LayoutParams(-1, -1));
+        mRoot = root;
+        mSide = side;
 
         // Title and the typed text
         TextView title = new TextView(context);

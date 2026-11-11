@@ -171,7 +171,12 @@ check_home_panels() {
       echo "CHECK search panel in the Home screen ($1): MISSING"
       FAILED=1
     fi
-    tap_sidebar_icon "ui-search-home-$1.xml" last || true
+    # Settings is the last sidebar entry. In landscape the sidebar is short and scrolls, so the last icon on the
+    # screen is not always Settings: go there with the arrow keys (Left into the sidebar, Down to the end, OK).
+    adb shell input keyevent KEYCODE_DPAD_LEFT || true
+    sleep 1
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12; do adb shell input keyevent KEYCODE_DPAD_DOWN || true; done
+    adb shell input keyevent KEYCODE_DPAD_CENTER || true
     sleep 6
     check_crash "settings panel ($1)"
     adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "settings-home-$1.png" || true
@@ -324,10 +329,16 @@ if adb root > /dev/null 2>&1; then
 import sys
 from PIL import Image
 im = Image.open(sys.argv[1]).convert('L')
-w, h = im.size
-box = im.crop((int(w * 0.30), int(h * 0.12), w, int(h * 0.90)))
-data = list(box.getdata())
-print("%.2f" % (sum(1 for p in data if p > 90) * 100.0 / len(data)))
+# The app is landscape only; some emulators (API 30) save the screenshot upright. Turn it so it is wide,
+# trying both ways round (the side the sidebar ends up on is not known), and keep the brighter result.
+shots = [im] if im.size[0] >= im.size[1] else [im.rotate(90, expand=True), im.rotate(-90, expand=True)]
+best = 0.0
+for shot in shots:
+    w, h = shot.size
+    box = shot.crop((int(w * 0.30), int(h * 0.12), w, int(h * 0.90)))
+    data = list(box.getdata())
+    best = max(best, sum(1 for p in data if p > 90) * 100.0 / len(data))
+print("%.2f" % best)
 PY
 )
   if [ -n "$PIXELS" ]; then
