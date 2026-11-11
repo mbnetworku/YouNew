@@ -474,6 +474,71 @@ PY
     echo "CHECK skipped: no screen dump of the search screen on this emulator"
   fi
   adb shell input keyevent KEYCODE_BACK || true
+
+  # Player: open a video by its YouTube link (a short, permanent public video), like a phone sharing a link.
+  # Checks: no crash, the player screen is in front, the time moves (the video plays), the buttons and the
+  # recommended videos show. The network of the CI machine decides whether YouTube answers, so only a crash fails;
+  # the other checks are reported as OK or WARNING.
+  adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/watch?v=jNQXAC9IVRw" "$PKG" || true
+  sleep 30
+  check_crash "player opened"
+  if adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | grep -q "PlaybackActivity"; then
+    echo "CHECK player screen: OK (in front)"
+  else
+    echo "CHECK player screen: WARNING (not in front)"
+    adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -3
+  fi
+  adb shell screencap -p /data/local/tmp/player.png && adb pull /data/local/tmp/player.png player.png || true
+  # Show the controls (OK key) and read the buttons (their names are the content descriptions)
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 2
+  adb shell screencap -p /data/local/tmp/player-controls.png && adb pull /data/local/tmp/player-controls.png player-controls.png || true
+  if ui_dump player-controls; then
+    BUTTONS=$(grep -o 'content-desc="[^"]\+"' ui-player-controls.xml | sed 's/content-desc="//;s/"$//' | sort -u | tr '\n' '|')
+    echo "CHECK player buttons on the screen: ${BUTTONS:-none found}"
+    POS=$(grep -o 'text="[0-9]*:[0-9][0-9]"' ui-player-controls.xml | head -1)
+    sleep 6
+    adb shell input keyevent KEYCODE_DPAD_CENTER || true
+    sleep 1
+    ui_dump player-controls-later > /dev/null || true
+    POS2=$(grep -o 'text="[0-9]*:[0-9][0-9]"' ui-player-controls-later.xml 2>/dev/null | head -1)
+    if [ -n "$POS" ] && [ "$POS" != "$POS2" ]; then
+      echo "CHECK video plays: OK (time $POS then $POS2)"
+    else
+      echo "CHECK video plays: WARNING (time $POS then $POS2; the emulator may not decode video)"
+    fi
+  else
+    echo "CHECK skipped: no screen dump of the player"
+  fi
+  # The recommended videos are the rows under the controls: Down twice brings them up
+  adb shell input keyevent KEYCODE_DPAD_DOWN || true
+  sleep 1
+  adb shell input keyevent KEYCODE_DPAD_DOWN || true
+  sleep 4
+  check_crash "player suggestions"
+  adb shell screencap -p /data/local/tmp/player-suggestions.png && adb pull /data/local/tmp/player-suggestions.png player-suggestions.png || true
+  if ui_dump player-suggestions; then
+    CARDS=$(grep -o ' text="[^"]\{12,\}"' ui-player-suggestions.xml | wc -l)
+    if [ "$CARDS" -gt 2 ]; then
+      echo "CHECK recommended videos: OK ($CARDS long titles on the screen)"
+    else
+      echo "CHECK recommended videos: WARNING (only $CARDS long titles; YouTube may not have answered)"
+    fi
+  fi
+  adb logcat -d > logcat-player.txt || true
+  if grep -q "FATAL EXCEPTION" logcat-player.txt; then
+    echo "CHECK player: FAILED (the app crashed)"
+    grep -A40 "FATAL EXCEPTION" logcat-player.txt | head -60
+    FAILED=1
+  else
+    echo "CHECK player: no crash"
+  fi
+  adb shell input keyevent KEYCODE_BACK || true
+  sleep 1
+  adb shell input keyevent KEYCODE_BACK || true
+  sleep 2
+  check_crash "player closed"
+
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"

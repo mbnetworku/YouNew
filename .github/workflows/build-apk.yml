@@ -133,6 +133,8 @@ jobs:
             settings-*.png
             search*.png
             home-*.png
+            player*.png
+            logcat-player.txt
             ui-*.xml
 
   # When a GitHub Release is published, attach the release APKs with simple names:

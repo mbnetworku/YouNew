@@ -429,6 +429,8 @@ public class PlayerUIController extends BasePlayerController {
         getPlayer().setButtonState(R.id.action_thumbs_down, !dislike ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
 
         if (!mIsMetadataLoaded) {
+            // YouNew: nothing was sent, so the button goes back to how it was (it showed a like that was not made)
+            getPlayer().setButtonState(R.id.action_thumbs_down, buttonState);
             MessageHelpers.showMessage(getContext(), R.string.wait_data_loading);
             return;
         }
@@ -456,6 +458,8 @@ public class PlayerUIController extends BasePlayerController {
         getPlayer().setButtonState(R.id.action_thumbs_up, !like ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
 
         if (!mIsMetadataLoaded) {
+            // YouNew: nothing was sent, so the button goes back to how it was (it showed a like that was not made)
+            getPlayer().setButtonState(R.id.action_thumbs_up, buttonState);
             MessageHelpers.showMessage(getContext(), R.string.wait_data_loading);
             return;
         }

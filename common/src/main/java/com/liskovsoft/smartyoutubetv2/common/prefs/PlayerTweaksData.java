@@ -48,12 +48,14 @@ public class PlayerTweaksData implements ProfileChangeListener {
             PLAYER_BUTTON_OPEN_CHANNEL | PLAYER_BUTTON_SUBTITLES | PLAYER_BUTTON_LIKE | PLAYER_BUTTON_DISLIKE |
             PLAYER_BUTTON_ADD_TO_PLAYLIST | PLAYER_BUTTON_HIGH_QUALITY;
     // YouNew: the player has one fixed set of buttons (the checklist in Settings was removed):
-    // Play/Pause, Next, Previous, Like, Subscribe, Speed, Subtitles, Add to playlist, Search, Seek interval,
-    // and the gear for video quality (Advanced playback settings).
+    // Play/Pause, Next, Previous, Like, Dislike, Open channel, Subscribe, Speed, Subtitles, Add to playlist, Search,
+    // Share and the gear for video quality (Advanced playback settings).
+    // Seek interval is hidden (YouNew: hidden): rarely needed, double tap and the remote's arrows already seek.
+    // Open channel and Dislike were missing: there was no way to reach the channel from the player.
     public static final int PLAYER_BUTTON_YOUNEW = PLAYER_BUTTON_PLAY_PAUSE | PLAYER_BUTTON_NEXT | PLAYER_BUTTON_PREVIOUS |
-            PLAYER_BUTTON_LIKE | PLAYER_BUTTON_SUBSCRIBE | PLAYER_BUTTON_VIDEO_SPEED | PLAYER_BUTTON_SUBTITLES |
-            PLAYER_BUTTON_ADD_TO_PLAYLIST | PLAYER_BUTTON_SEARCH | PLAYER_BUTTON_SEEK_INTERVAL | PLAYER_BUTTON_HIGH_QUALITY |
-            PLAYER_BUTTON_SHARE;
+            PLAYER_BUTTON_LIKE | PLAYER_BUTTON_DISLIKE | PLAYER_BUTTON_OPEN_CHANNEL | PLAYER_BUTTON_SUBSCRIBE |
+            PLAYER_BUTTON_VIDEO_SPEED | PLAYER_BUTTON_SUBTITLES | PLAYER_BUTTON_ADD_TO_PLAYLIST | PLAYER_BUTTON_SEARCH |
+            /* PLAYER_BUTTON_SEEK_INTERVAL | */ PLAYER_BUTTON_HIGH_QUALITY | PLAYER_BUTTON_SHARE;
     public static final int DNS_TYPE_SYSTEM = GlobalPreferences.DNS_TYPE_SYSTEM;
     public static final int DNS_TYPE_IPV4 = GlobalPreferences.DNS_TYPE_IPV4;
     public static final int DNS_TYPE_GOOGLE = GlobalPreferences.DNS_TYPE_GOOGLE;
