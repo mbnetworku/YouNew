@@ -47,6 +47,7 @@ Last updated: 2026-11-05, after version 32.86.
 | 33.01-beta | Settings list with section headers (Language & Location, About) like YouTube TV; Search panel CI check is a warning (the tap on the sidebar entry is not reliable in CI); beta label |
 | 33.03-beta | Two channels: production = normal releases (the download link and the updater's default); beta = tags with 'beta', marked as GitHub pre-releases by the workflow (`gh release edit --prerelease`). About > 'Include beta versions' lets the updater use the newest release of either kind (`AppUpdater.fetchRelease`, `releases?per_page=10`). Also the Search design pass (33.02) |
 | 33.04 | First production release of the two-channel setup (production = normal tag, no beta label) |
+| 33.05 | Includes the bug-check fixes (PR #4). Top bar: the topic buttons (Music, Gaming, News, Sports) show on the Home section only (`NavigateTitleView.setTopicButtonsVisible`, called from `BrowseFragment.updateTopButtons`); Settings, Search, History, channels etc. show only the logo. Player starts faster: `ExoPlayerInitializer` waits for 1 s of video before playing (was 2.5 s) and 2.5 s after a stall (was 5 s). Player overlay in Arabic: back arrow mirrored, Prev/Play/Next keep their order |
 
 ## Bug check after 32.92 (2026-11-11, not released, no version change)
 Found by reading the custom code and building locally; fixed on branch `claude/bug-check-fixes`:

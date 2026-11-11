@@ -21,6 +21,7 @@ import androidx.leanback.widget.PageRow;
 import androidx.leanback.widget.Presenter;
 import androidx.leanback.widget.PresenterSelector;
 import androidx.leanback.widget.TitleHelper;
+import com.liskovsoft.mediaserviceinterfaces.data.MediaGroup;
 import com.liskovsoft.sharedutils.helpers.Helpers;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.BrowseSection;
 import com.liskovsoft.smartyoutubetv2.common.app.models.data.SettingsGroup;
@@ -38,6 +39,7 @@ import com.liskovsoft.smartyoutubetv2.tv.presenter.IconHeaderItemPresenter;
 import com.liskovsoft.smartyoutubetv2.tv.ui.browse.dialog.ErrorDialogFragment;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.headers.ExtendedHeadersSupportFragment;
 import com.liskovsoft.smartyoutubetv2.tv.ui.mod.leanback.misc.ProgressBarManager;
+import com.liskovsoft.smartyoutubetv2.tv.ui.widgets.browse.NavigateTitleView;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -194,6 +196,7 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                 (row) -> {
                     focusOnContentIfNeeded();
                     mBrowsePresenter.onSectionFocused(getSelectedHeaderId());
+                    updateTopButtons();
                 }
         );
 
@@ -272,6 +275,19 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
                 return null;
             }
         });
+    }
+
+    /**
+     * YouNew: the topic buttons (Music, Gaming, News, Sports) belong to Home only. On every other section
+     * (Settings, Search, History, Subscriptions, ...) they covered the top of the page and caught the remote's
+     * Up key, so the top bar shows only the logo there.
+     */
+    private void updateTopButtons() {
+        View title = getTitleView();
+
+        if (title instanceof NavigateTitleView) {
+            ((NavigateTitleView) title).setTopicButtonsVisible(getSelectedHeaderId() == MediaGroup.TYPE_HOME);
+        }
     }
 
     private int getSelectedHeaderId() {
