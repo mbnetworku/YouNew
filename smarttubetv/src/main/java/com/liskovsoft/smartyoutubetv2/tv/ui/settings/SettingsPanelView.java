@@ -928,7 +928,7 @@ public class SettingsPanelView extends FrameLayout {
      * An icon for a setting, chosen by words in its (English) name; any other setting gets the icon of its page.
      */
     private int iconFor(CharSequence title) {
-        String name = title == null ? "" : title.toString().toLowerCase();
+        String name = title == null ? "" : englishName(title.toString()).toLowerCase(java.util.Locale.ROOT);
         String[][] words = {
                 {"update", "sparkle"}, {"shorts", "shorts"}, {"watched", "history"}, {"history", "history"},
                 {"upcoming", "live"}, {"live", "live"}, {"mix", "playlist"},
@@ -953,6 +953,54 @@ public class SettingsPanelView extends FrameLayout {
         }
 
         return mPageIconRes;
+    }
+
+    private static java.util.Map<String, String> sEnglishNames;
+    private static String sEnglishNamesLocale;
+
+    /**
+     * The icons are chosen by English words, but the app may run in another language (Arabic): then every setting
+     * got the icon of its page. This gives the English text of a setting's name: the app's texts are read once in
+     * both languages and matched. An unknown name (or English itself) is returned as it is.
+     */
+    private String englishName(String title) {
+        try {
+            android.content.res.Configuration now = getResources().getConfiguration();
+            String locale = String.valueOf(now.locale);
+
+            if (now.locale == null || "en".equals(now.locale.getLanguage())) {
+                return title;
+            }
+
+            if (sEnglishNames == null || !locale.equals(sEnglishNamesLocale)) {
+                java.util.Map<String, String> names = new java.util.HashMap<>();
+                android.content.res.Configuration english = new android.content.res.Configuration(now);
+                english.setLocale(java.util.Locale.ENGLISH);
+                android.content.res.Resources englishTexts = getContext().createConfigurationContext(english).getResources();
+                android.content.res.Resources texts = getResources();
+
+                for (java.lang.reflect.Field field : com.liskovsoft.smartyoutubetv2.common.R.string.class.getFields()) {
+                    try {
+                        int id = field.getInt(null);
+                        String local = texts.getString(id);
+                        if (!names.containsKey(local)) {
+                            names.put(local, englishTexts.getString(id));
+                        }
+                    } catch (Exception e) {
+                        // not a text: skip
+                    }
+                }
+
+                sEnglishNames = names;
+                sEnglishNamesLocale = locale;
+            }
+
+            String name = sEnglishNames.get(title);
+            return name != null ? name : title;
+        } catch (Exception e) {
+            Log.e(TAG, "English name error: %s", e.getMessage());
+            return title;
+        }
     }
 
     /** A scroll box that stops growing at a maximum height (long lists scroll inside it). */

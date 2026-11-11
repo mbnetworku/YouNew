@@ -46,8 +46,19 @@ Found by reading the custom code and building locally; fixed on branch `claude/b
   `PlayerGestures.release()` is now also called in `PlaybackFragment.onPause`, and a new touch restores the speed.
 - Updater on Android 8+: the "allow installing apps" question came after the download, and the file was thrown away.
   It is asked before the download now (`AppUpdater.askForInstallPermission`).
-- Local lint (`lintStfdroidRelease`, not part of CI): 77 errors, all `MissingTranslation` of unused Leanback sample
-  strings in `smarttubetv/.../values/strings.xml`; no API-level errors. The `younew_*` strings match in English and Arabic.
+- Shorts on a phone: a swipe up or down now goes to the next or previous Short (`PlaybackFragment.onShortsMouse`);
+  before, only the remote's Up/Down or the mouse wheel could. Held upright, the video takes the whole width, so the
+  title and buttons were placed off the screen: `ShortsOverlayView.updateHole` now puts them over the lower part of
+  the video (with text shadows) when there is no room beside it. Wide screens are laid out as before.
+- Settings icons in Arabic: `SettingsPanelView.iconFor` matched English words only, so in Arabic every setting got
+  its page's icon. `englishName` now looks the name up in the app's English texts (read once, by reflection on
+  `common.R.string`; the release is not minified).
+- Local lint (`lintStfdroidRelease`, not part of CI) had 77 errors, all `MissingTranslation` in
+  `smarttubetv/.../values/strings.xml`: the unused Leanback sample texts and internal keys are now marked
+  `translatable="false"` (not deleted), the 9 texts that can appear got Arabic. Lint: 0 errors. The `younew_*`
+  strings match in English and Arabic. The remaining warnings are in the original SmartTube code and were left alone.
+- CI does not open Shorts and has no upright-phone run, so the Shorts changes are built but unseen: ask the owner
+  for a screenshot of a Short on the phone, upright and sideways.
 - Not checked by a person or an emulator in the sandbox (no KVM): only the CI emulators can show the screens.
 
 ## Decisions and why

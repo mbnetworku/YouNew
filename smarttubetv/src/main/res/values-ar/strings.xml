@@ -7,4 +7,14 @@
     <string name="topic_gaming">ألعاب</string>
     <string name="topic_news">أخبار</string>
     <string name="topic_sports">رياضة</string>
+    <!-- Small texts of the app module that can appear on screen -->
+    <string name="header_icon">أيقونة القسم</string>
+    <string name="title_oops">عذرًا</string>
+    <string name="title_no_videos">لا توجد فيديوهات</string>
+    <string name="message_try_again">إعادة المحاولة؟</string>
+    <string name="message_check_again">التحقق مرة أخرى؟</string>
+    <string name="error_message_network_needed">عذرًا، تحتاج إلى اتصال بالإنترنت لفعل ذلك!</string>
+    <string name="pref_title_settings">إعدادات التطبيق</string>
+    <string name="pref_title_recommendations">التوصيات</string>
+    <string name="pref_title_login">تسجيل الدخول</string>
 </resources>
