@@ -723,8 +723,10 @@ public class PlayerData extends DataChangeBase implements PlayerConstants, Profi
         if (formatItem == null) {
             if (VERSION.SDK_INT <= 19) { // Android 4 playback crash fix (memory leak?)
                 formatItem = FormatItem.VIDEO_SD_AVC_30;
-            } else if (VERSION.SDK_INT <= 23 && DeviceHelpers.isVP9ResolutionSupported(1080)) {
-                formatItem = FormatItem.VIDEO_FHD_VP9_60;
+            } else if (VERSION.SDK_INT <= 23) {
+                // YouNew: old boxes (Android 5 and 6, often 32-bit) start and play much smoother with 720p AVC
+                // (hardware decoded everywhere) than with 1080p60 VP9. Only the default: a chosen quality is kept.
+                formatItem = FormatItem.VIDEO_HD_AVC_30;
             } else if (DeviceHelpers.isVP9ResolutionSupported(2160)) {
                 formatItem = FormatItem.VIDEO_4K_VP9_60;
             } else if (DeviceHelpers.isVP9ResolutionSupported(1080)) {
