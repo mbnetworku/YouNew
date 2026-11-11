@@ -98,6 +98,11 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
 
         OnScreenKeyboard keyboard = new OnScreenKeyboard(getContext(), new OnScreenKeyboard.Listener() {
             @Override
+            public String getText() {
+                return getView() != null ? getSearchBarText() : "";
+            }
+
+            @Override
             public void onTextChanged(String text) {
                 setSearchQuery(text, false);
             }

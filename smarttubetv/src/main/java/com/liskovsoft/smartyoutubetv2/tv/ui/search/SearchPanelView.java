@@ -103,6 +103,11 @@ public class SearchPanelView extends FrameLayout {
         // Mic + keyboard
         OnScreenKeyboard keyboard = new OnScreenKeyboard(context, new OnScreenKeyboard.Listener() {
             @Override
+            public String getText() {
+                return mText;
+            }
+
+            @Override
             public void onTextChanged(String text) {
                 mText = text;
                 showQuery();

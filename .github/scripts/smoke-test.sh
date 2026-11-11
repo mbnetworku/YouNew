@@ -62,6 +62,55 @@ PY
   case "$result" in OK*) ;; *) FAILED=1 ;; esac
 }
 
+# The search keyboard: its corner keys must all be in the dump, with their whole box inside the screen
+# (a key that touches the screen edge is taken as cut off: the dump clips boxes to the screen).
+check_keyboard() {
+  local result
+  result=$(python3 - "$1" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+screen = None
+found = {}
+keys = ('A', 'G', 'V', 'DELETE', 'SPACE', 'SEARCH')
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if not b:
+        continue
+    box = tuple(map(int, b.groups()))
+    if screen is None:
+        screen = (box[2], box[3])
+        continue
+    t = re.search(r' text="([^"]*)"', n)
+    if t and t.group(1) in keys and t.group(1) not in found:
+        found[t.group(1)] = box
+bad = []
+for key in keys:
+    if key not in found:
+        bad.append("%s missing" % key)
+        continue
+    x1, y1, x2, y2 = found[key]
+    if x1 < 0 or y1 < 0 or x2 >= screen[0] or y2 >= screen[1] or x2 - x1 < 8 or y2 - y1 < 8:
+        bad.append("%s at [%d,%d][%d,%d] (screen %dx%d)" % (key, x1, y1, x2, y2, screen[0], screen[1]))
+print("OK" if not bad else "NOT ALL ON SCREEN: " + "; ".join(bad))
+PY
+)
+  echo "CHECK search keyboard on the screen ($2): $result"
+  case "$result" in OK*) ;; *) FAILED=1 ;; esac
+}
+
+# Prints what the search box (the first text field in the dump) shows.
+box_text() {
+  python3 - "$1" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+for n in re.findall(r'<node[^>]*>', s):
+    if 'class="android.widget.EditText"' in n:
+        t = re.search(r' text="([^"]*)"', n)
+        print(t.group(1) if t else '')
+        break
+PY
+}
+
 has_text() { [ -s "$1" ] && grep -q "text=\"$2\"" "$1"; }
 
 # Taps the middle of the first thing with this text, like a finger or a mouse click would.
@@ -249,12 +298,73 @@ PY
     else
       echo "CHECK search panel in the Home screen: WARNING (not confirmed by the test; check on a device)"
     fi
+    adb shell screencap -p /data/local/tmp/search-home.png && adb pull /data/local/tmp/search-home.png search-home.png || true
     if grep -q "Search for videos" ui-home-search.xml; then
       echo "CHECK no search pill at the top: WARNING (the old pill is still there)"
     else
       echo "CHECK no search pill at the top: OK"
     fi
   fi
+  # Search results screen (it has the search box and the same keyboard): the whole keyboard must be on the screen,
+  # upright and sideways, and a key must add to what the box shows, also to text that did not come from the keys.
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.search.tags.SearchTagsActivity" || true
+  sleep 10
+  adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
+  check_crash "search screen"
+  adb shell screencap -p /data/local/tmp/search.png && adb pull /data/local/tmp/search.png search.png || true
+  if ui_dump search; then
+    check_keyboard ui-search.xml "upright"
+    tap_text ui-search.xml "A" || true
+    sleep 1
+    tap_text ui-search.xml "B" || true
+    sleep 2
+    ui_dump search-typed || true
+    if [ "$(box_text ui-search-typed.xml)" = "ab" ]; then
+      echo "CHECK search keyboard types into the search box: WORKS"
+    else
+      echo "CHECK search keyboard types into the search box: FAILED (the box shows '$(box_text ui-search-typed.xml)', not 'ab')"
+      FAILED=1
+    fi
+    # Text from somewhere else (here: typed with a real keyboard, if the box takes it), then one more key
+    adb shell input text xy || true
+    sleep 2
+    ui_dump search-other || true
+    BEFORE=$(box_text ui-search-other.xml)
+    tap_text ui-search-other.xml "A" || true
+    sleep 2
+    ui_dump search-added || true
+    if [ "$(box_text ui-search-added.xml)" = "${BEFORE}a" ]; then
+      echo "CHECK a key adds to what the box shows ('$BEFORE' + a): WORKS"
+    else
+      echo "CHECK a key adds to what the box shows: FAILED ('$BEFORE' became '$(box_text ui-search-added.xml)')"
+      FAILED=1
+    fi
+    tap_text ui-search-added.xml "DELETE" || true
+    sleep 2
+    ui_dump search-deleted || true
+    if [ "$(box_text ui-search-deleted.xml)" = "$BEFORE" ]; then
+      echo "CHECK search keyboard DELETE: WORKS"
+    else
+      echo "CHECK search keyboard DELETE: FAILED (the box shows '$(box_text ui-search-deleted.xml)', not '$BEFORE')"
+      FAILED=1
+    fi
+    check_crash "search typing"
+    adb shell screencap -p /data/local/tmp/search-typed.png && adb pull /data/local/tmp/search-typed.png search-typed.png || true
+
+    adb shell settings put system accelerometer_rotation 0 || true
+    adb shell settings put system user_rotation 1 || true
+    sleep 5
+    check_crash "search screen turned sideways"
+    adb shell screencap -p /data/local/tmp/search-landscape.png && adb pull /data/local/tmp/search-landscape.png search-landscape.png || true
+    if ui_dump search-landscape; then
+      check_keyboard ui-search-landscape.xml "turned sideways"
+    fi
+    adb shell settings put system user_rotation 0 || true
+    sleep 3
+  else
+    echo "CHECK skipped: no screen dump of the search screen on this emulator"
+  fi
+  adb shell input keyevent KEYCODE_BACK || true
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"

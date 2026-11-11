@@ -131,6 +131,7 @@ jobs:
             signin-tv.png
             signin-page.png
             settings-*.png
+            search*.png
             ui-*.xml
 
   # When a GitHub Release is published, attach the release APKs with simple names:
