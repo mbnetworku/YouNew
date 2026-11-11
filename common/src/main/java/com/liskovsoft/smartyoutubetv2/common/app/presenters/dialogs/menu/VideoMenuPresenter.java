@@ -232,12 +232,12 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
                         optionItem -> {
                             // YouNew: Watch later belongs to a YouTube account; without one this did nothing at all
                             if (!getSignInService().isSigned()) {
-                                MessageHelpers.showMessage(getContext(), R.string.msg_signed_users_only);
+                                com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.show(getContext(), null); // ask to sign in
                             } else {
                                 MediaServiceManager.instance().addToWatchLaterPlaylist(mVideo);
                                 MessageHelpers.showMessage(getContext(), R.string.younew_saved_to_watch_later);
+                                mDialogPresenter.closeDialog();
                             }
-                            mDialogPresenter.closeDialog();
                         }
                 ));
     }
@@ -952,6 +952,20 @@ public class VideoMenuPresenter extends BaseMenuPresenter {
     //}
 
     private void toggleSubscribe() {
+        if (mVideo == null) {
+            return;
+        }
+
+        // YouNew: subscribing without an account: ask to sign in (or keep it on this device only, as before)
+        if (!mVideo.isSubscribed && !getSignInService().isSigned()) {
+            com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.show(getContext(), this::toggleSubscribeNow);
+            return;
+        }
+
+        toggleSubscribeNow();
+    }
+
+    private void toggleSubscribeNow() {
         if (mVideo == null) {
             return;
         }

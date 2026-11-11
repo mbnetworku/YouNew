@@ -796,4 +796,8 @@
     <string name="younew_update_beta">تضمين النسخ التجريبية</string>
     <string name="younew_saved_to_watch_later">تم الحفظ في المشاهدة لاحقًا</string>
     <string name="add_video_to_watch_later">إضافة إلى المشاهدة لاحقًا</string>
+    <string name="younew_signin_needed">هذا يحتاج إلى حسابك في يوتيوب</string>
+    <string name="younew_signin_now">تسجيل الدخول الآن</string>
+    <string name="younew_signin_device_only">الحفظ على هذا الجهاز فقط</string>
+    <string name="younew_signin_not_now">ليس الآن</string>
 </resources>
