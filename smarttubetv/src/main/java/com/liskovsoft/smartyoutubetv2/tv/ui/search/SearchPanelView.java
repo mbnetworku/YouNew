@@ -220,9 +220,11 @@ public class SearchPanelView extends VisibleAreaFrameLayout {
 
     private void showQuery() {
         if (TextUtils.isEmpty(mText)) {
+            mQuery.setEllipsize(TextUtils.TruncateAt.END); // the hint is cut at its end ("Type or speak…")
             mQuery.setText(R.string.younew_search_hint);
             mQuery.setTextColor(0xFF9A9A9A);
         } else {
+            mQuery.setEllipsize(TextUtils.TruncateAt.START); // typed text: its end, where you type, stays visible
             mQuery.setText(mText);
             mQuery.setTextColor(Color.WHITE);
         }

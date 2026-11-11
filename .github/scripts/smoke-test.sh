@@ -152,6 +152,55 @@ close_sidebar() {
   ui_dump "$2" || true
 }
 
+# The topic buttons at the top (Music, Gaming, News, Sports): on a narrow screen the last ones are off the screen
+# and must come in when the row is swiped. Swipes the row to the left, then the Sports button must be on the
+# screen as a whole. $1 dump of the Home screen, $2 label.
+check_topic_buttons() {
+  local swipe result
+  swipe=$(python3 - "$1" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+screen = re.search(r'bounds="\[0,0\]\[(\d+),(\d+)\]"', s)
+for n in re.findall(r'<node[^>]*>', s):
+    if 'id/chip_music"' in n:
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+        if b and screen:
+            y = (int(b.group(2)) + int(b.group(4))) // 2
+            w = int(screen.group(1))
+            print(w - 12, y, int(b.group(1)) + 4, y)
+        break
+PY
+)
+  if [ -z "$swipe" ]; then
+    echo "CHECK topic buttons ($2): skipped (no Music button on the screen)"
+    return 0
+  fi
+  adb shell input swipe $swipe 400 || true
+  sleep 1
+  adb shell input swipe $swipe 400 || true
+  sleep 2
+  ui_dump "home-$2-swiped" || return 0
+  result=$(python3 - "ui-home-$2-swiped.xml" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+screen = re.search(r'bounds="\[0,0\]\[(\d+),(\d+)\]"', s)
+out = "MISSING (no Sports button in the dump)"
+for n in re.findall(r'<node[^>]*>', s):
+    if 'id/chip_sports"' in n:
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+        x1, y1, x2, y2 = map(int, b.groups())
+        if x2 - x1 >= 12 and x2 < int(screen.group(1)):
+            out = "OK"
+        else:
+            out = "NOT REACHED: Sports at [%d,%d][%d,%d] (screen %s wide)" % (x1, y1, x2, y2, screen.group(1))
+        break
+print(out)
+PY
+)
+  echo "CHECK topic buttons can all be reached ($2): $result"
+  case "$result" in OK*) ;; *) FAILED=1 ;; esac
+}
+
 # The Home screen as a finger uses it: fresh start, tap Search (first sidebar icon), check its panel and keyboard;
 # then tap Settings (last icon) and check that its page names are not cut off. $1 is a label for files and lines.
 check_home_panels() {
@@ -162,6 +211,8 @@ check_home_panels() {
   check_crash "home ($1)"
   adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "home-$1.png" || true
   ui_dump "home-$1" || return 0
+  check_topic_buttons "ui-home-$1.xml" "$1"
+  adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "home-$1-swiped.png" || true
   tap_sidebar_icon "ui-home-$1.xml" 1 || true
   sleep 6
   check_crash "search panel ($1)"
@@ -211,8 +262,9 @@ for n in re.findall(r'<node[^>]*>', s):
     t = re.search(r' text="([^"]*)"', n)
     if b and t and t.group(1):
         boxes.append((t.group(1), tuple(map(int, b.groups()))))
+# (on a small screen the last names are below the fold: three of them are enough to know the list)
 found = [(t, b) for t, b in boxes if t in ('Accounts', 'General', 'Player', 'Subtitles', 'About')]
-if len(found) < 5:
+if len(found) < 3:
     print("NOT SHOWN (page list not found)")
 else:
     # every label of the list starts at the same x; a clipped one ends at the common right edge
