@@ -116,6 +116,8 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
     private boolean mConsumeShortsBackUp;
     private boolean mStayInShorts;
     private long mLastShortsWheelMs;
+    private float mShortsDownX;
+    private float mShortsDownY;
     private Map<Integer, VideoGroupObjectAdapter> mVideoGroupAdapters;
     private ExoPlayerController mExoPlayerController;
     private ExoPlayerInitializer mPlayerInitializer;
@@ -523,6 +525,23 @@ public class PlaybackFragment extends SeekModePlaybackFragment implements Playba
         local.offsetLocation(-loc[0], -loc[1]);
 
         if (isTouch) {
+            // A finger (or a mouse drag) swiped up or down: next or previous Short, like in the YouTube app.
+            // Without this a phone, which has no remote and no wheel, could never leave the first Short.
+            if (event.getActionMasked() == MotionEvent.ACTION_DOWN) {
+                mShortsDownX = event.getX();
+                mShortsDownY = event.getY();
+            } else if (event.getActionMasked() == MotionEvent.ACTION_UP) {
+                float dx = event.getX() - mShortsDownX;
+                float dy = event.getY() - mShortsDownY;
+                if (Math.abs(dy) > 70 * getResources().getDisplayMetrics().density && Math.abs(dy) > Math.abs(dx) * 1.5f) {
+                    local.setAction(MotionEvent.ACTION_CANCEL); // not a click: no pause, no button
+                    mShortsOverlay.dispatchTouchEvent(local);
+                    local.recycle();
+                    switchShort(dy < 0);
+                    return true;
+                }
+            }
+
             mShortsOverlay.dispatchTouchEvent(local);
         } else if (event.getAction() == MotionEvent.ACTION_HOVER_MOVE) {
             mShortsOverlay.onPointerMoved(local.getX(), local.getY());

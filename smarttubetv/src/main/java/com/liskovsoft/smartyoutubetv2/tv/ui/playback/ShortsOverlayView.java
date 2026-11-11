@@ -145,6 +145,7 @@ public class ShortsOverlayView extends FrameLayout {
             label.setSingleLine(true);
             label.setEllipsize(TextUtils.TruncateAt.END);
             label.setText(labelResId);
+            label.setShadowLayer(dp(3), 0, dp(1), 0xCC000000);
             LinearLayout.LayoutParams labelParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT);
             labelParams.leftMargin = dp(16);
             view.addView(label, labelParams);
@@ -206,6 +207,7 @@ public class ShortsOverlayView extends FrameLayout {
         mTitle.setTypeface(Typeface.DEFAULT_BOLD);
         mTitle.setMaxLines(2); // YouNew: 2 lines max, long titles must not push the buttons off screen
         mTitle.setEllipsize(TextUtils.TruncateAt.END);
+        mTitle.setShadowLayer(dp(3), 0, dp(1), 0xCC000000); // stays readable when it lies over the video (upright phone)
         mInfo.addView(mTitle);
 
         mChannel = new TextView(context);
@@ -214,6 +216,7 @@ public class ShortsOverlayView extends FrameLayout {
         mChannel.setSingleLine(true);
         mChannel.setEllipsize(TextUtils.TruncateAt.END);
         mChannel.setPadding(0, dp(8), 0, dp(20));
+        mChannel.setShadowLayer(dp(3), 0, dp(1), 0xCC000000);
         mInfo.addView(mChannel);
 
         addButton(context, R.id.action_thumbs_up, R.drawable.lb_ic_thumb_up, R.string.action_like);
@@ -226,6 +229,7 @@ public class ShortsOverlayView extends FrameLayout {
         hint.setTextSize(14);
         hint.setPadding(0, dp(12), 0, 0);
         hint.setText(R.string.younew_shorts_hint);
+        hint.setShadowLayer(dp(3), 0, dp(1), 0xCC000000);
         mInfo.addView(hint);
 
         LayoutParams infoParams = new LayoutParams(dp(300), LayoutParams.WRAP_CONTENT);
@@ -543,7 +547,9 @@ public class ShortsOverlayView extends FrameLayout {
         float height = getHeight();
         float width = getWidth();
 
-        if (mVideoView != null && mVideoView.getWidth() > 0 && mVideoView.getWidth() < width) {
+        // Wide screen: the video is a narrow box in the middle. Upright phone: the video takes the whole width.
+        boolean upright = height > width;
+        if (mVideoView != null && mVideoView.getWidth() > 0 && (mVideoView.getWidth() < width || upright)) {
             int[] video = new int[2];
             int[] me = new int[2];
             mVideoView.getLocationInWindow(video);
@@ -555,6 +561,10 @@ public class ShortsOverlayView extends FrameLayout {
             // Not laid out yet: assume a 9:16 video in the middle
             float holeHeight = height - dp(48);
             float holeWidth = holeHeight * 9 / 16;
+            if (holeWidth > width) { // upright phone: the video cannot be wider than the screen
+                holeWidth = width;
+                holeHeight = Math.min(holeHeight, width * 16 / 9);
+            }
             mHole.set((width - holeWidth) / 2, (height - holeHeight) / 2, (width + holeWidth) / 2, (height + holeHeight) / 2);
         }
 
@@ -564,10 +574,24 @@ public class ShortsOverlayView extends FrameLayout {
         // Title, channel and buttons to the right of the video
         LayoutParams lp = (LayoutParams) mInfo.getLayoutParams();
         int leftMargin = (int) (mHole.right + dp(40));
-        int infoWidth = Math.max(dp(160), (int) Math.min(dp(320), width - leftMargin - dp(24)));
-        if (lp.leftMargin != leftMargin || lp.width != infoWidth) {
+        int infoWidth = (int) Math.min(dp(320), width - leftMargin - dp(24));
+        int gravity = Gravity.LEFT | Gravity.CENTER_VERTICAL;
+        int bottomMargin = 0;
+
+        if (infoWidth < dp(160)) {
+            // No room beside the video (a phone held upright): title and buttons go over the lower part of
+            // the video, to the right of the sidebar icons, like in the YouTube app on a phone.
+            leftMargin = (int) Math.max(0, mHole.left) + dp(84);
+            infoWidth = (int) Math.max(dp(120), Math.min(dp(320), Math.min(width, mHole.right) - leftMargin - dp(16)));
+            gravity = Gravity.LEFT | Gravity.BOTTOM;
+            bottomMargin = (int) Math.max(0, height - mHole.bottom) + dp(28); // above the progress line
+        }
+
+        if (lp.leftMargin != leftMargin || lp.width != infoWidth || lp.gravity != gravity || lp.bottomMargin != bottomMargin) {
             lp.leftMargin = leftMargin;
             lp.width = infoWidth;
+            lp.gravity = gravity;
+            lp.bottomMargin = bottomMargin;
             mInfo.setLayoutParams(lp);
         }
 
