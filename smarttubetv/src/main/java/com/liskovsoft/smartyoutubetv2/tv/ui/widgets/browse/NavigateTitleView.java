@@ -85,7 +85,6 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         // findViewById is null in constructor. Init mAccountView later.
     }
 
-    private boolean mBadgeHiddenByButtons;
     private final int[] mBadgePlace = new int[2];
     private final int[] mButtonsPlace = new int[2];
 
@@ -97,29 +96,24 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
 
     /**
      * YouNew: on a narrow screen (a phone held upright) the row of buttons reaches the logo on the other side and
-     * was drawn over it (a red spot between two buttons). The logo is hidden while the buttons cover its place.
+     * was drawn over it (a red spot between two buttons). The logo is made see-through while the buttons cover
+     * its place. (Not by its visibility: the title code switches that back on by itself.)
      */
     private void hideBadgeUnderButtons() {
         View badge = findViewById(R.id.title_badge);
         View buttons = findViewById(R.id.title_buttons_scroll);
 
-        if (badge == null || buttons == null || badge.getVisibility() == View.GONE || badge.getWidth() == 0) {
+        if (badge == null || buttons == null) {
             return;
         }
 
         badge.getLocationOnScreen(mBadgePlace);
         buttons.getLocationOnScreen(mButtonsPlace);
-        boolean covered = buttons.getVisibility() == View.VISIBLE
+        boolean covered = buttons.getVisibility() == View.VISIBLE && badge.getWidth() > 0
                 && mBadgePlace[0] < mButtonsPlace[0] + buttons.getWidth()
                 && mButtonsPlace[0] < mBadgePlace[0] + badge.getWidth();
 
-        if (covered && badge.getVisibility() == View.VISIBLE) {
-            badge.setVisibility(View.INVISIBLE);
-            mBadgeHiddenByButtons = true;
-        } else if (!covered && mBadgeHiddenByButtons && badge.getVisibility() == View.INVISIBLE) {
-            badge.setVisibility(View.VISIBLE);
-            mBadgeHiddenByButtons = false;
-        }
+        badge.setAlpha(covered ? 0f : 1f);
     }
 
     @Override
