@@ -373,6 +373,23 @@ PY
         check_inside_screen ui-home-settings-landscape.xml "turned sideways"
       fi
       adb shell settings put system user_rotation 0 || true
+
+      # The app is locked to landscape like a TV: held upright, the app must still be wider than tall
+      sleep 5
+      check_crash "phone held upright (landscape lock)"
+      if ui_dump home-upright; then
+        UPRIGHT_BOUNDS=$(grep -o 'bounds="\[0,0\]\[[0-9]*,[0-9]*\]"' ui-home-upright.xml | head -1 | grep -o '[0-9]*,[0-9]*\]"' | tr -d ']"')
+        UPRIGHT_W=${UPRIGHT_BOUNDS%,*}
+        UPRIGHT_H=${UPRIGHT_BOUNDS#*,}
+        if [ -n "$UPRIGHT_W" ] && [ -n "$UPRIGHT_H" ] && [ "$UPRIGHT_W" -gt "$UPRIGHT_H" ]; then
+          echo "CHECK landscape lock: OK (app is ${UPRIGHT_W}x${UPRIGHT_H} with the device upright)"
+        elif [ -n "$UPRIGHT_W" ] && [ -n "$UPRIGHT_H" ]; then
+          echo "CHECK landscape lock: FAILED (app is ${UPRIGHT_W}x${UPRIGHT_H} with the device upright)"
+          FAILED=1
+        else
+          echo "CHECK landscape lock skipped: no screen size in the dump"
+        fi
+      fi
     else
       echo "CHECK settings panel in the Home screen: MISSING (no page list on the screen)"
       FAILED=1

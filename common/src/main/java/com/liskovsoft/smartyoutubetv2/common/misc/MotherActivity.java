@@ -71,6 +71,8 @@ public class MotherActivity extends FragmentActivity {
         //}
         super.onCreate(savedInstanceState);
 
+        lockLandscape();
+
         Log.d(TAG, "Starting %s...", this.getClass().getSimpleName());
 
         mIsOculusQuestFixEnabled = PlayerTweaksData.instance(this).isOculusQuestFixEnabled();
@@ -100,6 +102,32 @@ public class MotherActivity extends FragmentActivity {
         //Helpers.addFullscreenListener(this);
 
         initEdgeSlide();
+    }
+
+    /**
+     * YouNew: the app is a TV app, so every screen stays sideways (landscape) like a TV, also on a phone.
+     * The phone may still be turned either way round (sensor landscape). Android 8.0 (API 26) refuses this for
+     * see-through screens ("Only fullscreen opaque activities can request orientation"), so those are skipped there.
+     */
+    private void lockLandscape() {
+        if (VERSION.SDK_INT == 26 && isTranslucentWindow()) {
+            return;
+        }
+
+        try {
+            setRequestedOrientation(ActivityInfo.SCREEN_ORIENTATION_SENSOR_LANDSCAPE);
+        } catch (IllegalStateException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private boolean isTranslucentWindow() {
+        android.content.res.TypedArray a = obtainStyledAttributes(new int[]{android.R.attr.windowIsTranslucent});
+        try {
+            return a.getBoolean(0, false);
+        } finally {
+            a.recycle();
+        }
     }
 
     @Override
