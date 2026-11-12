@@ -65,6 +65,61 @@ public class AppDialogActivity extends MotherActivity {
         return handleNavigation(newEvent) || super.dispatchKeyEvent(newEvent);
     }
     
+    /**
+     * YouNew: a tap or a mouse click on the dark area outside the dialog panel closes the dialog, like in every
+     * phone app. Only a clean tap counts (finger down and up both outside the panel); anything on the panel
+     * itself is handled as before. Dialogs without a panel (the notification type) are left alone.
+     */
+    private float mOutsideDownX = -1;
+    private float mOutsideDownY = -1;
+
+    @Override
+    public boolean dispatchTouchEvent(android.view.MotionEvent ev) {
+        if (mFragment != null && !mFragment.isOverlay() && ev.getPointerCount() == 1) {
+            switch (ev.getActionMasked()) {
+                case android.view.MotionEvent.ACTION_DOWN:
+                    mOutsideDownX = isOutsidePanel(ev) ? ev.getRawX() : -1;
+                    mOutsideDownY = mOutsideDownX >= 0 ? ev.getRawY() : -1;
+                    break;
+                case android.view.MotionEvent.ACTION_UP:
+                    boolean tapOutside = mOutsideDownX >= 0 && isOutsidePanel(ev)
+                            && Math.abs(ev.getRawX() - mOutsideDownX) < 24 * getResources().getDisplayMetrics().density
+                            && Math.abs(ev.getRawY() - mOutsideDownY) < 24 * getResources().getDisplayMetrics().density;
+                    mOutsideDownX = -1;
+                    mOutsideDownY = -1;
+                    if (tapOutside) {
+                        finish();
+                        return true;
+                    }
+                    break;
+                case android.view.MotionEvent.ACTION_CANCEL:
+                    mOutsideDownX = -1;
+                    mOutsideDownY = -1;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        return super.dispatchTouchEvent(ev);
+    }
+
+    private boolean isOutsidePanel(android.view.MotionEvent ev) {
+        android.view.View root = mFragment != null ? mFragment.getView() : null;
+        android.view.View panel = root != null ? root.findViewById(R.id.settings_preference_fragment_container) : null;
+
+        if (panel == null || panel.getVisibility() != android.view.View.VISIBLE || panel.getWidth() <= 0) {
+            return false; // no panel to measure against: never close by a tap
+        }
+
+        int[] place = new int[2];
+        panel.getLocationOnScreen(place);
+        float x = ev.getRawX();
+        float y = ev.getRawY();
+
+        return x < place[0] || x > place[0] + panel.getWidth() || y < place[1] || y > place[1] + panel.getHeight();
+    }
+
     private boolean handleNavigation(KeyEvent event) {
         if (event == null) {
             return false;
