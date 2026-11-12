@@ -211,7 +211,7 @@ for n in re.findall(r'<node[^>]*>', s):
     t = re.search(r' text="([^"]*)"', n)
     if b and t and t.group(1):
         boxes.append((t.group(1), tuple(map(int, b.groups()))))
-found = [(t, b) for t, b in boxes if t in ('Accounts', 'General', 'Player', 'Subtitles', 'About')]
+found = [(t, b) for t, b in boxes if t in ('Accounts', 'General', 'Player', 'Language &amp; Location', 'Subtitles', 'Appearance', 'About')]
 if len(found) < 3:  # landscape is short: only the first pages are on the screen without scrolling
     print("NOT SHOWN (page list not found)")
 else:

@@ -142,21 +142,44 @@ public class SearchPanelView extends FrameLayout {
     private LinearLayout mRoot;
     private int mSide;
 
-    @Override
-    protected void onLayout(boolean changed, int l, int t, int r, int b) {
-        super.onLayout(changed, l, t, r, b);
-
-        // The sidebar opened or closed: the panel moved, so the visible width changed
+    /**
+     * The sidebar opened or closed, or the Home screen slid the panel into place (an animation that runs after
+     * the layout, so onLayout does not see it): the visible width changed. Checked before every frame is drawn,
+     * which costs one position lookup; the layout is only redone when the panel really moved.
+     */
+    private final android.view.ViewTreeObserver.OnPreDrawListener mMoveWatcher = () -> {
         int[] place = new int[2];
         getLocationOnScreen(place);
-        if (place[0] != mLastLeft) {
+        if (place[0] != mLastLeft && getWidth() > 0) {
             mLastLeft = place[0];
-            post(() -> {
-                if (!mReleased && getWidth() > 0) {
-                    fitKeyboard();
-                }
-            });
+            post(this::refit);
         }
+        return true;
+    };
+
+    private void refit() {
+        if (mReleased || getWidth() <= 0) {
+            return;
+        }
+
+        boolean narrow = isNarrow(visibleWidth());
+        if (narrow != mNarrow) {
+            build(narrow);
+            showChips(mTags);
+        }
+        fitKeyboard();
+    }
+
+    @Override
+    protected void onAttachedToWindow() {
+        super.onAttachedToWindow();
+        getViewTreeObserver().addOnPreDrawListener(mMoveWatcher);
+    }
+
+    @Override
+    protected void onDetachedFromWindow() {
+        getViewTreeObserver().removeOnPreDrawListener(mMoveWatcher);
+        super.onDetachedFromWindow();
     }
 
     private void build(boolean narrow) {
