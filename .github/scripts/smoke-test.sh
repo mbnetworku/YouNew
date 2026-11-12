@@ -97,7 +97,16 @@ for key in keys:
     x1, y1, x2, y2 = found[key]
     if x1 < 0 or y1 < 0 or x2 >= screen[0] or y2 >= screen[1] or x2 - x1 < 8 or y2 - y1 < 8:
         bad.append("%s at [%d,%d][%d,%d] (screen %dx%d)" % (key, x1, y1, x2, y2, screen[0], screen[1]))
-print("OK" if not bad else "NOT ALL ON SCREEN: " + "; ".join(bad))
+if bad:
+    allkeys = []
+    for n in re.findall(r'<node[^>]*>', s):
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+        t = re.search(r' text="([^"]*)"', n)
+        if b and t and (len(t.group(1)) == 1 or t.group(1) in ('DELETE', 'CLEAR', 'SPACE', 'SEARCH')):
+            allkeys.append("%s%s" % (t.group(1), b.group(0)[8:-1]))
+    print("NOT ALL ON SCREEN: " + "; ".join(bad) + " | all keys: " + " ".join(allkeys[:45]))
+else:
+    print("OK")
 PY
 )
   echo "CHECK search keyboard on the screen ($2): $result"
@@ -310,7 +319,13 @@ fingerprint() {
 }
 
 front_window() {
-  adb shell dumpsys window windows | grep -E "mCurrentFocus" | head -1 | sed 's/.*u0 //; s/}.*//'
+  local w
+  w=$(adb shell dumpsys window windows | grep -E "mCurrentFocus" | head -1 | sed 's/.*u0 //; s/}.*//')
+  case "$w" in
+    *com.younew.tv*) echo "$w" ;;
+    *) # no focused window for a moment (Android 11): use the resumed activity
+       adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -1 | sed 's/.* u0 //; s/ .*//' ;;
+  esac
 }
 
 record_button() { # $1 screen, $2 button, $3 result
@@ -448,19 +463,32 @@ PY
     fi
     fingerprint > /dev/null
   done
-  # swipe up = next Short, swipe down = previous Short
+  # next / previous Short: by a swipe (finger or mouse drag) and by the keys. A Short loads slowly on an emulator,
+  # so the screen is looked at again every 3 s for up to 36 s before "no reaction" is reported.
+  wait_for_change() { # $1 = fingerprint before; returns 0 when the screen changed
+    local i
+    for i in $(seq 1 12); do
+      sleep 3
+      if [ "$1" != "$(fingerprint)" ]; then return 0; fi
+    done
+    return 1
+  }
   before=$(fingerprint_file)
-  adb shell input swipe 320 260 320 70 300 || true
-  sleep 10
+  adb shell input swipe 320 250 320 60 400 || true
+  if wait_for_change "$before"; then record_button "Shorts player" "swipe up (next Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "swipe up (next Short)" "NO VISIBLE REACTION (36 s)"; fi
   check_crash "Shorts swipe up"
-  after=$(fingerprint)
-  if [ "$before" != "$after" ]; then record_button "Shorts player" "swipe up (next Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "swipe up (next Short)" "NO VISIBLE REACTION"; fi
   before=$(fingerprint_file)
-  adb shell input swipe 320 70 320 260 300 || true
-  sleep 10
+  adb shell input swipe 320 60 320 250 400 || true
+  if wait_for_change "$before"; then record_button "Shorts player" "swipe down (previous Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "swipe down (previous Short)" "NO VISIBLE REACTION (36 s)"; fi
   check_crash "Shorts swipe down"
-  after=$(fingerprint)
-  if [ "$before" != "$after" ]; then record_button "Shorts player" "swipe down (previous Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "swipe down (previous Short)" "NO VISIBLE REACTION"; fi
+  before=$(fingerprint_file)
+  adb shell input keyevent KEYCODE_DPAD_DOWN || true
+  if wait_for_change "$before"; then record_button "Shorts player" "Down key (next Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "Down key (next Short)" "NO VISIBLE REACTION (36 s)"; fi
+  check_crash "Shorts Down key"
+  before=$(fingerprint_file)
+  adb shell input keyevent KEYCODE_DPAD_UP || true
+  if wait_for_change "$before"; then record_button "Shorts player" "Up key (previous Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "Up key (previous Short)" "NO VISIBLE REACTION (36 s)"; fi
+  check_crash "Shorts Up key"
   adb shell screencap -p /data/local/tmp/shorts-after.png && adb pull /data/local/tmp/shorts-after.png shorts-after.png || true
   adb shell input keyevent KEYCODE_BACK || true
   sleep 3
