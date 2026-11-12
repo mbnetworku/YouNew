@@ -424,6 +424,18 @@ PY
       fi
       check_inside_screen ui-home-settings-tapped.xml "options open"
 
+      # Back inside Settings goes one step back (options -> list of pages -> sidebar); it must not close the app
+      adb shell input keyevent KEYCODE_BACK || true
+      sleep 3
+      if adb shell dumpsys window windows | grep -E "mCurrentFocus" | grep -q "BrowseActivity"; then
+        echo "CHECK Back inside Settings keeps the app open: OK"
+      else
+        echo "CHECK Back inside Settings keeps the app open: FAILED (the app was closed)"
+        FAILED=1
+        adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+        sleep 8
+      fi
+
       # The sidebar opens (Left) and pushes the panel to the right: nothing may be cut off by the screen edge
       adb shell input keyevent KEYCODE_DPAD_LEFT || true
       adb shell input keyevent KEYCODE_DPAD_LEFT || true

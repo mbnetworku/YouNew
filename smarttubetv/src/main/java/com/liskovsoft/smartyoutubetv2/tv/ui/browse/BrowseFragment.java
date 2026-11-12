@@ -436,6 +436,28 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
         }
     }
 
+    /**
+     * YouNew: one step back inside the open section, before the Back key leaves the app.
+     * Settings: from the options of a page to the list of pages, then to the sidebar.
+     * @return true when the Back key was used for such a step
+     */
+    public boolean onBackStep() {
+        Fragment main = getMainFragment();
+
+        if (main instanceof com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsPanelFragment) {
+            if (((com.liskovsoft.smartyoutubetv2.tv.ui.settings.SettingsPanelFragment) main).onBack()) {
+                return true;
+            }
+
+            if (!isShowingHeaders()) { // the list of pages: Back shows the sidebar (the next Back leaves the app)
+                showSidebar();
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     /** YouNew: shows the sidebar (used by the Settings panel's back arrow). */
     public void showSidebar() {
         startHeadersTransitionSafe(true);

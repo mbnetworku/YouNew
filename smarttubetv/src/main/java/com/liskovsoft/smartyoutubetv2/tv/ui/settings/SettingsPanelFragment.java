@@ -72,8 +72,18 @@ public class SettingsPanelFragment extends Fragment implements BrowseSupportFrag
         }
 
         mRoot.removeAllViews();
-        mRoot.addView(new SettingsPanelView(getContext(), this::showSidebar, -1, false, false),
-                new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        mPanel = new SettingsPanelView(getContext(), this::showSidebar, -1, false, false);
+        mRoot.addView(mPanel, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+    }
+
+    private SettingsPanelView mPanel;
+
+    /**
+     * YouNew: the Back key goes one step back inside the panel (from the options of a page to the list of pages).
+     * Returns false when there is nothing more to go back to inside the panel.
+     */
+    public boolean onBack() {
+        return mPanel != null && mPanel.onBack();
     }
 
     /** The back arrow of the list of pages: go back to the sidebar. */
