@@ -4,6 +4,12 @@ set -u
 PKG=com.younew.tv
 FAILED=0
 
+# True when the log holds a crash of the YouTv Plus process. A "FATAL EXCEPTION" of the system or of the emulator's
+# own screen-reading tool (UiAutomatorHandlerThread, seen on API 21) is not a crash of the app.
+app_crashed() {
+  grep -A8 "FATAL EXCEPTION" "$1" 2>/dev/null | grep -q "Process: $PKG"
+}
+
 # Reads what is on the screen (uiautomator) into ui-<label>.xml and prints every text with its position.
 ui_dump() {
   adb shell uiautomator dump /data/local/tmp/ui.xml > /dev/null 2>&1
@@ -809,7 +815,7 @@ PY
     fi
   fi
   adb logcat -d > logcat-player.txt || true
-  if grep -q "FATAL EXCEPTION" logcat-player.txt; then
+  if app_crashed logcat-player.txt; then
     echo "CHECK player: FAILED (the app crashed)"
     grep -A40 "FATAL EXCEPTION" logcat-player.txt | head -60
     FAILED=1
@@ -838,7 +844,7 @@ if [ "$FAILED" != "0" ]; then
   exit 1
 fi
 
-if grep -q "FATAL EXCEPTION" logcat.txt; then
+if app_crashed logcat.txt; then
   echo "The app crashed:"
   grep -A40 "FATAL EXCEPTION" logcat.txt
   exit 1
