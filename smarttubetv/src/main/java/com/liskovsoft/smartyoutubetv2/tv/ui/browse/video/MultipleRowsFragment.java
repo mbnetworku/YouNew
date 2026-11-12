@@ -73,6 +73,49 @@ public abstract class MultipleRowsFragment extends RowsSupportFragment implement
 
     protected abstract VideoGroupPresenter getMainPresenter();
 
+    @Override
+    public void onViewCreated(@androidx.annotation.NonNull android.view.View view, @Nullable Bundle savedInstanceState) {
+        super.onViewCreated(view, savedInstanceState);
+
+        // YouNew: endless Home. A finger or a mouse wheel scrolls the list without moving the focus, so the
+        // "focus is on one of the last rows" check never ran there and the list ended. Also watch the scrolling.
+        androidx.leanback.widget.VerticalGridView grid = getVerticalGridView();
+        if (grid != null) {
+            grid.addOnScrollListener(new RecyclerView.OnScrollListener() {
+                @Override
+                public void onScrolled(@androidx.annotation.NonNull RecyclerView rv, int dx, int dy) {
+                    if (dy > 0) {
+                        checkNearBottom(rv);
+                    }
+                }
+
+                @Override
+                public void onScrollStateChanged(@androidx.annotation.NonNull RecyclerView rv, int newState) {
+                    if (newState == RecyclerView.SCROLL_STATE_IDLE) {
+                        checkNearBottom(rv);
+                    }
+                }
+            });
+        }
+    }
+
+    /** The last row is (nearly) on the screen, or the list cannot scroll down any more: ask for more rows. */
+    private void checkNearBottom(RecyclerView rv) {
+        if (mRowsAdapter == null || mRowsAdapter.size() < 2
+                || !(mMainPresenter instanceof com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter)) {
+            return;
+        }
+
+        int last = -1;
+        if (rv.getChildCount() > 0) {
+            last = rv.getChildAdapterPosition(rv.getChildAt(rv.getChildCount() - 1));
+        }
+
+        if ((last >= 0 && last >= mRowsAdapter.size() - 2) || !rv.canScrollVertically(1)) {
+            ((com.liskovsoft.smartyoutubetv2.common.app.presenters.BrowsePresenter) mMainPresenter).onRowsEnd();
+        }
+    }
+
     private void applyPendingUpdates() {
         // prevent modification within update method
         List<VideoGroup> copyArray = new ArrayList<>(mPendingUpdates);

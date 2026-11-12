@@ -569,6 +569,36 @@ PY
   fi
   adb shell input keyevent KEYCODE_BACK || true
 
+  # Endless Home: scroll down the Home list again and again (a swipe, like a finger or a mouse wheel) and count the
+  # different video titles seen. An endless list keeps showing new ones; one that ended repeats. Reported only
+  # (OK or WARNING): it needs YouTube to answer.
+  adb shell am force-stop "$PKG" || true
+  sleep 2
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 15
+  : > home-titles.txt
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+    adb shell uiautomator dump /data/local/tmp/ui.xml > /dev/null 2>&1
+    adb pull /data/local/tmp/ui.xml ui-home-scroll.xml > /dev/null 2>&1
+    python3 - ui-home-scroll.xml >> home-titles.txt <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+for t in re.findall(r' text="([^"]{14,})"', s):
+    print(t)
+PY
+    echo "scroll $i: $(sort -u home-titles.txt | wc -l) different titles so far"
+    adb shell input swipe 400 290 400 60 400 || true
+    sleep 2
+  done
+  TITLES=$(sort -u home-titles.txt | wc -l)
+  if [ "$TITLES" -ge 40 ]; then
+    echo "CHECK endless Home: OK ($TITLES different titles after 16 scrolls)"
+  else
+    echo "CHECK endless Home: WARNING (only $TITLES different titles after 16 scrolls; YouTube may not have answered, or the list ended)"
+  fi
+  adb shell screencap -p /data/local/tmp/home-scrolled.png && adb pull /data/local/tmp/home-scrolled.png home-scrolled.png || true
+  check_crash "home scrolled"
+
   # Player: open a video by its YouTube link (a short, permanent public video), like a phone sharing a link.
   # Checks: no crash, the player screen is in front, the time moves (the video plays), the buttons and the
   # recommended videos show. The network of the CI machine decides whether YouTube answers, so only a crash fails;
