@@ -148,6 +148,36 @@ check_home_panels() {
   check_crash "home ($1)"
   adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "home-$1.png" || true
   ui_dump "home-$1" || return 0
+  # The sidebar sizes its rows to the screen: every entry (Search, Home, Shorts, News, Live, Subscriptions,
+  # History, Settings) must be on the screen at once, without scrolling
+  SIDEBAR=$(python3 - "ui-home-$1.xml" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+screen = None
+icons = []
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if not b:
+        continue
+    box = tuple(map(int, b.groups()))
+    if screen is None:
+        screen = box
+    if 'id/header_icon"' in n:
+        icons.append(box)
+if not icons:
+    print("skipped (no sidebar icons in the dump)")
+else:
+    out = [i for i in icons if i[1] < 0 or i[3] > screen[3]]
+    if len(icons) < 8:
+        print("NOT ALL SHOWN: %d of 8 icons on the screen (screen %dx%d)" % (len(icons), screen[2], screen[3]))
+    elif out:
+        print("CUT OFF: %d icon(s) outside the screen (screen %dx%d)" % (len(out), screen[2], screen[3]))
+    else:
+        print("OK (8 icons, the last ends at y=%d of %d)" % (max(i[3] for i in icons), screen[3]))
+PY
+)
+  echo "CHECK sidebar icons all on the screen ($1): $SIDEBAR"
+  case "$SIDEBAR" in NOT*|CUT*) FAILED=1 ;; esac
   tap_sidebar_icon "ui-home-$1.xml" 1 || true
   sleep 6
   check_crash "search panel ($1)"
