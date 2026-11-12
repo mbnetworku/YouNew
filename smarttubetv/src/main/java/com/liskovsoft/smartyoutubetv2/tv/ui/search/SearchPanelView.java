@@ -170,15 +170,24 @@ public class SearchPanelView extends FrameLayout {
         fitKeyboard();
     }
 
+    private final Runnable mRefit = this::refit;
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         getViewTreeObserver().addOnPreDrawListener(mMoveWatcher);
+
+        // Safety net, like the Settings panel has: the Home screen slides this panel into place and a slow device
+        // can finish after the fits above, so check once more shortly after it appeared (cheap and harmless)
+        postDelayed(mRefit, 500);
+        postDelayed(mRefit, 1_500);
+        postDelayed(mRefit, 3_000);
     }
 
     @Override
     protected void onDetachedFromWindow() {
         getViewTreeObserver().removeOnPreDrawListener(mMoveWatcher);
+        removeCallbacks(mRefit);
         super.onDetachedFromWindow();
     }
 
