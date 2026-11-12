@@ -109,8 +109,11 @@ public class ExoPlayerInitializer {
         // Default values
         int minBufferMs = 30_000;
         int maxBufferMs = 30_000;
-        int bufferForPlaybackMs = 2_500;
-        int bufferForPlaybackAfterRebufferMs = 5_000;
+        // YouNew: start sooner. The player waited for 2.5 s of video before the first picture (5 s after a stall).
+        // It now starts with 1 s (2.5 s after a stall) and keeps filling the same large buffer while playing,
+        // so a video starts about twice as fast without more stalls later.
+        int bufferForPlaybackMs = 1_000;
+        int bufferForPlaybackAfterRebufferMs = 2_500;
 
         switch (mPlayerData.getVideoBufferType()) {
             case PlayerData.BUFFER_HIGHEST:

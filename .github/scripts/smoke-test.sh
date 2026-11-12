@@ -171,11 +171,27 @@ check_home_panels() {
       echo "CHECK search panel in the Home screen ($1): MISSING"
       FAILED=1
     fi
-    tap_sidebar_icon "ui-search-home-$1.xml" last || true
+    # Settings is the last sidebar entry. In landscape the sidebar is short and scrolls, so the last icon on the
+    # screen is not always Settings. Start Home again (the focus would be in the keyboard, where Left only moves
+    # between keys) and go there with the arrow keys (Left into the sidebar, Down to the end, OK).
+    adb shell am force-stop "$PKG" || true
+    sleep 2
+    adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+    sleep 10
+    adb shell input keyevent KEYCODE_DPAD_LEFT || true
+    sleep 1
+    for i in 1 2 3 4 5 6 7 8 9 10 11 12; do adb shell input keyevent KEYCODE_DPAD_DOWN || true; done
+    adb shell input keyevent KEYCODE_DPAD_CENTER || true
     sleep 6
     check_crash "settings panel ($1)"
     adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "settings-home-$1.png" || true
     if ui_dump "settings-home-$1"; then
+      # Settings opens on the page used last (one pane in landscape): the back arrow leads to the list of pages
+      if ! has_text "ui-settings-home-$1.xml" "General" && has_text "ui-settings-home-$1.xml" "‹"; then
+        tap_text "ui-settings-home-$1.xml" "‹" || true
+        sleep 3
+        ui_dump "settings-home-$1" > /dev/null || true
+      fi
       check_not_clipped "ui-settings-home-$1.xml" "settings pages, $1"
     fi
   fi
@@ -195,8 +211,8 @@ for n in re.findall(r'<node[^>]*>', s):
     t = re.search(r' text="([^"]*)"', n)
     if b and t and t.group(1):
         boxes.append((t.group(1), tuple(map(int, b.groups()))))
-found = [(t, b) for t, b in boxes if t in ('Accounts', 'General', 'Player', 'Subtitles', 'About')]
-if len(found) < 5:
+found = [(t, b) for t, b in boxes if t in ('Accounts', 'General', 'Player', 'Language &amp; Location', 'Subtitles', 'Appearance', 'About')]
+if len(found) < 3:  # landscape is short: only the first pages are on the screen without scrolling
     print("NOT SHOWN (page list not found)")
 else:
     # every label of the list starts at the same x; a clipped one ends at the common right edge
@@ -320,16 +336,38 @@ if adb root > /dev/null 2>&1; then
   adb shell screencap -p /data/local/tmp/settings-home.png && adb pull /data/local/tmp/settings-home.png settings-home.png || true
   # Pixel check: the area next to the sidebar must not be empty (looks at the picture, not at the view tree)
   python3 -m pip install -q pillow > /dev/null 2>&1 || true
-  PIXELS=$(python3 - settings-home.png <<'PY' 2>/dev/null
+  measure_lit() {
+python3 - "$1" <<'PY' 2>/dev/null
 import sys
 from PIL import Image
 im = Image.open(sys.argv[1]).convert('L')
-w, h = im.size
-box = im.crop((int(w * 0.30), int(h * 0.12), w, int(h * 0.90)))
-data = list(box.getdata())
-print("%.2f" % (sum(1 for p in data if p > 90) * 100.0 / len(data)))
+# The app is landscape only; some emulators (API 30) save the screenshot upright. Turn it so it is wide,
+# trying both ways round (the side the sidebar ends up on is not known), and keep the brighter result.
+shots = [im] if im.size[0] >= im.size[1] else [im.rotate(90, expand=True), im.rotate(-90, expand=True)]
+best = 0.0
+for shot in shots:
+    w, h = shot.size
+    box = shot.crop((int(w * 0.10), int(h * 0.12), w, int(h * 0.90)))  # everything right of the sidebar rail (landscape: the page list starts at about 15 %)
+    data = list(box.getdata())
+    best = max(best, sum(1 for p in data if p > 90) * 100.0 / len(data))
+print("%.2f" % best)
 PY
-)
+  }
+  python3 - settings-home.png <<'PY' 2>/dev/null || true
+import sys
+from PIL import Image
+im = Image.open(sys.argv[1]).convert('L')
+data = list(im.getdata())
+print("CHECK screenshot %dx%d, whole picture lit: %.2f%%" % (im.size[0], im.size[1], sum(1 for p in data if p > 90) * 100.0 / len(data)))
+PY
+  PIXELS=$(measure_lit settings-home.png 2>/dev/null)
+  if [ -n "$PIXELS" ] && ! python3 -c "import sys; sys.exit(0 if float('$PIXELS') >= 0.3 else 1)"; then
+    # Once more after 3 s: right after the screen turned to landscape the first picture can still be dark
+    sleep 3
+    adb shell screencap -p /data/local/tmp/settings-home.png && adb pull /data/local/tmp/settings-home.png settings-home-retry.png || true
+    echo "CHECK content area first picture lit: $PIXELS%, taking it again"
+    PIXELS=$(measure_lit settings-home-retry.png 2>/dev/null)
+  fi
   if [ -n "$PIXELS" ]; then
     echo "CHECK content area pixels lit: $PIXELS%"
     if python3 -c "import sys; sys.exit(0 if float('$PIXELS') >= 0.3 else 1)"; then
@@ -373,6 +411,23 @@ PY
         check_inside_screen ui-home-settings-landscape.xml "turned sideways"
       fi
       adb shell settings put system user_rotation 0 || true
+
+      # The app is locked to landscape like a TV: held upright, the app must still be wider than tall
+      sleep 5
+      check_crash "phone held upright (landscape lock)"
+      if ui_dump home-upright; then
+        UPRIGHT_BOUNDS=$(grep -o 'bounds="\[0,0\]\[[0-9]*,[0-9]*\]"' ui-home-upright.xml | head -1 | grep -o '[0-9]*,[0-9]*\]"' | tr -d ']"')
+        UPRIGHT_W=${UPRIGHT_BOUNDS%,*}
+        UPRIGHT_H=${UPRIGHT_BOUNDS#*,}
+        if [ -n "$UPRIGHT_W" ] && [ -n "$UPRIGHT_H" ] && [ "$UPRIGHT_W" -gt "$UPRIGHT_H" ]; then
+          echo "CHECK landscape lock: OK (app is ${UPRIGHT_W}x${UPRIGHT_H} with the device upright)"
+        elif [ -n "$UPRIGHT_W" ] && [ -n "$UPRIGHT_H" ]; then
+          echo "CHECK landscape lock: FAILED (app is ${UPRIGHT_W}x${UPRIGHT_H} with the device upright)"
+          FAILED=1
+        else
+          echo "CHECK landscape lock skipped: no screen size in the dump"
+        fi
+      fi
     else
       echo "CHECK settings panel in the Home screen: MISSING (no page list on the screen)"
       FAILED=1
@@ -399,6 +454,9 @@ PY
   fi
   # Search results screen (it has the search box and the same keyboard): the whole keyboard must be on the screen,
   # upright and sideways, and a key must add to what the box shows, also to text that did not come from the keys.
+  # Fresh start: the Home search test before may have left a search behind (results shown, keyboard scrolled away)
+  adb shell am force-stop "$PKG" || true
+  sleep 2
   adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.search.tags.SearchTagsActivity" || true
   sleep 10
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
@@ -457,6 +515,71 @@ PY
     echo "CHECK skipped: no screen dump of the search screen on this emulator"
   fi
   adb shell input keyevent KEYCODE_BACK || true
+
+  # Player: open a video by its YouTube link (a short, permanent public video), like a phone sharing a link.
+  # Checks: no crash, the player screen is in front, the time moves (the video plays), the buttons and the
+  # recommended videos show. The network of the CI machine decides whether YouTube answers, so only a crash fails;
+  # the other checks are reported as OK or WARNING.
+  adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/watch?v=jNQXAC9IVRw" "$PKG" || true
+  sleep 30
+  check_crash "player opened"
+  if adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | grep -q "PlaybackActivity"; then
+    echo "CHECK player screen: OK (in front)"
+  else
+    echo "CHECK player screen: WARNING (not in front)"
+    adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -3
+  fi
+  adb shell screencap -p /data/local/tmp/player.png && adb pull /data/local/tmp/player.png player.png || true
+  # Show the controls (OK key) and read the buttons (their names are the content descriptions)
+  adb shell input keyevent KEYCODE_DPAD_CENTER || true
+  sleep 2
+  adb shell screencap -p /data/local/tmp/player-controls.png && adb pull /data/local/tmp/player-controls.png player-controls.png || true
+  if ui_dump player-controls; then
+    BUTTONS=$(grep -o 'content-desc="[^"]\+"' ui-player-controls.xml | sed 's/content-desc="//;s/"$//' | sort -u | tr '\n' '|')
+    echo "CHECK player buttons on the screen: ${BUTTONS:-none found}"
+    POS=$(grep -o 'text="[0-9]*:[0-9][0-9]"' ui-player-controls.xml | head -1)
+    sleep 6
+    adb shell input keyevent KEYCODE_DPAD_CENTER || true
+    sleep 1
+    ui_dump player-controls-later > /dev/null || true
+    POS2=$(grep -o 'text="[0-9]*:[0-9][0-9]"' ui-player-controls-later.xml 2>/dev/null | head -1)
+    if [ -n "$POS" ] && [ "$POS" != "$POS2" ]; then
+      echo "CHECK video plays: OK (time $POS then $POS2)"
+    else
+      echo "CHECK video plays: WARNING (time $POS then $POS2; the emulator may not decode video)"
+    fi
+  else
+    echo "CHECK skipped: no screen dump of the player"
+  fi
+  # The recommended videos are the rows under the controls: Down twice brings them up
+  adb shell input keyevent KEYCODE_DPAD_DOWN || true
+  sleep 1
+  adb shell input keyevent KEYCODE_DPAD_DOWN || true
+  sleep 4
+  check_crash "player suggestions"
+  adb shell screencap -p /data/local/tmp/player-suggestions.png && adb pull /data/local/tmp/player-suggestions.png player-suggestions.png || true
+  if ui_dump player-suggestions; then
+    CARDS=$(grep -o ' text="[^"]\{12,\}"' ui-player-suggestions.xml | wc -l)
+    if [ "$CARDS" -gt 2 ]; then
+      echo "CHECK recommended videos: OK ($CARDS long titles on the screen)"
+    else
+      echo "CHECK recommended videos: WARNING (only $CARDS long titles; YouTube may not have answered)"
+    fi
+  fi
+  adb logcat -d > logcat-player.txt || true
+  if grep -q "FATAL EXCEPTION" logcat-player.txt; then
+    echo "CHECK player: FAILED (the app crashed)"
+    grep -A40 "FATAL EXCEPTION" logcat-player.txt | head -60
+    FAILED=1
+  else
+    echo "CHECK player: no crash"
+  fi
+  adb shell input keyevent KEYCODE_BACK || true
+  sleep 1
+  adb shell input keyevent KEYCODE_BACK || true
+  sleep 2
+  check_crash "player closed"
+
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"

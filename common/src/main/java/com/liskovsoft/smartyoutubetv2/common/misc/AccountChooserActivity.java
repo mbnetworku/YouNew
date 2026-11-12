@@ -31,6 +31,7 @@ import java.util.List;
  */
 public class AccountChooserActivity extends MotherActivity {
     private static final int AVATAR_DP = 120;
+    private static final int AVATAR_SHORT_DP = 84; // a phone held sideways
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
@@ -44,15 +45,30 @@ public class AccountChooserActivity extends MotherActivity {
                 new int[] {Color.parseColor("#120E10"), Color.parseColor("#1C0F13"), Color.parseColor("#4A0E1E")});
         root.setBackground(background);
 
+        // YouNew: logo, accounts and "Watch as guest" stacked in one centred column that scrolls if the screen is
+        // short (a phone held sideways). Before, the three were placed separately and overlapped there. The
+        // accounts scroll sideways, so with many accounts none is cut off at the screen edge.
+        android.widget.ScrollView scroll = new android.widget.ScrollView(this);
+        scroll.setFillViewport(true);
+        root.addView(scroll, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT));
+
+        LinearLayout column = new LinearLayout(this);
+        column.setOrientation(LinearLayout.VERTICAL);
+        column.setGravity(Gravity.CENTER);
+        column.setPadding(0, dp(16), 0, dp(16));
+        scroll.addView(column, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
         // Logo at the top
         ImageView logo = new ImageView(this);
         int logoRes = getResources().getIdentifier("app_logo", "mipmap", getPackageName());
         if (logoRes != 0) {
             logo.setImageResource(logoRes);
         }
-        FrameLayout.LayoutParams logoLp = new FrameLayout.LayoutParams(dp(220), dp(90), Gravity.TOP | Gravity.CENTER_HORIZONTAL);
-        logoLp.topMargin = dp(36);
-        root.addView(logo, logoLp);
+        logo.setScaleType(ImageView.ScaleType.FIT_CENTER);
+        boolean shortScreen = getResources().getConfiguration().screenHeightDp < 480;
+        LinearLayout.LayoutParams logoLp = new LinearLayout.LayoutParams(dp(220), dp(shortScreen ? 56 : 90));
+        logoLp.bottomMargin = dp(shortScreen ? 8 : 24);
+        column.addView(logo, logoLp);
 
         // Accounts in the middle
         LinearLayout row = new LinearLayout(this);
@@ -80,8 +96,11 @@ public class AccountChooserActivity extends MotherActivity {
             firstFocus = addItem;
         }
 
-        root.addView(row, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.CENTER));
+        android.widget.HorizontalScrollView rowScroll = new android.widget.HorizontalScrollView(this);
+        rowScroll.setHorizontalScrollBarEnabled(false);
+        rowScroll.setClipToPadding(false);
+        rowScroll.addView(row, new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+        column.addView(rowScroll, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT));
 
         // "Watch as guest" at the bottom
         TextView guest = new TextView(this);
@@ -99,10 +118,9 @@ public class AccountChooserActivity extends MotherActivity {
             guest.setTextColor(Color.parseColor(focused ? "#0F0F0F" : "#F1F1F1"));
         });
         guest.setOnClickListener(v -> choose(null));
-        FrameLayout.LayoutParams guestLp = new FrameLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM | Gravity.CENTER_HORIZONTAL);
-        guestLp.bottomMargin = dp(56);
-        root.addView(guest, guestLp);
+        LinearLayout.LayoutParams guestLp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        guestLp.topMargin = dp(shortScreen ? 12 : 32);
+        column.addView(guest, guestLp);
 
         View focus = firstFocus;
         root.post(focus::requestFocus);
@@ -146,10 +164,11 @@ public class AccountChooserActivity extends MotherActivity {
         item.setClickable(true);
         item.setOnClickListener(onClick);
 
+        int avatarDp = getResources().getConfiguration().screenHeightDp < 480 ? AVATAR_SHORT_DP : AVATAR_DP;
         FrameLayout frame = new FrameLayout(this);
-        frame.addView(picture, new FrameLayout.LayoutParams(dp(AVATAR_DP), dp(AVATAR_DP)));
-        LinearLayout.LayoutParams frameLp = new LinearLayout.LayoutParams(dp(AVATAR_DP), dp(AVATAR_DP));
-        frameLp.bottomMargin = dp(16);
+        frame.addView(picture, new FrameLayout.LayoutParams(dp(avatarDp), dp(avatarDp)));
+        LinearLayout.LayoutParams frameLp = new LinearLayout.LayoutParams(dp(avatarDp), dp(avatarDp));
+        frameLp.bottomMargin = dp(12);
         item.addView(frame, frameLp);
 
         TextView title = new TextView(this);
@@ -174,13 +193,24 @@ public class AccountChooserActivity extends MotherActivity {
         GradientDrawable ring = new GradientDrawable();
         ring.setShape(GradientDrawable.OVAL);
         ring.setStroke(dp(4), Color.WHITE);
-        item.setOnFocusChangeListener((v, focused) -> {
-            frame.setForeground(focused ? ring : null);
-            float scale = focused ? 1.08f : 1f;
-            v.animate().scaleX(scale).scaleY(scale).setDuration(150).start();
+        item.setOnFocusChangeListener((v, focused) -> highlight(frame, ring, v, focused));
+        // A mouse (TV box) lights the account under the pointer, the same as the remote's focus
+        item.setOnHoverListener((v, event) -> {
+            if (event.getAction() == android.view.MotionEvent.ACTION_HOVER_ENTER) {
+                highlight(frame, ring, v, true);
+            } else if (event.getAction() == android.view.MotionEvent.ACTION_HOVER_EXIT) {
+                highlight(frame, ring, v, v.isFocused());
+            }
+            return false;
         });
 
         return item;
+    }
+
+    private static void highlight(FrameLayout frame, GradientDrawable ring, View item, boolean on) {
+        frame.setForeground(on ? ring : null); // FrameLayout has a foreground on every Android version
+        float scale = on ? 1.08f : 1f;
+        item.animate().scaleX(scale).scaleY(scale).setDuration(150).start();
     }
 
     private void choose(@Nullable Account account) {

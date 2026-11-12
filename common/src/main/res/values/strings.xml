@@ -804,4 +804,9 @@
     <string name="younew_group_language">Language &amp; Location</string>
     <string name="younew_group_about">About</string>
     <string name="younew_update_beta">Include beta versions (test builds)</string>
+    <string name="younew_saved_to_watch_later">Saved to Watch later</string>
+    <string name="younew_signin_needed">This needs your YouTube account</string>
+    <string name="younew_signin_now">Sign in now</string>
+    <string name="younew_signin_device_only">Save on this device only</string>
+    <string name="younew_signin_not_now">Not now</string>
 </resources>

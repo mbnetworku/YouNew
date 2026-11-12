@@ -122,6 +122,33 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         }
     }
 
+    private static final int[] TOPIC_BUTTONS = {R.id.chip_music, R.id.chip_gaming, R.id.chip_news, R.id.chip_sports};
+    private boolean mTopicButtonsVisible;
+
+    /**
+     * YouNew: the topic buttons are shown on Home only (the Home screen turns them on for its Home section).
+     * Other screens that use this top bar (Settings, Search, History, channels, ...) show only the logo.
+     */
+    public void setTopicButtonsVisible(boolean visible) {
+        mTopicButtonsVisible = visible;
+        applyTopicButtonsVisibility();
+    }
+
+    private void applyTopicButtonsVisibility() {
+        for (int chipId : TOPIC_BUTTONS) {
+            View chip = findViewById(chipId);
+            if (chip != null) {
+                chip.setVisibility(mTopicButtonsVisible ? View.VISIBLE : View.GONE);
+            }
+        }
+    }
+
+    @Override
+    protected void onFinishInflate() {
+        super.onFinishInflate();
+        applyTopicButtonsVisibility(); // hidden until a screen asks for them
+    }
+
     @Override
     public View focusSearch(View focused, int direction) {
         View nextFoundFocusableViewInLayout = null;
@@ -239,7 +266,7 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         }
 
         // YouNew: topic buttons (Music, Gaming, News, Sports) open a search for that topic
-        for (int chipId : new int[]{R.id.chip_music, R.id.chip_gaming, R.id.chip_news, R.id.chip_sports}) {
+        for (int chipId : TOPIC_BUTTONS) {
             TextView chip = findViewById(chipId);
             if (chip != null) {
                 chip.setOnClickListener(v -> {

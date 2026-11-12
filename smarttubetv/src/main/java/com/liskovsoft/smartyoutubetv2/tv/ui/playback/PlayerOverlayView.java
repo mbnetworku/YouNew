@@ -120,6 +120,8 @@ public class PlayerOverlayView extends FrameLayout {
         mMiddle = middle;
         middle.setOrientation(LinearLayout.HORIZONTAL);
         middle.setGravity(Gravity.CENTER);
+        // Previous / Play / Next keep their order in Arabic too (media buttons are not mirrored, as on YouTube)
+        middle.setLayoutDirection(View.LAYOUT_DIRECTION_LTR);
         mControls.addView(middle, new LayoutParams(-2, -2, Gravity.CENTER));
 
         mPrev = new RoundButton(context, RoundButton.PREV);
@@ -347,6 +349,11 @@ public class PlayerOverlayView extends FrameLayout {
                     break;
                 case BACK:
                 default:
+                    if (getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) {
+                        // Arabic: the back arrow sits on the right and points right
+                        canvas.save();
+                        canvas.scale(-1f, 1f, cx, cy);
+                    }
                     mGlyph.setStyle(Paint.Style.STROKE);
                     mGlyph.setStrokeWidth(g * 0.3f);
                     mGlyph.setStrokeCap(Paint.Cap.ROUND);
@@ -358,6 +365,9 @@ public class PlayerOverlayView extends FrameLayout {
                     mPath.lineTo(cx - g * 0.05f, cy + g * 0.85f);
                     canvas.drawPath(mPath, mGlyph);
                     mGlyph.setStyle(Paint.Style.FILL);
+                    if (getLayoutDirection() == View.LAYOUT_DIRECTION_RTL) {
+                        canvas.restore();
+                    }
                     break;
             }
         }

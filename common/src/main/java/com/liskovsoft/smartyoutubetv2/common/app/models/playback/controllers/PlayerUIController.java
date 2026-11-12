@@ -249,6 +249,11 @@ public class PlayerUIController extends BasePlayerController {
     private void onPlaylistAddClicked() {
         fitVideoIntoDialog();
 
+        // YouNew: playlists belong to a YouTube account: ask to sign in
+        if (!com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.check(getContext())) {
+            return;
+        }
+
         if (mPlaylistInfos == null) {
             AppDialogUtil.showAddToPlaylistDialog(getContext(), getVideo(),
                     null);
@@ -429,13 +434,15 @@ public class PlayerUIController extends BasePlayerController {
         getPlayer().setButtonState(R.id.action_thumbs_down, !dislike ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
 
         if (!mIsMetadataLoaded) {
+            // YouNew: nothing was sent, so the button goes back to how it was (it showed a like that was not made)
+            getPlayer().setButtonState(R.id.action_thumbs_down, buttonState);
             MessageHelpers.showMessage(getContext(), R.string.wait_data_loading);
             return;
         }
 
         if (!YouTubeSignInService.instance().isSigned()) {
             getPlayer().setButtonState(R.id.action_thumbs_down, PlayerUI.BUTTON_OFF);
-            MessageHelpers.showMessage(getContext(), R.string.msg_signed_users_only);
+            com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.show(getContext(), null); // YouNew: ask to sign in
             return;
         }
 
@@ -456,13 +463,15 @@ public class PlayerUIController extends BasePlayerController {
         getPlayer().setButtonState(R.id.action_thumbs_up, !like ? PlayerUI.BUTTON_ON : PlayerUI.BUTTON_OFF);
 
         if (!mIsMetadataLoaded) {
+            // YouNew: nothing was sent, so the button goes back to how it was (it showed a like that was not made)
+            getPlayer().setButtonState(R.id.action_thumbs_up, buttonState);
             MessageHelpers.showMessage(getContext(), R.string.wait_data_loading);
             return;
         }
 
         if (!YouTubeSignInService.instance().isSigned()) {
             getPlayer().setButtonState(R.id.action_thumbs_up, PlayerUI.BUTTON_OFF);
-            MessageHelpers.showMessage(getContext(), R.string.msg_signed_users_only);
+            com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.show(getContext(), null); // YouNew: ask to sign in
             return;
         }
 
@@ -1005,6 +1014,20 @@ public class PlayerUIController extends BasePlayerController {
 
         if (!mIsMetadataLoaded) {
             MessageHelpers.showMessage(getContext(), R.string.wait_data_loading);
+            return;
+        }
+
+        // YouNew: subscribing without an account: ask to sign in (or keep it on this device only, as before)
+        if (buttonState == PlayerUI.BUTTON_OFF
+                && !com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.check(getContext(), () -> subscribe(buttonState))) {
+            return;
+        }
+
+        subscribe(buttonState);
+    }
+
+    private void subscribe(int buttonState) {
+        if (getPlayer() == null || getVideo() == null) {
             return;
         }
 

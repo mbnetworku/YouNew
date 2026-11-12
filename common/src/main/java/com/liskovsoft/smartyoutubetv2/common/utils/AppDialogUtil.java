@@ -1056,6 +1056,11 @@ public class AppDialogUtil {
     }
 
     public static void showAddToPlaylistDialog(Context context, Video video, VideoMenuCallback callback) {
+        // YouNew: playlists belong to a YouTube account: ask to sign in
+        if (!com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.check(context)) {
+            return;
+        }
+
         if (video == null) {
             return;
         }
@@ -1075,7 +1080,12 @@ public class AppDialogUtil {
 
     public static void showAddToPlaylistDialog(Context context, Video video, VideoMenuCallback callback, List<PlaylistInfo> playlistInfos, Runnable onFinish) {
         if (playlistInfos == null) {
-            MessageHelpers.showMessage(context, R.string.msg_signed_users_only);
+            // YouNew: without an account, ask to sign in
+            if (!com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.isSigned()) {
+                com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.show(context, null);
+            } else {
+                MessageHelpers.showMessage(context, R.string.msg_signed_users_only);
+            }
             return;
         }
 

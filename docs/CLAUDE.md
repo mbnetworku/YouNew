@@ -67,7 +67,8 @@ Read this first, then [TECHNICAL.md](TECHNICAL.md) (how the project is built) an
 ## Talking to the owner
 - Plain, short language. The owner is not a developer; say what changed and what they will see, then what is still
   open. Explain a limit clearly instead of hiding it (for example Google's own rules for passwords and sign-in).
-- They test on a phone (portrait and landscape) and on the TV box. Layouts must work in both.
+- They test on a phone and on the TV box. Since 33.05 the app is landscape only (owner's wish: TV design, no portrait);
+  layouts must work on a phone held sideways and on the TV.
 - When a script for Windows is needed, make it a `.bat` that asks for administrator rights itself and then runs the
   PowerShell part (see `tools/make-signing-key.bat`).
 - Give the download link and the install steps with every release, and remind them of what they still have to do
