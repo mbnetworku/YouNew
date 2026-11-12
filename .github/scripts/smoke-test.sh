@@ -283,6 +283,148 @@ PY
   echo "'$2' not found on the screen, cannot tap"
   return 1
 }
+# ---- Button audit: presses buttons like a finger would and reports, for each one, whether it reacted ----
+BUTTON_REPORT=button-report.txt
+: > "$BUTTON_REPORT"
+
+# The texts and descriptions on the screen of the last dump (ui-fp.xml), sorted, one per line
+fingerprint_file() {
+  python3 - ui-fp.xml <<'PY' 2>/dev/null
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+print("\n".join(sorted(set(v for v in re.findall(r' (?:text|content-desc)="([^"]+)"', s)))))
+PY
+}
+
+# Dumps the screen into ui-fp.xml and prints its fingerprint
+fingerprint() {
+  adb shell uiautomator dump /data/local/tmp/ui-fp.xml > /dev/null 2>&1
+  adb pull /data/local/tmp/ui-fp.xml ui-fp.xml > /dev/null 2>&1
+  fingerprint_file
+}
+
+front_window() {
+  adb shell dumpsys window windows | grep -E "mCurrentFocus" | head -1 | sed 's/.*u0 //; s/}.*//'
+}
+
+record_button() { # $1 screen, $2 button, $3 result
+  echo "BUTTON $1 / $2: $3" | tee -a "$BUTTON_REPORT"
+}
+
+# Taps the thing whose text or description is $3 (looked up in ui-fp.xml) and records whether the screen changed.
+# Leaves the new screen in ui-fp.xml.
+press_and_record() { # $1 screen, $2 button name, $3 text or description to tap
+  local coords before after win_before win_after
+  coords=$(python3 - ui-fp.xml "$3" <<'PY'
+import sys, re, html
+s = open(sys.argv[1], errors='ignore').read()
+for m in re.finditer(r'<node[^>]*>', s):
+    n = m.group(0)
+    vals = [html.unescape(v) for v in re.findall(r' (?:text|content-desc)="([^"]*)"', n)]
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if b and sys.argv[2] in vals:
+        x1, y1, x2, y2 = map(int, b.groups())
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        break
+PY
+)
+  if [ -z "$coords" ]; then
+    record_button "$1" "$2" "NOT ON THE SCREEN (not tested)"
+    return 1
+  fi
+  before=$(fingerprint_file)
+  win_before=$(front_window)
+  adb shell input tap $coords
+  sleep 3
+  check_crash "button $1 / $2"
+  after=$(fingerprint)
+  win_after=$(front_window)
+  if [ "$win_before" != "$win_after" ]; then
+    record_button "$1" "$2" "WORKS (opens another screen: $win_after)"
+  elif [ "$before" != "$after" ]; then
+    record_button "$1" "$2" "WORKS (the screen changed)"
+  else
+    record_button "$1" "$2" "NO VISIBLE REACTION"
+  fi
+  return 0
+}
+
+audit_sidebar_buttons() {
+  adb shell am force-stop "$PKG" || true
+  sleep 2
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 15
+  local names=("Search" "Home" "Shorts" "News" "Live" "Subscriptions" "History" "Settings")
+  local before after count i name
+  fingerprint > /dev/null
+  count=$(grep -o 'id/header_icon"' ui-fp.xml | wc -l)
+  if [ "$count" -lt 1 ]; then
+    record_button "Sidebar" "all icons" "NOT ON THE SCREEN (not tested)"
+    return
+  fi
+  for i in $(seq 1 "$count"); do
+    name=${names[$((i-1))]:-"icon $i"}
+    fingerprint > /dev/null
+    before=$(fingerprint_file)
+    if ! tap_sidebar_icon ui-fp.xml "$i" > /dev/null; then
+      record_button "Sidebar" "$name" "NOT ON THE SCREEN (not tested)"
+      continue
+    fi
+    sleep 6
+    check_crash "sidebar $name"
+    after=$(fingerprint)
+    if [ "$before" != "$after" ]; then
+      record_button "Sidebar" "$name" "WORKS (the screen changed)"
+    else
+      record_button "Sidebar" "$name" "NO VISIBLE REACTION"
+    fi
+  done
+}
+
+# Every page name of Settings (the page list must be on the screen); each tap must show other options
+audit_settings_pages() {
+  local page
+  fingerprint > /dev/null
+  for page in "Accounts" "General" "Player" "Language & Location" "Subtitles" "Appearance" "About"; do
+    press_and_record "Settings page" "$page" "$page" || true
+  done
+}
+
+audit_player_buttons() {
+  local desc
+  # back to the controls row (the recommended videos may be in front)
+  adb shell input keyevent KEYCODE_DPAD_UP || true
+  sleep 1
+  adb shell input keyevent KEYCODE_DPAD_UP || true
+  sleep 2
+  fingerprint > /dev/null
+  if ! grep -q 'content-desc="Like"' ui-fp.xml; then
+    adb shell input keyevent KEYCODE_DPAD_CENTER || true
+    sleep 2
+    fingerprint > /dev/null
+  fi
+  if ! grep -q 'content-desc="Like"' ui-fp.xml; then
+    record_button "Player" "all buttons" "NOT ON THE SCREEN (no video loaded? not tested)"
+    return
+  fi
+  for desc in "Like" "Dislike" "Open channel" "Enable Closed Captioning" "Video speed" "Advanced playback settings" "Add to playlist" "Unsubscribed" "Share link" "Search"; do
+    press_and_record "Player" "$desc" "$desc" || true
+    # close what opened (Back), and get the player with its controls again
+    adb shell input keyevent KEYCODE_BACK || true
+    sleep 3
+    if ! front_window | grep -q "PlaybackActivity"; then
+      adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/watch?v=jNQXAC9IVRw" "$PKG" || true
+      sleep 25
+    fi
+    fingerprint > /dev/null
+    if ! grep -q 'content-desc="Like"' ui-fp.xml; then
+      adb shell input keyevent KEYCODE_DPAD_CENTER || true
+      sleep 2
+      fingerprint > /dev/null
+    fi
+  done
+}
+
 # Universal APK: it holds every ABI, so it runs on both the x86 and the x86_64 emulators
 APK=$(ls apk/debug/*universal*.apk | head -1)
 adb shell getprop ro.build.version.release
@@ -423,6 +565,9 @@ PY
         FAILED=1
       fi
       check_inside_screen ui-home-settings-tapped.xml "options open"
+
+      # Every Settings page: a tap must show its options
+      audit_settings_pages
 
       # Back inside Settings goes one step back (options -> list of pages -> sidebar); it must not close the app
       adb shell input keyevent KEYCODE_BACK || true
@@ -611,6 +756,8 @@ PY
   adb shell screencap -p /data/local/tmp/home-scrolled.png && adb pull /data/local/tmp/home-scrolled.png home-scrolled.png || true
   check_crash "home scrolled"
 
+  audit_sidebar_buttons
+
   # Player: open a video by its YouTube link (a short, permanent public video), like a phone sharing a link.
   # Checks: no crash, the player screen is in front, the time moves (the video plays), the buttons and the
   # recommended videos show. The network of the CI machine decides whether YouTube answers, so only a crash fails;
@@ -669,12 +816,16 @@ PY
   else
     echo "CHECK player: no crash"
   fi
+  audit_player_buttons
   adb shell input keyevent KEYCODE_BACK || true
   sleep 1
   adb shell input keyevent KEYCODE_BACK || true
   sleep 2
   check_crash "player closed"
 
+  echo "===== BUTTON REPORT ($(grep -c . "$BUTTON_REPORT") buttons pressed)"
+  cat "$BUTTON_REPORT"
+  echo "===== works: $(grep -c ': WORKS' "$BUTTON_REPORT"), no visible reaction: $(grep -c 'NO VISIBLE REACTION' "$BUTTON_REPORT"), not on the screen: $(grep -c 'NOT ON THE SCREEN' "$BUTTON_REPORT")"
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"
