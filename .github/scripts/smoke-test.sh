@@ -464,6 +464,29 @@ PY
   adb shell screencap -p /data/local/tmp/search.png && adb pull /data/local/tmp/search.png search.png || true
   if ui_dump search; then
     check_keyboard ui-search.xml "upright"
+    # The settings and search buttons at the right end of the search bar must not cover the keys
+    BELOW=$(python3 - ui-search.xml <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+bar = key = None
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if not b:
+        continue
+    box = tuple(map(int, b.groups()))
+    if bar is None and 'id/lb_search_bar"' in n:
+        bar = box
+    t = re.search(r' text="([^"]*)"', n)
+    if key is None and t and t.group(1) in ('A', 'DELETE'):
+        key = box
+if bar is None or key is None:
+    print("skipped (search bar or keys not found)")
+else:
+    print("OK" if key[1] >= bar[3] - 2 else "COVERED: keys start at y=%d, the search bar ends at y=%d" % (key[1], bar[3]))
+PY
+)
+    echo "CHECK keyboard below the search bar: $BELOW"
+    case "$BELOW" in COVERED*) FAILED=1 ;; esac
     tap_text ui-search.xml "A" || true
     sleep 1
     tap_text ui-search.xml "B" || true
