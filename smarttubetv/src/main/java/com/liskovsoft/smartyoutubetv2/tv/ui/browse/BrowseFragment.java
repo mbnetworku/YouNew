@@ -278,15 +278,15 @@ public class BrowseFragment extends BrowseSupportFragment implements BrowseView 
     }
 
     /**
-     * YouNew: the topic buttons (Music, Gaming, News, Sports) belong to Home only. On every other section
-     * (Settings, Search, History, Subscriptions, ...) they covered the top of the page and caught the remote's
-     * Up key, so the top bar shows only the logo there.
+     * YouNew: the top header has no buttons any more (owner's wish): the topic shortcuts (Music, Gaming, News,
+     * Sports) are hidden everywhere, and the account button is gone too (accounts are in Settings > Accounts).
+     * Only the logo stays. The code is kept, so the shortcuts can come back.
      */
     private void updateTopButtons() {
         View title = getTitleView();
 
         if (title instanceof NavigateTitleView) {
-            ((NavigateTitleView) title).setTopicButtonsVisible(getSelectedHeaderId() == MediaGroup.TYPE_HOME);
+            ((NavigateTitleView) title).setTopicButtonsVisible(false); // YouNew: hidden - the top header has no shortcuts (was: shown on Home only, getSelectedHeaderId() == MediaGroup.TYPE_HOME)
         }
     }
 
