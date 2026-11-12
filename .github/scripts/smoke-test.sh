@@ -389,6 +389,84 @@ audit_sidebar_buttons() {
 }
 
 # Every page name of Settings (the page list must be on the screen); each tap must show other options
+# Shorts: open the Shorts section, open the first Short, press its buttons and swipe to the next and previous Short
+audit_shorts_player() {
+  local coords before after name
+  adb shell am force-stop "$PKG" || true
+  sleep 2
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 15
+  fingerprint > /dev/null
+  # Shorts is the third entry of the sidebar
+  if ! tap_sidebar_icon ui-fp.xml 3 > /dev/null; then
+    record_button "Shorts" "open the Shorts section" "NOT ON THE SCREEN (not tested)"
+    return
+  fi
+  sleep 12
+  fingerprint > /dev/null
+  # the first video card right of the sidebar (a title of 12 or more characters)
+  coords=$(python3 - ui-fp.xml <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+width = None
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if not b:
+        continue
+    x1, y1, x2, y2 = map(int, b.groups())
+    if width is None:
+        width = x2
+        continue
+    t = re.search(r' text="([^"]{12,})"', n)
+    if t and x1 > width * 0.12 and y1 > 60:
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        break
+PY
+)
+  if [ -z "$coords" ]; then
+    record_button "Shorts" "open a Short from the Shorts section" "NOT ON THE SCREEN (no Short cards; YouTube may not have answered)"
+    return
+  fi
+  adb shell input tap $coords
+  sleep 20
+  check_crash "Shorts opened"
+  adb shell screencap -p /data/local/tmp/shorts.png && adb pull /data/local/tmp/shorts.png shorts.png || true
+  if ! front_window | grep -q "PlaybackActivity"; then
+    record_button "Shorts" "open a Short from the Shorts section" "NO VISIBLE REACTION (front window: $(front_window))"
+    return
+  fi
+  record_button "Shorts" "open a Short from the Shorts section" "WORKS (the player opened)"
+  fingerprint > /dev/null
+  echo "Shorts screen shows: $(fingerprint_file | head -12 | tr '\n' '|')"
+  for name in "Like" "Dislike" "Subscribe" "Channel"; do
+    press_and_record "Shorts player" "$name" "$name" || true
+    adb shell input keyevent KEYCODE_BACK || true
+    sleep 3
+    if ! front_window | grep -q "PlaybackActivity"; then
+      record_button "Shorts player" "(after $name)" "the player closed on Back; the rest was not tested"
+      return
+    fi
+    fingerprint > /dev/null
+  done
+  # swipe up = next Short, swipe down = previous Short
+  before=$(fingerprint_file)
+  adb shell input swipe 320 260 320 70 300 || true
+  sleep 10
+  check_crash "Shorts swipe up"
+  after=$(fingerprint)
+  if [ "$before" != "$after" ]; then record_button "Shorts player" "swipe up (next Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "swipe up (next Short)" "NO VISIBLE REACTION"; fi
+  before=$(fingerprint_file)
+  adb shell input swipe 320 70 320 260 300 || true
+  sleep 10
+  check_crash "Shorts swipe down"
+  after=$(fingerprint)
+  if [ "$before" != "$after" ]; then record_button "Shorts player" "swipe down (previous Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "swipe down (previous Short)" "NO VISIBLE REACTION"; fi
+  adb shell screencap -p /data/local/tmp/shorts-after.png && adb pull /data/local/tmp/shorts-after.png shorts-after.png || true
+  adb shell input keyevent KEYCODE_BACK || true
+  sleep 3
+  check_crash "Shorts closed"
+}
+
 audit_settings_pages() {
   local page
   fingerprint > /dev/null
@@ -774,6 +852,7 @@ PY
   check_crash "home scrolled"
 
   audit_sidebar_buttons
+  audit_shorts_player
 
   # Player: open a video by its YouTube link (a short, permanent public video), like a phone sharing a link.
   # Checks: no crash, the player screen is in front, the time moves (the video plays), the buttons and the

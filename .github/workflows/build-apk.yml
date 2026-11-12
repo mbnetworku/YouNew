@@ -134,6 +134,7 @@ jobs:
             search*.png
             home-*.png
             player*.png
+            shorts*.png
             logcat-player.txt
             button-report.txt
             ui-*.xml
