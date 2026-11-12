@@ -342,6 +342,7 @@ PY
   win_before=$(front_window)
   adb shell input tap $coords
   sleep 3
+  case "$2" in "Open channel") sleep 5 ;; esac # the channel is looked up first
   check_crash "button $1 / $2"
   after=$(fingerprint)
   win_after=$(front_window)
@@ -391,7 +392,15 @@ audit_sidebar_buttons() {
 audit_settings_pages() {
   local page
   fingerprint > /dev/null
+  local esc
   for page in "Accounts" "General" "Player" "Language & Location" "Subtitles" "Appearance" "About"; do
+    esc=$(printf '%s' "$page" | sed 's/&/\&amp;/g')
+    if ! grep -qF "text=\"$esc\"" ui-fp.xml; then
+      # the list of pages is longer than the short landscape screen: scroll it once
+      adb shell input swipe 150 280 150 100 300 || true
+      sleep 1
+      fingerprint > /dev/null
+    fi
     press_and_record "Settings page" "$page" "$page" || true
   done
 }
@@ -578,7 +587,9 @@ PY
       # Back inside Settings goes one step back (options -> list of pages -> sidebar); it must not close the app
       adb shell input keyevent KEYCODE_BACK || true
       sleep 3
-      if adb shell dumpsys window windows | grep -E "mCurrentFocus" | grep -q "BrowseActivity"; then
+      # "Resumed activity" is more reliable than "current focus" (Android 11 sometimes reports no focus for a moment)
+      if adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | grep -q "BrowseActivity" \
+         || adb shell dumpsys window windows | grep -E "mCurrentFocus" | grep -q "BrowseActivity"; then
         echo "CHECK Back inside Settings keeps the app open: OK"
       else
         echo "CHECK Back inside Settings keeps the app open: FAILED (the app was closed)"
