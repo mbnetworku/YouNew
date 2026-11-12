@@ -471,6 +471,10 @@ PY
       sleep 3
       if [ "$1" != "$(fingerprint)" ]; then return 0; fi
     done
+    # No change: say what the screen shows and what the app logged, to tell "no next Short loaded" from "key ignored"
+    echo "  (no change) front window: $(front_window); screen shows: $(fingerprint_file | head -14 | tr '\n' '|')"
+    echo "  (no change) app log, last lines:"
+    adb logcat -d -v threadtime 2>/dev/null | grep -iE "younew|smartyoutubetv2|SmartTube|PlaybackPresenter|VideoLoader|Suggestions|Shorts" | tail -22 | cut -c1-230 | sed 's/^/    /'
     return 1
   }
   before=$(fingerprint_file)
