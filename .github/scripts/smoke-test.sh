@@ -186,6 +186,12 @@ check_home_panels() {
     check_crash "settings panel ($1)"
     adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "settings-home-$1.png" || true
     if ui_dump "settings-home-$1"; then
+      # Settings opens on the page used last (one pane in landscape): the back arrow leads to the list of pages
+      if ! has_text "ui-settings-home-$1.xml" "General" && has_text "ui-settings-home-$1.xml" "‹"; then
+        tap_text "ui-settings-home-$1.xml" "‹" || true
+        sleep 3
+        ui_dump "settings-home-$1" > /dev/null || true
+      fi
       check_not_clipped "ui-settings-home-$1.xml" "settings pages, $1"
     fi
   fi
@@ -206,7 +212,7 @@ for n in re.findall(r'<node[^>]*>', s):
     if b and t and t.group(1):
         boxes.append((t.group(1), tuple(map(int, b.groups()))))
 found = [(t, b) for t, b in boxes if t in ('Accounts', 'General', 'Player', 'Subtitles', 'About')]
-if len(found) < 5:
+if len(found) < 3:  # landscape is short: only the first pages are on the screen without scrolling
     print("NOT SHOWN (page list not found)")
 else:
     # every label of the list starts at the same x; a clipped one ends at the common right edge
@@ -341,7 +347,7 @@ shots = [im] if im.size[0] >= im.size[1] else [im.rotate(90, expand=True), im.ro
 best = 0.0
 for shot in shots:
     w, h = shot.size
-    box = shot.crop((int(w * 0.30), int(h * 0.12), w, int(h * 0.90)))
+    box = shot.crop((int(w * 0.10), int(h * 0.12), w, int(h * 0.90)))  # everything right of the sidebar rail (landscape: the page list starts at about 15 %)
     data = list(box.getdata())
     best = max(best, sum(1 for p in data if p > 90) * 100.0 / len(data))
 print("%.2f" % best)
