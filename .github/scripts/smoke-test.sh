@@ -172,7 +172,12 @@ check_home_panels() {
       FAILED=1
     fi
     # Settings is the last sidebar entry. In landscape the sidebar is short and scrolls, so the last icon on the
-    # screen is not always Settings: go there with the arrow keys (Left into the sidebar, Down to the end, OK).
+    # screen is not always Settings. Start Home again (the focus would be in the keyboard, where Left only moves
+    # between keys) and go there with the arrow keys (Left into the sidebar, Down to the end, OK).
+    adb shell am force-stop "$PKG" || true
+    sleep 2
+    adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+    sleep 10
     adb shell input keyevent KEYCODE_DPAD_LEFT || true
     sleep 1
     for i in 1 2 3 4 5 6 7 8 9 10 11 12; do adb shell input keyevent KEYCODE_DPAD_DOWN || true; done
@@ -325,7 +330,8 @@ if adb root > /dev/null 2>&1; then
   adb shell screencap -p /data/local/tmp/settings-home.png && adb pull /data/local/tmp/settings-home.png settings-home.png || true
   # Pixel check: the area next to the sidebar must not be empty (looks at the picture, not at the view tree)
   python3 -m pip install -q pillow > /dev/null 2>&1 || true
-  PIXELS=$(python3 - settings-home.png <<'PY' 2>/dev/null
+  measure_lit() {
+python3 - "$1" <<'PY' 2>/dev/null
 import sys
 from PIL import Image
 im = Image.open(sys.argv[1]).convert('L')
@@ -340,7 +346,22 @@ for shot in shots:
     best = max(best, sum(1 for p in data if p > 90) * 100.0 / len(data))
 print("%.2f" % best)
 PY
-)
+  }
+  python3 - settings-home.png <<'PY' 2>/dev/null || true
+import sys
+from PIL import Image
+im = Image.open(sys.argv[1]).convert('L')
+data = list(im.getdata())
+print("CHECK screenshot %dx%d, whole picture lit: %.2f%%" % (im.size[0], im.size[1], sum(1 for p in data if p > 90) * 100.0 / len(data)))
+PY
+  PIXELS=$(measure_lit settings-home.png 2>/dev/null)
+  if [ -n "$PIXELS" ] && ! python3 -c "import sys; sys.exit(0 if float('$PIXELS') >= 0.3 else 1)"; then
+    # Once more after 3 s: right after the screen turned to landscape the first picture can still be dark
+    sleep 3
+    adb shell screencap -p /data/local/tmp/settings-home.png && adb pull /data/local/tmp/settings-home.png settings-home-retry.png || true
+    echo "CHECK content area first picture lit: $PIXELS%, taking it again"
+    PIXELS=$(measure_lit settings-home-retry.png 2>/dev/null)
+  fi
   if [ -n "$PIXELS" ]; then
     echo "CHECK content area pixels lit: $PIXELS%"
     if python3 -c "import sys; sys.exit(0 if float('$PIXELS') >= 0.3 else 1)"; then
@@ -427,6 +448,9 @@ PY
   fi
   # Search results screen (it has the search box and the same keyboard): the whole keyboard must be on the screen,
   # upright and sideways, and a key must add to what the box shows, also to text that did not come from the keys.
+  # Fresh start: the Home search test before may have left a search behind (results shown, keyboard scrolled away)
+  adb shell am force-stop "$PKG" || true
+  sleep 2
   adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.search.tags.SearchTagsActivity" || true
   sleep 10
   adb shell dumpsys window windows | grep -E "mCurrentFocus" || true
