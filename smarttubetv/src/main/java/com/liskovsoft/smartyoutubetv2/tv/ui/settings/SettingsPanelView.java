@@ -297,7 +297,9 @@ public class SettingsPanelView extends FrameLayout {
             tab.setFocusable(true);
             tab.setClickable(true);
             tab.setBackground(pageBackground());
-            tab.addView(icon(pageIcon(i), 26));
+            ImageView tabIcon = icon(pageIcon(i), 26);
+            tabIcon.setImageTintList(onPill); // white on the dark tab, black on the light chosen tab
+            tab.addView(tabIcon);
 
             TextView label = text(mPages.get(i).title, 18, TEXT, false);
             label.setSingleLine(true);
