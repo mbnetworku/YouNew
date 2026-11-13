@@ -65,6 +65,8 @@ public final class AppUpdater {
     public static final int STATE_INSTALLING = 3;
     public static final int STATE_FAILED = 4;
     public static final int STATE_UP_TO_DATE = 5;
+    /** A newer version was found from Settings > About: the panel asks "Update now / Later" in place (no extra screen). */
+    public static final int STATE_AVAILABLE = 6;
 
     /** Told on the main thread each time the state or the percent changes; read the values with the getters. */
     public interface ProgressListener {
@@ -75,6 +77,7 @@ public final class AppUpdater {
     private static volatile int sState = STATE_IDLE;
     private static volatile int sPercent = -1; // -1: size unknown
     private static volatile String sVersion = "";
+    private static volatile String sUrl = "";
 
     private AppUpdater() {
     }
@@ -90,6 +93,25 @@ public final class AppUpdater {
 
     public static String getVersion() {
         return sVersion;
+    }
+
+    /** "Update now" in Settings > About: downloads the version that was found, then opens the installer. */
+    public static void startUpdate(Context context) {
+        if (context == null || sUrl.isEmpty()) {
+            return;
+        }
+
+        Context app = context.getApplicationContext();
+        if (askForInstallPermission(app)) { // ask before the download, not after it
+            setProgress(STATE_IDLE, -1);
+            return;
+        }
+        download(app, sVersion, sUrl);
+    }
+
+    /** "Later" in Settings > About. */
+    public static void dismissUpdate() {
+        setProgress(STATE_IDLE, -1);
     }
 
     public static void addProgressListener(ProgressListener listener) {
@@ -207,6 +229,12 @@ public final class AppUpdater {
 
                 final String version = tag.startsWith("v") ? tag.substring(1) : tag;
                 sVersion = version;
+                sUrl = url;
+                if (userAsked && !sListeners.isEmpty()) {
+                    // Settings > About is open: ask there, in the page (a second screen had no way back with a mouse)
+                    setProgress(STATE_AVAILABLE, -1);
+                    return;
+                }
                 if (userAsked) {
                     setProgress(STATE_IDLE, -1); // the question comes next
                 }

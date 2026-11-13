@@ -293,18 +293,14 @@ public class SettingsPanelView extends FrameLayout {
             LinearLayout tab = new LinearLayout(getContext());
             tab.setOrientation(LinearLayout.HORIZONTAL);
             tab.setGravity(Gravity.CENTER_VERTICAL);
-            tab.setPadding(dp(14), 0, dp(18), 0);
+            tab.setPadding(dp(20), 0, dp(20), 0);
             tab.setFocusable(true);
             tab.setClickable(true);
             tab.setBackground(pageBackground());
-            ImageView tabIcon = icon(pageIcon(i), 26);
-            tabIcon.setImageTintList(onPill); // white on the dark tab, black on the light chosen tab
-            tab.addView(tabIcon);
 
             TextView label = text(mPages.get(i).title, 18, TEXT, false);
             label.setSingleLine(true);
             label.setTextColor(onPill);
-            label.setPadding(dp(8), 0, 0, 0);
             tab.addView(label);
 
             tab.setOnClickListener(v -> showPage(index));
@@ -718,11 +714,24 @@ public class SettingsPanelView extends FrameLayout {
         trackParams.topMargin = dp(8);
         box.addView(track, trackParams);
 
+        // "Update now" / "Later": asked here, in the page, when a newer version was found
+        final LinearLayout buttons = new LinearLayout(getContext());
+        buttons.setOrientation(LinearLayout.HORIZONTAL);
+        buttons.setPadding(0, dp(8), 0, 0);
+        final TextView now = pillButton("");
+        now.setOnClickListener(v -> com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.startUpdate(getContext()));
+        TextView later = pillButton(getString(R.string.younew_update_later));
+        later.setOnClickListener(v -> com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.dismissUpdate());
+        buttons.addView(now);
+        buttons.addView(later);
+        box.addView(buttons);
+
         final Runnable refresh = () -> {
             int state = com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.getState();
             int percent = com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.getPercent();
             String version = com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.getVersion();
             boolean bar = false;
+            boolean ask = false;
             String line;
 
             switch (state) {
@@ -740,6 +749,11 @@ public class SettingsPanelView extends FrameLayout {
                     percent = 100;
                     line = getString(R.string.younew_update_p_installing);
                     break;
+                case com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.STATE_AVAILABLE:
+                    ask = true;
+                    line = getContext().getString(R.string.younew_update_available, version);
+                    now.setText(getContext().getString(R.string.younew_update_now, version));
+                    break;
                 case com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.STATE_FAILED:
                     line = getString(R.string.younew_update_p_failed);
                     break;
@@ -754,6 +768,11 @@ public class SettingsPanelView extends FrameLayout {
             box.setVisibility(View.VISIBLE);
             status.setText(line);
             track.setVisibility(bar ? View.VISIBLE : View.GONE);
+            boolean wasHidden = buttons.getVisibility() != View.VISIBLE;
+            buttons.setVisibility(ask ? View.VISIBLE : View.GONE);
+            if (ask && wasHidden) {
+                now.requestFocus(); // the remote lands on "Update now"
+            }
 
             if (bar) {
                 final int shown = Math.max(0, Math.min(100, percent));
@@ -781,6 +800,29 @@ public class SettingsPanelView extends FrameLayout {
 
         refresh.run();
         mContent.addView(box, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+    }
+
+    /** A rounded text button for the update question. */
+    private TextView pillButton(String label) {
+        TextView button = text(label, 18, TEXT, true);
+        button.setGravity(Gravity.CENTER);
+        button.setPadding(dp(22), dp(10), dp(22), dp(10));
+        button.setFocusable(true);
+        button.setClickable(true);
+        button.setBackground(buttonBackground());
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        lp.setMarginEnd(dp(10));
+        button.setLayoutParams(lp);
+        return button;
+    }
+
+    private StateListDrawable buttonBackground() {
+        StateListDrawable states = new StateListDrawable();
+        states.addState(new int[]{android.R.attr.state_pressed}, round(PRESSED));
+        states.addState(new int[]{android.R.attr.state_focused}, round(0xFF4A4A4A));
+        states.addState(new int[]{android.R.attr.state_hovered}, round(0xFF3A3A3A));
+        states.addState(new int[]{}, round(0xFF2A2A2A));
+        return states;
     }
 
     // ---------------------------------------------------------------- icons
