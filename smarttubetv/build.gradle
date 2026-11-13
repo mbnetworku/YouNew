@@ -24,6 +24,11 @@ buildscript {
 
 apply plugin: 'com.android.application'
 
+// YouNew: two builds of the same app. Default = "legacy" (Android 5.0 and newer, the file names are unchanged).
+// ./gradlew -PyounewModern ... = "modern" (Android 8.0 and newer; its files are named YouTvPlus-<version>-modern-<cpu>.apk).
+// The modern build needs no multidex/desugaring shims, so it starts and runs a little lighter.
+def modernBuild = project.hasProperty('younewModern')
+
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
@@ -57,10 +62,12 @@ android {
         applicationId "app.smarttube"
         minSdkVersion project.properties.minSdkVersion
         targetSdkVersion project.properties.targetSdkVersion
-        versionCode 2501
-        versionName "33.11"
+        versionCode 2503
+        versionName "33.13"
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField "long", "TIMESTAMP", System.currentTimeMillis() + "L"
+        // YouNew: read by the updater (AppUpdater) to fetch the file of the same build
+        resValue "bool", "younew_modern", modernBuild ? "true" : "false"
 
         // More info: http://myhexaville.com/2017/03/10/android-multidex/
         // Additionally, you should extend your application from MultiDexApplication
@@ -132,6 +139,9 @@ android {
             def version = variant.versionName
             def arch = output.getFilter(com.android.build.OutputFile.ABI)
             arch = arch != null ? arch : "universal"
+            if (modernBuild) {
+                arch = "modern-" + arch
+            }
             def suffix = variant.buildType.name == "release" ? "" : "-" + variant.buildType.name
 
             def newApkName = sprintf("%s-%s-%s%s.apk", [project, version, arch, suffix])
@@ -142,6 +152,11 @@ android {
     }
 
     packagingOptions {
+        // YouNew: compressed native libraries. Without this the modern build (minSdk 26) stores them uncompressed and
+        // its download is twice as big. Android 6+ installs them from the compressed file just the same.
+        jniLibs {
+            useLegacyPackaging = true
+        }
         // openvpn module fix: More than one file was found with OS independent path 'META-INF/com.android.tools/proguard/coroutines.pro'
         //exclude 'META-INF/com.android.tools/proguard/coroutines.pro'
         // Not working!
@@ -173,7 +188,7 @@ android {
         }
         stfdroid {
             applicationId "com.younew.tv"
-            minSdkVersion 21
+            minSdkVersion modernBuild ? 26 : 21
             targetSdkVersion project.properties.compileSdkVersion
 
             // The content of Universal apk

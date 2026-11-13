@@ -201,12 +201,22 @@ PY
     if has_text "ui-search-home-$1.xml" "SEARCH" && grep -q "Type or speak to search" "ui-search-home-$1.xml"; then
       echo "CHECK search panel in the Home screen ($1): SHOWN"
       check_keyboard "ui-search-home-$1.xml" "Home search panel, $1"
-      tap_text "ui-search-home-$1.xml" "A" || true
-      sleep 1
-      tap_text "ui-search-home-$1.xml" "B" || true
-      sleep 2
-      ui_dump "search-home-$1-typed" || true
-      if has_text "ui-search-home-$1-typed.xml" "ab"; then
+      # The emulator can be slow: look at the screen again before each try, and try up to 3 times
+      TYPED=0
+      for attempt in 1 2 3; do
+        ui_dump "search-home-$1-try" > /dev/null || true
+        tap_text "ui-search-home-$1-try.xml" "A" || true
+        sleep 1
+        tap_text "ui-search-home-$1-try.xml" "B" || true
+        sleep 3
+        ui_dump "search-home-$1-typed" || true
+        if has_text "ui-search-home-$1-typed.xml" "ab" || has_text "ui-search-home-$1-typed.xml" "abab" || has_text "ui-search-home-$1-typed.xml" "AB"; then
+          TYPED=1
+          break
+        fi
+        echo "typing try $attempt: no 'ab' yet"
+      done
+      if [ "$TYPED" = 1 ]; then
         echo "CHECK Home search panel keys type ($1): WORKS"
       else
         echo "CHECK Home search panel keys type ($1): FAILED (no 'ab' on the screen)"
@@ -564,7 +574,13 @@ audit_player_buttons() {
 }
 
 # Universal APK: it holds every ABI, so it runs on both the x86 and the x86_64 emulators
-APK=$(ls apk/debug/*universal*.apk | head -1)
+# Two builds: "legacy" (Android 5+) and "modern" (Android 8+, YouTvPlus-*-modern-universal-debug.apk).
+# Android 8 and newer emulators test the modern build when it exists, older ones the legacy build.
+SDK_NOW=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
+APK=""
+if [ "${SDK_NOW:-0}" -ge 26 ]; then APK=$(ls apk/debug/*modern-universal*.apk 2>/dev/null | head -1); fi
+if [ -z "$APK" ]; then APK=$(ls apk/debug/*universal*.apk | grep -v modern | head -1); fi
+echo "Testing with $APK (Android API $SDK_NOW)"
 adb shell getprop ro.build.version.release
 echo "Installing $APK"
 adb install -r "$APK" || exit 1

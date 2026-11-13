@@ -58,29 +58,39 @@ jobs:
       - name: Build (debug and release)
         run: |
           chmod +x gradlew
+          # Two builds of the same app: legacy (Android 5.0 and newer) and modern (Android 8.0 and newer).
+          # Each build's files are copied out right away: the second build may clear the output folder.
           ./gradlew --no-daemon --stacktrace assembleStfdroidDebug assembleStfdroidRelease
+          for t in debug release; do mkdir -p "dist/$t"; cp smarttubetv/build/outputs/apk/stfdroid/$t/*.apk "dist/$t/"; done
+          ./gradlew --no-daemon --stacktrace -PyounewModern assembleStfdroidDebug assembleStfdroidRelease
+          for t in debug release; do cp smarttubetv/build/outputs/apk/stfdroid/$t/*modern*.apk "dist/$t/"; done
 
       - name: Check the APK files
         run: |
           BT="$ANDROID_HOME/build-tools/34.0.0"
-          ls -la smarttubetv/build/outputs/apk/stfdroid/*/
-          for apk in smarttubetv/build/outputs/apk/stfdroid/*/*universal*.apk; do
+          ls -la dist/*/
+          for apk in dist/*/*universal*.apk; do
             echo "=== $apk"
             MINSDK=$("$BT/aapt" dump badging "$apk" | sed -n "s/^sdkVersion:'\([0-9]*\)'/\1/p")
             echo "minSdk: $MINSDK"
-            if [ "$MINSDK" -gt 21 ]; then echo "ERROR: APK needs API $MINSDK, but it must install on Android 5.0 (API 21)"; exit 1; fi
+            case "$apk" in
+              *modern*) if [ "$MINSDK" -ne 26 ]; then echo "ERROR: the modern APK must need API 26 (Android 8.0), it needs $MINSDK"; exit 1; fi ;;
+              *) if [ "$MINSDK" -gt 21 ]; then echo "ERROR: APK needs API $MINSDK, but it must install on Android 5.0 (API 21)"; exit 1; fi ;;
+            esac
             "$BT/aapt" dump badging "$apk" | grep -E "^package:|sdkVersion|targetSdkVersion|application-label:|launchable-activity|leanback-launchable|native-code"
             unzip -l "$apk" | grep -c "classes.*\.dex" | sed 's/^/dex files: /'
             "$BT/zipalign" -c 4 "$apk" && echo "zipalign: OK"
             # Fails the build if the APK is not signed (Android refuses to install it then)
-            "$BT/apksigner" verify --min-sdk-version 21 --print-certs "$apk" > signer.txt
+            # the modern build (Android 8+) is signed with the newer signature schemes only (no META-INF/MANIFEST.MF)
+            case "$apk" in *modern*) SIGN_MIN=26 ;; *) SIGN_MIN=21 ;; esac
+            "$BT/apksigner" verify --min-sdk-version $SIGN_MIN --print-certs "$apk" > signer.txt
             head -3 signer.txt
           done
 
       - uses: actions/upload-artifact@v4
         with:
           name: YouNew-apk
-          path: smarttubetv/build/outputs/apk/stfdroid/**/*.apk
+          path: dist/**/*.apk
           if-no-files-found: error
 
   # Install and start the app on emulators from Android 5.0 up, and fail if it crashes on start.
@@ -160,13 +170,16 @@ jobs:
           mkdir out
           for f in apk/release/YouTvPlus-*.apk; do
             abi=$(basename "$f" .apk | sed -E 's/^YouTvPlus-[^-]+-//')
-            if [ "$abi" = "universal" ]; then cp "$f" out/YouTvPlus.apk; else cp "$f" "out/YouTvPlus-$abi.apk"; fi
+            # legacy (Android 5.0+): YouTvPlus.apk, YouTvPlus-<cpu>.apk. modern (Android 8.0+): YouTvPlus-modern.apk, YouTvPlus-modern-<cpu>.apk
+            if [ "$abi" = "universal" ]; then cp "$f" out/YouTvPlus.apk
+            elif [ "$abi" = "modern-universal" ]; then cp "$f" out/YouTvPlus-modern.apk
+            else cp "$f" "out/YouTvPlus-$abi.apk"; fi
           done
           ls -la out
           TAG="${{ inputs.release_tag || github.event.release.tag_name || github.ref_name }}"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" > /dev/null 2>&1; then
             gh release create "$TAG" --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "YouTv Plus ${TAG#v}" \
-              --notes "YouTv Plus ${TAG#v}. Works on Android 5.0 and newer. Not sure which file? Take **YouTvPlus.apk**. Most TV boxes can also use YouTvPlus-armeabi-v7a.apk (smaller)."
+              --notes "YouTv Plus ${TAG#v}. Two versions: **Android 8 and newer** (new TV, phone, tablet): take **YouTvPlus-modern.apk**. **Android 5, 6 or 7** (old TV box): take **YouTvPlus.apk** (it also works on newer Android). Smaller files: YouTvPlus-modern-arm64-v8a.apk / YouTvPlus-modern-armeabi-v7a.apk (Android 8+) and YouTvPlus-armeabi-v7a.apk (Android 5+)."
           fi
           gh release upload "$TAG" out/*.apk --clobber --repo "${{ github.repository }}"
           # Beta tags (for example v33.02-beta) are marked as pre-releases: the normal download link keeps
