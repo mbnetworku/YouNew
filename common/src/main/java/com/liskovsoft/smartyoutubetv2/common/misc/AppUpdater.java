@@ -58,7 +58,85 @@ public final class AppUpdater {
     private static final Handler sHandler = new Handler(Looper.getMainLooper());
     private static volatile boolean sBusy; // set on the main thread, cleared on a worker
 
+    // YouNew: what the update is doing now, for the progress bar in Settings > About
+    public static final int STATE_IDLE = 0;
+    public static final int STATE_CHECKING = 1;
+    public static final int STATE_DOWNLOADING = 2;
+    public static final int STATE_INSTALLING = 3;
+    public static final int STATE_FAILED = 4;
+    public static final int STATE_UP_TO_DATE = 5;
+    /** A newer version was found from Settings > About: the panel asks "Update now / Later" in place (no extra screen). */
+    public static final int STATE_AVAILABLE = 6;
+
+    /** Told on the main thread each time the state or the percent changes; read the values with the getters. */
+    public interface ProgressListener {
+        void onUpdateProgress();
+    }
+
+    private static final java.util.List<ProgressListener> sListeners = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private static volatile int sState = STATE_IDLE;
+    private static volatile int sPercent = -1; // -1: size unknown
+    private static volatile String sVersion = "";
+    private static volatile String sUrl = "";
+
     private AppUpdater() {
+    }
+
+    public static int getState() {
+        return sState;
+    }
+
+    /** 0..100 while downloading, -1 when the size is not known. */
+    public static int getPercent() {
+        return sPercent;
+    }
+
+    public static String getVersion() {
+        return sVersion;
+    }
+
+    /** "Update now" in Settings > About: downloads the version that was found, then opens the installer. */
+    public static void startUpdate(Context context) {
+        if (context == null || sUrl.isEmpty()) {
+            return;
+        }
+
+        Context app = context.getApplicationContext();
+        if (askForInstallPermission(app)) { // ask before the download, not after it
+            setProgress(STATE_IDLE, -1);
+            return;
+        }
+        download(app, sVersion, sUrl);
+    }
+
+    /** "Later" in Settings > About. */
+    public static void dismissUpdate() {
+        setProgress(STATE_IDLE, -1);
+    }
+
+    public static void addProgressListener(ProgressListener listener) {
+        if (listener != null && !sListeners.contains(listener)) {
+            sListeners.add(listener);
+        }
+    }
+
+    public static void removeProgressListener(ProgressListener listener) {
+        sListeners.remove(listener);
+    }
+
+    private static void setProgress(int state, int percent) {
+        if (sState == state && sPercent == percent) {
+            return;
+        }
+
+        sState = state;
+        sPercent = percent;
+
+        sHandler.post(() -> {
+            for (ProgressListener listener : sListeners) {
+                listener.onUpdateProgress();
+            }
+        });
     }
 
     public static boolean isAutoCheckEnabled(Context context) {
@@ -124,6 +202,7 @@ public final class AppUpdater {
         sBusy = true;
 
         if (userAsked) {
+            setProgress(STATE_CHECKING, -1);
             MessageHelpers.showMessage(context, R.string.update_in_progress);
         }
 
@@ -137,6 +216,7 @@ public final class AppUpdater {
 
                 if (compareVersions(tag, installed) <= 0) {
                     if (userAsked) {
+                        setProgress(STATE_UP_TO_DATE, -1);
                         sHandler.post(() -> MessageHelpers.showLongMessage(context, R.string.update_not_found));
                     }
                     return;
@@ -148,10 +228,21 @@ public final class AppUpdater {
                 }
 
                 final String version = tag.startsWith("v") ? tag.substring(1) : tag;
+                sVersion = version;
+                sUrl = url;
+                if (userAsked && !sListeners.isEmpty()) {
+                    // Settings > About is open: ask there, in the page (a second screen had no way back with a mouse)
+                    setProgress(STATE_AVAILABLE, -1);
+                    return;
+                }
+                if (userAsked) {
+                    setProgress(STATE_IDLE, -1); // the question comes next
+                }
                 sHandler.post(() -> askToUpdate(context, version, url));
             } catch (Exception e) {
                 Log.e(TAG, "Update check error: %s", e.getMessage());
                 if (userAsked) {
+                    setProgress(STATE_FAILED, -1);
                     sHandler.post(() -> MessageHelpers.showLongMessage(context, R.string.younew_update_error));
                 }
             } finally {
@@ -245,7 +336,8 @@ public final class AppUpdater {
         }
         sBusy = true;
 
-        sHandler.post(() -> MessageHelpers.showLongMessage(context, context.getString(R.string.younew_update_downloading, 0)));
+        sVersion = version;
+        setProgress(STATE_DOWNLOADING, 0);
 
         new Thread(() -> {
             File file = null;
@@ -262,17 +354,20 @@ public final class AppUpdater {
                 }
 
                 if (!sameKey(context, file)) {
+                    setProgress(STATE_FAILED, -1);
                     sHandler.post(() -> MessageHelpers.showLongMessage(context, R.string.younew_update_other_key));
                     return;
                 }
 
                 final File apk = file;
+                setProgress(STATE_INSTALLING, 100);
                 sHandler.post(() -> install(context, apk));
             } catch (Exception e) {
                 Log.e(TAG, "Update download error: %s", e.getMessage());
                 if (file != null) {
                     file.delete();
                 }
+                setProgress(STATE_FAILED, -1);
                 sHandler.post(() -> MessageHelpers.showLongMessage(context, R.string.younew_update_error));
             } finally {
                 sBusy = false;
@@ -295,7 +390,6 @@ public final class AppUpdater {
         HttpURLConnection connection = open(url);
         try {
             long total = connection.getContentLength(); // -1 when unknown
-            int lastShown = 0;
             long done = 0;
 
             try (InputStream in = connection.getInputStream(); OutputStream out = new FileOutputStream(target)) {
@@ -305,14 +399,7 @@ public final class AppUpdater {
                     out.write(buffer, 0, read);
                     done += read;
 
-                    if (total > 0) {
-                        int percent = (int) (done * 100 / total);
-                        if (percent >= lastShown + 25) { // 25%, 50%, 75%
-                            lastShown = percent / 25 * 25;
-                            final int shown = lastShown;
-                            sHandler.post(() -> MessageHelpers.showMessage(context, context.getString(R.string.younew_update_downloading, shown)));
-                        }
-                    }
+                    setProgress(STATE_DOWNLOADING, total > 0 ? (int) Math.min(100, done * 100 / total) : -1);
                 }
             }
         } finally {
@@ -393,6 +480,7 @@ public final class AppUpdater {
     private static void install(Context context, File apk) {
         try {
             if (askForInstallPermission(context)) {
+                setProgress(STATE_IDLE, -1);
                 return;
             }
 
@@ -406,6 +494,7 @@ public final class AppUpdater {
             context.startActivity(intent);
         } catch (Exception e) {
             Log.e(TAG, "Install error: %s", e.getMessage());
+            setProgress(STATE_FAILED, -1);
             MessageHelpers.showLongMessage(context, R.string.younew_update_error);
         }
     }

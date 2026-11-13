@@ -810,4 +810,9 @@
     <string name="younew_signin_device_only">Save on this device only</string>
     <string name="younew_signin_not_now">Not now</string>
     <string name="younew_channel_not_opened">Could not open the channel. Check the connection and try again.</string>
+    <string name="younew_update_p_checking">Checking for updates…</string>
+    <string name="younew_update_p_downloading">Downloading %1$s  %2$d%%</string>
+    <string name="younew_update_p_downloading_unknown">Downloading…</string>
+    <string name="younew_update_p_installing">Opening the installer…</string>
+    <string name="younew_update_p_failed">The update failed. Try again.</string>
 </resources>

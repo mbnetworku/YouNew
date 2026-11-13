@@ -506,8 +506,21 @@ audit_settings_pages() {
   for page in "Accounts" "General" "Player" "Language & Location" "Subtitles" "Appearance" "About"; do
     esc=$(printf '%s' "$page" | sed 's/&/\&amp;/g')
     if ! grep -qF "text=\"$esc\"" ui-fp.xml; then
-      # the list of pages is longer than the short landscape screen: scroll it once
-      adb shell input swipe 150 280 150 100 300 || true
+      # the row of tabs is wider than the screen: scroll it sideways once (on the line of the tabs)
+      local row
+      row=$(python3 - <<'PY'
+import re
+s = open('ui-fp.xml', errors='ignore').read()
+for n in re.findall(r'<node[^>]*>', s):
+    t = re.search(r' text="([^"]*)"', n)
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if t and b and t.group(1) in ('Accounts', 'General', 'Player', 'Language &amp; Location', 'Subtitles', 'Appearance', 'About'):
+        x1, y1, x2, y2 = map(int, b.groups())
+        print((y1 + y2) // 2)
+        break
+PY
+)
+      adb shell input swipe 700 "${row:-150}" 100 "${row:-150}" 300 || true
       sleep 1
       fingerprint > /dev/null
     fi
