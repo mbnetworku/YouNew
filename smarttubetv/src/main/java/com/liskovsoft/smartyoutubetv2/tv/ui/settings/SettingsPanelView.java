@@ -1,6 +1,5 @@
 package com.liskovsoft.smartyoutubetv2.tv.ui.settings;
 
-import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.res.ColorStateList;
 import android.graphics.Color;
@@ -12,8 +11,6 @@ import android.os.Looper;
 import android.util.DisplayMetrics;
 import android.util.TypedValue;
 import android.view.Gravity;
-import android.view.MotionEvent;
-import android.view.animation.OvershootInterpolator;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.FrameLayout;
@@ -36,26 +33,21 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * YouNew: the Settings panel. The pages are listed on the left and the options of the chosen page are shown
- * on the right at the same time, so a click or a touch on either side always works.
+ * YouNew: the Settings panel, drawn as tabs. The pages are a row of tabs along the top (Accounts, General, Player,
+ * ...) and the options of the chosen page are in one rounded card below, so a click or a touch on either always works.
  * <br>
  * It is a plain view, so it can live inside the Home screen (next to the sidebar, see SettingsPanelFragment)
  * or fill a screen of its own (SettingsScreenActivity).
  * <br>
- * Remote: Up/Down choose a page, Right goes into its options, Left goes back. Mouse or touch: click a page on
- * the left, click an option on the right.
- * <br>
- * Narrow places (a phone held upright): one pane at a time. The list of pages first; a click slides the
- * options in, and the arrow at the top slides back. Wide places (TV, a phone held sideways): both panes together.
- * The panel rebuilds itself when its width changes.
+ * Remote: Left/Right choose a tab, Down goes into its options, Up comes back to the tabs. Mouse or touch: click a
+ * tab, click an option. The row of tabs scrolls sideways when the screen is narrow (a phone).
  * <br>
  * Choices open inside the page (no pop-up): a click on a choice row unfolds its list right under it.
- * Everything is rounded: round coloured icons, a rounded card behind the options, rounded rows and a rounded
- * highlight for the chosen page.
  * <br>
- * Animations: a page's options glide in one after another (from below or above, by the direction moved in the
- * list); pages slide in; rows grow a little under the remote focus or the mouse and shrink while pressed; the
- * icon of a switch pops when flipped; unfolded lists open smoothly; a changed value fades to its new text.
+ * No motion: nothing slides, fades or grows (the owner found it slow). Only the colour of the focused or pressed
+ * item changes.
+ * <br>
+ * Settings > About shows a progress bar under "Check for updates now" while an update is looked for or downloaded.
  * <br>
  * The options come from the same presenters as before (they build option lists for AppDialogPresenter);
  * this panel draws those lists itself. See {@link AppDialogPresenter#setCapture}.
@@ -74,9 +66,6 @@ public class SettingsPanelView extends FrameLayout {
     private static final int FOCUS = 0xFF3A3A3A;
     private static final int PRESSED = 0xFF4A4A4A;
     private static final long FOCUS_DELAY_MS = 150;
-    private static final float TWO_PANE_MIN_WIDTH_DP = 600f;
-    private static final float FOCUS_SCALE = 1.02f;
-    private static final float PRESS_SCALE = 0.97f;
 
     private final Handler mHandler = new Handler(Looper.getMainLooper());
     private final List<View> mPageViews = new ArrayList<>();
@@ -90,7 +79,6 @@ public class SettingsPanelView extends FrameLayout {
     private LinearLayout mContent;
     private ScrollView mScroll;
     private int mPageIconRes;
-    private boolean mSlideFromBelow = true;
     private Runnable mCollapseOpenChoices;
     private ViewGroup mLeftPanel; // scrolls when the list of pages is taller than the screen
     private LinearLayout mLeftList;
@@ -101,7 +89,6 @@ public class SettingsPanelView extends FrameLayout {
     private int mCurrentPage = -1;
     private int mLoadId;
     private Runnable mPendingPage;
-    private final Runnable mSettle = this::settle;
 
     /**
      * @param startPage   the page to show first (-1: the first one on a wide panel, the list on a narrow one)
@@ -179,9 +166,7 @@ public class SettingsPanelView extends FrameLayout {
     }
 
     private boolean wantTwoPane(int widthPx) {
-        DisplayMetrics metrics = getResources().getDisplayMetrics();
-        int width = widthPx > 0 ? widthPx : metrics.widthPixels;
-        return width / metrics.density >= TWO_PANE_MIN_WIDTH_DP;
+        return true; // tabs on top and options below at every width
     }
 
     private void rebuild() {
@@ -217,35 +202,6 @@ public class SettingsPanelView extends FrameLayout {
         }
     }
 
-    /**
-     * Safety net: after the entrance animations should be over, every item is put in its final place and made fully
-     * visible. An animation that was cut short (the panel was detached or hidden while it ran, as the Home screen
-     * does when it changes sections) can no longer leave the panel invisible.
-     */
-    private void settle() {
-        settleChildren(mLeftList);
-        settleChildren(mContent);
-    }
-
-    private void settleChildren(ViewGroup group) {
-        if (group == null) {
-            return;
-        }
-
-        for (int i = 0; i < group.getChildCount(); i++) {
-            View child = group.getChildAt(i);
-            child.animate().cancel();
-            child.setAlpha(1f);
-            child.setTranslationX(0f);
-            child.setTranslationY(0f);
-        }
-    }
-
-    private void scheduleSettle() {
-        mHandler.removeCallbacks(mSettle);
-        mHandler.postDelayed(mSettle, 1500);
-    }
-
     // The Home screen slides the panel when the sidebar opens or closes WITHOUT laying the panel out again, so
     // onLayout never saw the move: a panel made while the sidebar was open stayed as narrow as it was then, and
     // its page names were cut off on a phone. Its place is now looked at before every frame; when it has moved
@@ -266,7 +222,6 @@ public class SettingsPanelView extends FrameLayout {
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
-        scheduleSettle();
         getViewTreeObserver().addOnPreDrawListener(mWatchPlace);
     }
 
@@ -303,220 +258,89 @@ public class SettingsPanelView extends FrameLayout {
     // ---------------------------------------------------------------- screen
 
     private View buildScreen() {
-        mTwoPane = wantTwoPane(getWidth());
+        mTwoPane = true;
+        boolean narrow = getResources().getDisplayMetrics().widthPixels / getResources().getDisplayMetrics().density < 600f;
 
         LinearLayout root = new LinearLayout(getContext());
-        root.setOrientation(LinearLayout.HORIZONTAL);
+        root.setOrientation(LinearLayout.VERTICAL);
 
-        // Left: title and the list of pages
-        // The list of pages sits in a scroll box: on a phone held sideways the screen is shorter than the list
-        final ScrollView leftScroll = new ScrollView(getContext());
-        leftScroll.setClipToPadding(false);
-        mLeftPanel = leftScroll;
-        LinearLayout left = new LinearLayout(getContext());
-        mLeftList = left;
-        left.setOrientation(LinearLayout.VERTICAL);
-        leftScroll.addView(left, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        if (mTwoPane) {
-            left.setPadding(dp(32), dp(24), dp(16), dp(24));
-            root.addView(leftScroll, new LinearLayout.LayoutParams(dp(300), ViewGroup.LayoutParams.MATCH_PARENT));
-        } else {
-            left.setPadding(dp(16), dp(24), dp(16), dp(24));
-            root.addView(leftScroll, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f));
-        }
+        // Top: back arrow and the row of tabs (scrolls sideways when it is wider than the screen)
+        LinearLayout bar = new LinearLayout(getContext());
+        bar.setOrientation(LinearLayout.HORIZONTAL);
+        bar.setGravity(Gravity.CENTER_VERTICAL);
+        bar.setPadding(dp(narrow ? 8 : 24), dp(8), dp(narrow ? 8 : 24), dp(4));
+        bar.addView(backArrow());
 
-        LinearLayout titleRow = new LinearLayout(getContext());
-        titleRow.setOrientation(LinearLayout.HORIZONTAL);
-        titleRow.setGravity(Gravity.CENTER_VERTICAL);
-        titleRow.setPadding(0, 0, 0, dp(16));
-        titleRow.addView(backArrow());
-        TextView title = text(getString(R.string.header_settings), 30, TEXT, true);
-        title.setPadding(dp(8), 0, 0, 0);
-        titleRow.addView(title);
-        left.addView(titleRow);
+        final android.widget.HorizontalScrollView tabScroll = new android.widget.HorizontalScrollView(getContext());
+        tabScroll.setHorizontalScrollBarEnabled(false);
+        tabScroll.setClipToPadding(false);
+        mLeftPanel = tabScroll;
+        LinearLayout tabs = new LinearLayout(getContext());
+        mLeftList = tabs;
+        tabs.setOrientation(LinearLayout.HORIZONTAL);
+        tabs.setGravity(Gravity.CENTER_VERTICAL);
+        tabScroll.addView(tabs, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.MATCH_PARENT));
+        LinearLayout.LayoutParams tabScrollParams = new LinearLayout.LayoutParams(0, dp(52), 1f);
+        tabScrollParams.setMarginStart(dp(8));
+        bar.addView(tabScroll, tabScrollParams);
+        root.addView(bar, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
+
+        ColorStateList onPill = new ColorStateList(
+                new int[][]{{android.R.attr.state_selected}, {}}, new int[]{Color.BLACK, TEXT});
 
         for (int i = 0; i < mPages.size(); i++) {
             final int index = i;
-            // YouNew: section headers like the YouTube TV Settings list
-            if (i == 3) {
-                left.addView(groupHeader(R.string.younew_group_language));
-            } else if (i == 6) {
-                left.addView(groupHeader(R.string.younew_group_about));
-            }
-            LinearLayout item = new LinearLayout(getContext());
-            item.setOrientation(LinearLayout.HORIZONTAL);
-            item.setGravity(Gravity.CENTER_VERTICAL);
-            item.setPadding(dp(20), 0, dp(20), 0);
-            item.setFocusable(true);
-            item.setClickable(true);
-            item.setBackground(pageBackground());
+            LinearLayout tab = new LinearLayout(getContext());
+            tab.setOrientation(LinearLayout.HORIZONTAL);
+            tab.setGravity(Gravity.CENTER_VERTICAL);
+            tab.setPadding(dp(14), 0, dp(18), 0);
+            tab.setFocusable(true);
+            tab.setClickable(true);
+            tab.setBackground(pageBackground());
+            tab.addView(icon(pageIcon(i), 26));
 
-            ColorStateList onPill = new ColorStateList(
-                    new int[][]{{android.R.attr.state_selected}, {}}, new int[]{Color.BLACK, TEXT});
-            item.addView(icon(pageIcon(i), 34));
-
-            TextView label = text(mPages.get(i).title, 22, TEXT, false);
-            if (mTwoPane) {
-                label.setSingleLine(true);
-            } else {
-                // An upright phone: a long name ("Language & Location") takes two lines instead of being cut off
-                label.setMaxLines(2);
-                label.setTextSize(TypedValue.COMPLEX_UNIT_SP, 20);
-                label.setLineSpacing(0, 0.9f);
-            }
-            label.setEllipsize(android.text.TextUtils.TruncateAt.END);
+            TextView label = text(mPages.get(i).title, 18, TEXT, false);
+            label.setSingleLine(true);
             label.setTextColor(onPill);
-            label.setPadding(dp(16), 0, 0, 0);
-            item.addView(label);
-            item.setOnClickListener(v -> {
-                showPage(index);
-                showOptions(true, true); // narrow screen: slide the options in (nothing happens on a wide one)
-            });
-            // The remote moves the focus: show that page after a short moment (not while scrolling fast).
-            // A narrow screen waits for the click instead (the options cover the list).
-            item.setOnFocusChangeListener((v, hasFocus) -> {
-                grow(v, hasFocus);
-                if (hasFocus && mTwoPane) {
+            label.setPadding(dp(8), 0, 0, 0);
+            tab.addView(label);
+
+            tab.setOnClickListener(v -> showPage(index));
+            // The remote moves the focus: show that page after a short moment (not while moving fast)
+            tab.setOnFocusChangeListener((v, hasFocus) -> {
+                if (hasFocus) {
                     showPageDelayed(index);
+                    tabScroll.post(() -> tabScroll.smoothScrollTo(Math.max(0, v.getLeft() - dp(40)), 0));
                 }
             });
-            addTouchFeedback(item);
-            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56));
-            lp.bottomMargin = dp(4);
-            left.addView(item, lp);
-            mPageViews.add(item);
 
-            // The pages slide in one after another
-            item.setAlpha(0f);
-            item.setTranslationX(-dp(24));
-            item.animate().alpha(1f).translationX(0f).setStartDelay(80L + i * 45L).setDuration(240).start();
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44));
+            lp.setMarginEnd(dp(6));
+            tabs.addView(tab, lp);
+            mPageViews.add(tab);
         }
 
-        // Right: the options of the chosen page
+        // Below: the options of the chosen page in one rounded card
         mScroll = new ScrollView(getContext());
         mScroll.setFillViewport(true);
         mScroll.setClipToPadding(false);
         mContent = new LinearLayout(getContext());
         mContent.setOrientation(LinearLayout.VERTICAL);
-        if (mTwoPane) {
-            mContent.setPadding(dp(24), dp(40), dp(64), dp(48));
-        } else {
-            mContent.setPadding(dp(16), dp(24), dp(16), dp(32));
-        }
+        mContent.setPadding(dp(narrow ? 12 : 28), dp(narrow ? 12 : 20), dp(narrow ? 12 : 28), dp(32));
         mScroll.addView(mContent, new ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
-        mScroll.setBackground(round(CARD, 32));
-        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f);
-        cardParams.setMargins(dp(mTwoPane ? 8 : 0), dp(8), dp(mTwoPane ? 24 : 0), dp(16));
+        mScroll.setBackground(round(CARD, 28));
+        LinearLayout.LayoutParams cardParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f);
+        cardParams.setMargins(dp(narrow ? 8 : 24), dp(4), dp(narrow ? 8 : 24), dp(12));
         root.addView(mScroll, cardParams);
-
-        if (!mTwoPane) { // one pane at a time
-            mScroll.setVisibility(mShowingOptions ? View.VISIBLE : View.GONE);
-            leftScroll.setVisibility(mShowingOptions ? View.GONE : View.VISIBLE);
-        }
-
-        scheduleSettle();
 
         return root;
     }
 
     // ---------------------------------------------------------------- pages
 
-    /** Narrow screen only: slides between the list of pages and the options of the chosen page. */
+    /** Tabs on top and options below are always both visible: nothing to switch. */
     private void showOptions(boolean show, boolean animate) {
-        if (mTwoPane) {
-            return;
-        }
-
         mShowingOptions = show;
-        final View hide = show ? mLeftPanel : mScroll;
-        final View reveal = show ? mScroll : mLeftPanel;
-
-        if (!animate) {
-            hide.setVisibility(View.GONE);
-            reveal.setVisibility(View.VISIBLE);
-            return;
-        }
-
-        float shift = dp(72);
-        reveal.setVisibility(View.VISIBLE);
-        reveal.setAlpha(0f);
-        reveal.setTranslationX(show ? shift : -shift);
-        reveal.animate().alpha(1f).translationX(0f).setStartDelay(0).setDuration(240).start();
-
-        hide.animate().alpha(0f).translationX(show ? -shift : shift).setStartDelay(0).setDuration(180)
-                .withEndAction(() -> {
-                    hide.setVisibility(View.GONE);
-                    hide.setAlpha(1f);
-                    hide.setTranslationX(0f);
-                }).start();
-
-        if (!show && mCurrentPage >= 0 && mCurrentPage < mPageViews.size()) {
-            mPageViews.get(mCurrentPage).requestFocus();
-        }
-    }
-
-    /** A quick "pop" (bigger, then back with a little overshoot): shows that a switch was flipped or a choice made. */
-    private void pop(View view) {
-        view.animate().cancel();
-        view.setScaleX(0.6f);
-        view.setScaleY(0.6f);
-        view.animate().scaleX(1f).scaleY(1f).setDuration(260).setInterpolator(new OvershootInterpolator(3f)).start();
-    }
-
-    /** A value fades out and back in with its new text. */
-    private void fadeText(TextView view, String text) {
-        view.animate().cancel();
-        view.animate().alpha(0f).setDuration(90).withEndAction(() -> {
-            view.setText(text);
-            view.animate().alpha(1f).setDuration(140).start();
-        }).start();
-    }
-
-    /** A view grows a little while it has the remote focus or the mouse over it. */
-    private void grow(View view, boolean on) {
-        float scale = on ? FOCUS_SCALE : 1f;
-        view.animate().scaleX(scale).scaleY(scale).setDuration(120).start();
-    }
-
-    /** Pressed: shrink a little; released: back (to the focus size if it still has the focus). */
-    private void addTouchFeedback(View view) {
-        view.setOnTouchListener((v, event) -> {
-            switch (event.getActionMasked()) {
-                case MotionEvent.ACTION_DOWN:
-                    v.animate().scaleX(PRESS_SCALE).scaleY(PRESS_SCALE).setDuration(80).start();
-                    break;
-                case MotionEvent.ACTION_UP:
-                case MotionEvent.ACTION_CANCEL:
-                    float scale = v.isFocused() ? FOCUS_SCALE : 1f;
-                    v.animate().scaleX(scale).scaleY(scale).setDuration(120).start();
-                    break;
-                default:
-                    break;
-            }
-            return false; // the click still works
-        });
-
-        view.setOnHoverListener((v, event) -> {
-            if (event.getActionMasked() == MotionEvent.ACTION_HOVER_ENTER) {
-                grow(v, true);
-            } else if (event.getActionMasked() == MotionEvent.ACTION_HOVER_EXIT && !v.isFocused()) {
-                grow(v, false);
-            }
-            return false;
-        });
-    }
-
-    /** The options of a page glide in one after another. */
-    private void animateContentIn() {
-        int count = mContent.getChildCount();
-        for (int i = 0; i < count; i++) {
-            View child = mContent.getChildAt(i);
-            child.setAlpha(0f);
-            child.setTranslationX(dp(20));
-            child.setTranslationY(mSlideFromBelow ? dp(16) : -dp(16));
-            child.animate().alpha(1f).translationX(0f).translationY(0f)
-                    .setStartDelay(Math.min(i, 10) * 35L).setDuration(240).start();
-        }
     }
 
     private void showPageDelayed(int index) {
@@ -542,7 +366,6 @@ public class SettingsPanelView extends FrameLayout {
             return;
         }
 
-        mSlideFromBelow = index >= mCurrentPage; // moving down the list: the options come up from below
         mCurrentPage = index;
 
         for (int i = 0; i < mPageViews.size(); i++) {
@@ -588,25 +411,10 @@ public class SettingsPanelView extends FrameLayout {
         mRows.clear();
         mCollapseOpenChoices = null;
 
-        LinearLayout headingRow = new LinearLayout(getContext());
-        headingRow.setOrientation(LinearLayout.HORIZONTAL);
-        headingRow.setGravity(Gravity.CENTER_VERTICAL);
-        headingRow.setPadding(0, 0, 0, dp(12));
-
-        if (!mTwoPane) { // narrow screen: an arrow back to the list of pages
-            headingRow.addView(backArrow());
-        }
-
         mPageIconRes = pageIcon(index);
-        ImageView headingIcon = icon(mPageIconRes, 40);
-        LinearLayout.LayoutParams headingIconParams = new LinearLayout.LayoutParams(dp(40), dp(40));
-        headingIconParams.setMarginStart(dp(mTwoPane ? 20 : 8));
-        headingRow.addView(headingIcon, headingIconParams);
-
-        TextView heading = text(mPages.get(index).title, 30, TEXT, true);
-        heading.setPadding(dp(14), 0, 0, 0);
-        headingRow.addView(heading);
-        mContent.addView(headingRow);
+        TextView heading = text(mPages.get(index).title, 26, TEXT, true);
+        heading.setPadding(dp(20), 0, 0, dp(10));
+        mContent.addView(heading);
 
         if (categories != null) {
             for (OptionCategory category : categories) {
@@ -647,16 +455,10 @@ public class SettingsPanelView extends FrameLayout {
         }
 
         mScroll.scrollTo(0, 0);
-        scheduleSettle();
 
         if (focusRow >= 0) {
             if (focusRow < mRows.size()) {
                 mRows.get(focusRow).requestFocus();
-            }
-        } else {
-            animateContentIn(); // a refresh after a click does not replay it
-            if (!mTwoPane && !mRows.isEmpty()) {
-                mRows.get(0).requestFocus();
             }
         }
     }
@@ -686,7 +488,6 @@ public class SettingsPanelView extends FrameLayout {
         row.setOnClickListener(v -> {
             boolean now = !toggle.isChecked();
             toggle.setChecked(now);
-            pop(row.getChildAt(0)); // the icon pops
             item.onSelect(now);
         });
 
@@ -742,62 +543,26 @@ public class SettingsPanelView extends FrameLayout {
             final MaxHeightScrollView box = buildChoiceList(options, value, rowIndex);
             list[0] = box;
             wrapper.addView(box);
-            unfold(box, true, null);
-            arrow.animate().rotation(90f).setDuration(200).start();
+            arrow.setRotation(90f);
 
             mCollapseOpenChoices = () -> {
                 final MaxHeightScrollView open = list[0];
                 list[0] = null;
                 mCollapseOpenChoices = null;
-                arrow.animate().rotation(0f).setDuration(200).start();
+                arrow.setRotation(0f);
                 if (open != null) {
-                    unfold(open, false, () -> wrapper.removeView(open));
+                    wrapper.removeView(open);
                 }
             };
 
             // Bring the unfolded list into view (long lists such as Language)
-            mScroll.post(() -> mScroll.smoothScrollTo(0, Math.max(0, wrapper.getTop() - dp(8))));
+            mScroll.post(() -> mScroll.scrollTo(0, Math.max(0, wrapper.getTop() - dp(8))));
         });
 
         LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         lp.bottomMargin = dp(4);
         mContent.addView(wrapper, lp);
         mRows.add(row);
-    }
-
-    /** Opens (or closes) a list smoothly: its height grows from nothing (or shrinks to nothing) while it fades. */
-    private void unfold(final View box, final boolean open, final Runnable onEnd) {
-        box.measure(View.MeasureSpec.makeMeasureSpec(mContent.getWidth() > 0 ? mContent.getWidth() : dp(600), View.MeasureSpec.AT_MOST),
-                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
-        final int full = Math.max(1, box.getMeasuredHeight());
-        final int from = open ? 0 : box.getHeight() > 0 ? box.getHeight() : full;
-        final int to = open ? full : 0;
-
-        final ViewGroup.LayoutParams params = box.getLayoutParams();
-        params.height = from;
-        box.setLayoutParams(params);
-
-        ValueAnimator animator = ValueAnimator.ofInt(from, to);
-        animator.setDuration(open ? 240 : 180);
-        animator.addUpdateListener(a -> {
-            params.height = (int) a.getAnimatedValue();
-            box.setLayoutParams(params);
-            box.setAlpha(open ? a.getAnimatedFraction() : 1f - a.getAnimatedFraction());
-        });
-        animator.addListener(new android.animation.AnimatorListenerAdapter() {
-            @Override
-            public void onAnimationEnd(android.animation.Animator animation) {
-                if (open) {
-                    params.height = ViewGroup.LayoutParams.WRAP_CONTENT;
-                    box.setLayoutParams(params);
-                    box.setAlpha(1f);
-                }
-                if (onEnd != null) {
-                    onEnd.run();
-                }
-            }
-        });
-        animator.start();
     }
 
     /** The unfolded choices: a radio dot and a name each. Long lists scroll inside their own box. */
@@ -827,8 +592,6 @@ public class SettingsPanelView extends FrameLayout {
             choice.setFocusable(true);
             choice.setClickable(true);
             choice.setBackground(rowBackground());
-            choice.setOnFocusChangeListener((v, hasFocus) -> grow(v, hasFocus));
-            addTouchFeedback(choice);
 
             RadioButton dot = new RadioButton(getContext());
             dot.setChecked(i == checked);
@@ -845,7 +608,7 @@ public class SettingsPanelView extends FrameLayout {
                 for (int d = 0; d < dots.size(); d++) {
                     dots.get(d).setChecked(d == index);
                 }
-                fadeText(value, String.valueOf(option.getTitle()));
+                value.setText(String.valueOf(option.getTitle()));
                 option.onSelect(true); // only the chosen one is told (the old screen did the same)
                 if (mCollapseOpenChoices != null) {
                     mCollapseOpenChoices.run();
@@ -854,7 +617,7 @@ public class SettingsPanelView extends FrameLayout {
                     if (!isFinishing()) {
                         reloadPage(rowIndex);
                     }
-                }, 260);
+                }, 60);
             });
 
             items.addView(choice);
@@ -874,10 +637,14 @@ public class SettingsPanelView extends FrameLayout {
                 if (!isFinishing()) {
                     reloadPage(rowIndex);
                 }
-            }, 400);
+            }, 120);
         });
 
         addRow(row);
+
+        if (getString(R.string.younew_update_check).contentEquals(String.valueOf(item.getTitle()))) {
+            addUpdateProgress();
+        }
     }
 
     private void addInfoRow(OptionItem item) {
@@ -895,8 +662,6 @@ public class SettingsPanelView extends FrameLayout {
         row.setFocusable(true);
         row.setClickable(true);
         row.setBackground(rowBackground());
-        row.setOnFocusChangeListener((v, hasFocus) -> grow(v, hasFocus));
-        addTouchFeedback(row);
 
         ImageView icon = icon(iconFor(iconTitle), 36);
         LinearLayout.LayoutParams iconParams = new LinearLayout.LayoutParams(dp(36), dp(36));
@@ -928,11 +693,92 @@ public class SettingsPanelView extends FrameLayout {
         return block;
     }
 
-    /** A small grey section title in the list of pages (not clickable). */
-    private TextView groupHeader(int resId) {
-        TextView header = text(getString(resId).toUpperCase(), 14, 0xFFAAAAAA, true);
-        header.setPadding(dp(20), dp(22), dp(20), dp(8));
-        return header;
+    // ---------------------------------------------------------------- update progress
+
+    /**
+     * Under "Check for updates now": a text line and a progress bar that follow AppUpdater (checking, downloading
+     * with the percent, opening the installer, failed, up to date). Nothing shows while the updater is idle.
+     */
+    private void addUpdateProgress() {
+        final LinearLayout box = new LinearLayout(getContext());
+        box.setOrientation(LinearLayout.VERTICAL);
+        box.setPadding(dp(20), dp(6), dp(20), dp(14));
+
+        final TextView status = text("", 18, TEXT, false);
+        box.addView(status);
+
+        final FrameLayout track = new FrameLayout(getContext());
+        track.setBackground(round(0xFF3A3A3A, 6));
+        final View fill = new View(getContext());
+        fill.setBackground(round(0xFF3EA6FF, 6));
+        track.addView(fill, new FrameLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT));
+        LinearLayout.LayoutParams trackParams = new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(12));
+        trackParams.topMargin = dp(8);
+        box.addView(track, trackParams);
+
+        final Runnable refresh = () -> {
+            int state = com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.getState();
+            int percent = com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.getPercent();
+            String version = com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.getVersion();
+            boolean bar = false;
+            String line;
+
+            switch (state) {
+                case com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.STATE_CHECKING:
+                    line = getString(R.string.younew_update_p_checking);
+                    break;
+                case com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.STATE_DOWNLOADING:
+                    bar = percent >= 0;
+                    line = percent >= 0
+                            ? getContext().getString(R.string.younew_update_p_downloading, version, percent)
+                            : getString(R.string.younew_update_p_downloading_unknown);
+                    break;
+                case com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.STATE_INSTALLING:
+                    bar = true;
+                    percent = 100;
+                    line = getString(R.string.younew_update_p_installing);
+                    break;
+                case com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.STATE_FAILED:
+                    line = getString(R.string.younew_update_p_failed);
+                    break;
+                case com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.STATE_UP_TO_DATE:
+                    line = getString(R.string.update_not_found);
+                    break;
+                default:
+                    box.setVisibility(View.GONE);
+                    return;
+            }
+
+            box.setVisibility(View.VISIBLE);
+            status.setText(line);
+            track.setVisibility(bar ? View.VISIBLE : View.GONE);
+
+            if (bar) {
+                final int shown = Math.max(0, Math.min(100, percent));
+                track.post(() -> {
+                    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) fill.getLayoutParams();
+                    lp.width = track.getWidth() * shown / 100;
+                    fill.setLayoutParams(lp);
+                });
+            }
+        };
+
+        final com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.ProgressListener listener = refresh::run;
+        box.addOnAttachStateChangeListener(new View.OnAttachStateChangeListener() {
+            @Override
+            public void onViewAttachedToWindow(View v) {
+                com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.addProgressListener(listener);
+                refresh.run();
+            }
+
+            @Override
+            public void onViewDetachedFromWindow(View v) {
+                com.liskovsoft.smartyoutubetv2.common.misc.AppUpdater.removeProgressListener(listener);
+            }
+        });
+
+        refresh.run();
+        mContent.addView(box, new LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT));
     }
 
     // ---------------------------------------------------------------- icons
@@ -1054,11 +900,7 @@ public class SettingsPanelView extends FrameLayout {
 
         @Override
         protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
-            if (View.MeasureSpec.getMode(heightMeasureSpec) == View.MeasureSpec.EXACTLY) {
-                super.onMeasure(widthMeasureSpec, heightMeasureSpec); // being animated to a given height
-            } else {
-                super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(mMaxHeight, View.MeasureSpec.AT_MOST));
-            }
+            super.onMeasure(widthMeasureSpec, View.MeasureSpec.makeMeasureSpec(mMaxHeight, View.MeasureSpec.AT_MOST));
         }
     }
 
@@ -1077,8 +919,6 @@ public class SettingsPanelView extends FrameLayout {
         back.setBackground(rowBackground());
         back.setContentDescription(getString(R.string.younew_back));
         back.setOnClickListener(v -> onBackPressed());
-        back.setOnFocusChangeListener((v, hasFocus) -> grow(v, hasFocus));
-        addTouchFeedback(back);
         return back;
     }
 

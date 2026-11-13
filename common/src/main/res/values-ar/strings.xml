@@ -801,4 +801,9 @@
     <string name="younew_signin_device_only">الحفظ على هذا الجهاز فقط</string>
     <string name="younew_signin_not_now">ليس الآن</string>
     <string name="younew_channel_not_opened">تعذر فتح القناة. تحقق من الاتصال وحاول مرة أخرى.</string>
+    <string name="younew_update_p_checking">جارٍ البحث عن تحديث…</string>
+    <string name="younew_update_p_downloading">جارٍ التنزيل %1$s  %2$d%%</string>
+    <string name="younew_update_p_downloading_unknown">جارٍ التنزيل…</string>
+    <string name="younew_update_p_installing">جارٍ فتح المثبّت…</string>
+    <string name="younew_update_p_failed">فشل التحديث. حاول مرة أخرى.</string>
 </resources>
