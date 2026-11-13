@@ -200,6 +200,27 @@ PY
   if ui_dump "search-home-$1"; then
     if has_text "ui-search-home-$1.xml" "SEARCH" && grep -q "Type or speak to search" "ui-search-home-$1.xml"; then
       echo "CHECK search panel in the Home screen ($1): SHOWN"
+      # The Home screen slides the panel into place; a slow emulator can still be sliding when the screen is read.
+      # Wait (up to ~12 s) until the keyboard's last key is inside the screen, then check it.
+      for settle in 1 2 3 4 5 6; do
+        if python3 - "ui-search-home-$1.xml" <<'PY'
+import re, sys
+s = open(sys.argv[1], errors='ignore').read()
+nodes = []
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    t = re.search(r' text="([^"]*)"', n)
+    if b:
+        nodes.append((t.group(1) if t else '', tuple(map(int, b.groups()))))
+width = max((b[2] for t, b in nodes), default=0)
+keys = [b for t, b in nodes if t in ('DELETE', 'SEARCH', 'G')]
+sys.exit(0 if keys and all(b[2] <= width for b in keys) else 1)
+PY
+        then break; fi
+        echo "keyboard still moving or not all inside (try $settle)"
+        sleep 2
+        ui_dump "search-home-$1" > /dev/null || true
+      done
       check_keyboard "ui-search-home-$1.xml" "Home search panel, $1"
       # The emulator can be slow: look at the screen again before each try, and try up to 3 times
       TYPED=0
