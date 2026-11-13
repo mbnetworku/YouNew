@@ -153,7 +153,62 @@ public class VideoInfoService extends VideoInfoServiceBase {
     }
 
     public AppClient getClient() {
-        return mNextClient != null ? mNextClient : CLIENT_LIST[0];
+        if (mNextClient != null) {
+            return mNextClient;
+        }
+
+        // YouNew: when the first client gives "Response code: 403" the app switches to the next ones, which makes every
+        // video (and every app start) slow. Start with the client that worked last time (for a day), not with the first.
+        AppClient recalled = recallWorkingClient();
+        return recalled != null ? recalled : CLIENT_LIST[0];
+    }
+
+    private static final String YOUNEW_PREFS = "younew_client";
+    private static final String YOUNEW_KEY_CLIENT = "working_client";
+    private static final String YOUNEW_KEY_TIME = "working_client_time";
+    private static final long YOUNEW_RECALL_MS = 24L * 60 * 60 * 1000;
+
+    /** The client that worked after the first one failed, if that was less than a day ago. */
+    @Nullable
+    private static AppClient recallWorkingClient() {
+        try {
+            if (!GlobalPreferences.isInitialized()) {
+                return null;
+            }
+
+            android.content.SharedPreferences prefs = GlobalPreferences.sInstance.getContext().getSharedPreferences(YOUNEW_PREFS, 0);
+            String name = prefs.getString(YOUNEW_KEY_CLIENT, null);
+            long time = prefs.getLong(YOUNEW_KEY_TIME, 0);
+
+            if (name == null || System.currentTimeMillis() - time > YOUNEW_RECALL_MS) {
+                return null;
+            }
+
+            for (AppClient client : CLIENT_LIST) {
+                if (client.name().equals(name)) {
+                    return client;
+                }
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Recall client error: %s", e.getMessage());
+        }
+
+        return null;
+    }
+
+    private static void rememberWorkingClient(AppClient client) {
+        try {
+            if (client == null || !GlobalPreferences.isInitialized()) {
+                return;
+            }
+
+            GlobalPreferences.sInstance.getContext().getSharedPreferences(YOUNEW_PREFS, 0).edit()
+                    .putString(YOUNEW_KEY_CLIENT, client.name())
+                    .putLong(YOUNEW_KEY_TIME, System.currentTimeMillis())
+                    .apply();
+        } catch (Exception e) {
+            Log.e(TAG, "Remember client error: %s", e.getMessage());
+        }
     }
 
     private void switchNextClientInt() {
@@ -303,6 +358,11 @@ public class VideoInfoService extends VideoInfoServiceBase {
 
         mActualClient = videoInfo.getClient();
         persistClient();
+
+        // YouNew: a client other than the first one was needed: remember it, so the next video starts with it
+        if (mActualClient != CLIENT_LIST[0] && (mNextClient != null || recallWorkingClient() != null)) {
+            rememberWorkingClient(mActualClient);
+        }
     }
 
     private static boolean shouldObtainExtendedFormats(VideoInfo result) {
