@@ -11,7 +11,7 @@ An Android TV style YouTube client for TV boxes, TVs, phones and tablets. It is 
 
 | Item | Value |
 | --- | --- |
-| App id | `com.younew.tv` (flavor `stfdroid`) |
+| App id | `com.younew.tv` (flavor `stfdroid`; two builds: normal = Android 5+, `-PyounewModern` = Android 8+) |
 | App name | YouTv Plus |
 | Android | minSdk 21 (Android 5.0), compile and target 34 |
 | Languages | Java (UI, presenters), Kotlin (YouTube API module), XML |

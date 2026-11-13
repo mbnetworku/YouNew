@@ -564,7 +564,13 @@ audit_player_buttons() {
 }
 
 # Universal APK: it holds every ABI, so it runs on both the x86 and the x86_64 emulators
-APK=$(ls apk/debug/*universal*.apk | head -1)
+# Two builds: "legacy" (Android 5+) and "modern" (Android 8+, YouTvPlus-*-modern-universal-debug.apk).
+# Android 8 and newer emulators test the modern build when it exists, older ones the legacy build.
+SDK_NOW=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
+APK=""
+if [ "${SDK_NOW:-0}" -ge 26 ]; then APK=$(ls apk/debug/*modern-universal*.apk 2>/dev/null | head -1); fi
+if [ -z "$APK" ]; then APK=$(ls apk/debug/*universal*.apk | grep -v modern | head -1); fi
+echo "Testing with $APK (Android API $SDK_NOW)"
 adb shell getprop ro.build.version.release
 echo "Installing $APK"
 adb install -r "$APK" || exit 1

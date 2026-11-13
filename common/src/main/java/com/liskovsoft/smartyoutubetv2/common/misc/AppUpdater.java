@@ -222,7 +222,7 @@ public final class AppUpdater {
                     return;
                 }
 
-                String url = pickAsset(release.optJSONArray("assets"));
+                String url = pickAsset(context, release.optJSONArray("assets"));
                 if (url == null) {
                     throw new IllegalStateException("No APK in release " + tag);
                 }
@@ -251,32 +251,55 @@ public final class AppUpdater {
         }, "younew-update-check").start();
     }
 
-    /** The file for this device: the first CPU type it supports (64-bit or 32-bit ARM), else the universal one. */
-    private static String pickAsset(JSONArray assets) {
+    /** True in the "modern" build (Android 8.0 and newer): it updates to the modern files. */
+    private static boolean isModernBuild(Context context) {
+        try {
+            int id = context.getResources().getIdentifier("younew_modern", "bool", context.getPackageName());
+            return id != 0 && context.getResources().getBoolean(id);
+        } catch (Exception e) {
+            return false;
+        }
+    }
+
+    /**
+     * The file for this device: the first CPU type it supports (64-bit or 32-bit ARM), else the universal one.
+     * The modern build looks for YouTvPlus-modern-* first (and falls back to the normal files of older releases);
+     * the normal (legacy) build uses YouTvPlus-*.
+     */
+    private static String pickAsset(Context context, JSONArray assets) {
         if (assets == null) {
             return null;
         }
 
         String[] abis = Build.VERSION.SDK_INT >= 21 ? Build.SUPPORTED_ABIS : new String[]{Build.CPU_ABI};
-        String universal = null;
+        String[] prefixes = isModernBuild(context) ? new String[]{"YouTvPlus-modern-", "YouTvPlus-"} : new String[]{"YouTvPlus-"};
+        String[] universals = isModernBuild(context) ? new String[]{"YouTvPlus-modern.apk", "YouTvPlus.apk"} : new String[]{"YouTvPlus.apk"};
 
-        for (String abi : abis) {
-            for (int i = 0; i < assets.length(); i++) {
-                JSONObject asset = assets.optJSONObject(i);
-                if (asset != null && ("YouTvPlus-" + abi + ".apk").equals(asset.optString("name"))) {
-                    return asset.optString("browser_download_url", null);
+        for (int p = 0; p < prefixes.length; p++) {
+            for (String abi : abis) {
+                String url = assetUrl(assets, prefixes[p] + abi + ".apk");
+                if (url != null) {
+                    return url;
                 }
             }
-        }
 
-        for (int i = 0; i < assets.length(); i++) {
-            JSONObject asset = assets.optJSONObject(i);
-            if (asset != null && "YouTvPlus.apk".equals(asset.optString("name"))) {
-                universal = asset.optString("browser_download_url", null);
+            String url = assetUrl(assets, universals[p]);
+            if (url != null) {
+                return url;
             }
         }
 
-        return universal;
+        return null;
+    }
+
+    private static String assetUrl(JSONArray assets, String name) {
+        for (int i = 0; i < assets.length(); i++) {
+            JSONObject asset = assets.optJSONObject(i);
+            if (asset != null && name.equals(asset.optString("name"))) {
+                return asset.optString("browser_download_url", null);
+            }
+        }
+        return null;
     }
 
     /** "v32.84" against "32.83": a positive number when the first is newer. */
