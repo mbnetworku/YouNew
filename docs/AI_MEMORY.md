@@ -102,6 +102,7 @@ Found by reading the custom code and building locally; fixed on branch `claude/b
 
 ## Open items
 **Needs the owner**
+- (2026-11-13) Likely cause of the 403 below: the release job's token may not create a tag on a commit whose `.github/workflows/` files differ from `main` (33.05-33.07 were tagged before the workflow file was changed on the branch). The workflow file was put back to main's version; keep workflow edits for after a merge to main, or merge first.
 - 2026-11-12 ~18:15: the release run of v33.09 (run 43273628167, commit 50d035c) passed ALL 4 emulators but its last job `attach-to-release` fails at `gh release create` with `HTTP 403: Resource not accessible by integration` (twice; v33.05/06/07 worked with the same workflow, job has `permissions: contents: write`). The assistant cannot see or change repository settings. Ask the owner to check: Settings > Actions > General > Workflow permissions (Read and write), Settings > Rules (rulesets / tag protection for `v*`), Settings > General > Releases (immutable releases), and what was changed today. The finished APKs are in the run's artifact `YouNew-apk` (Actions page). Until fixed no new release can be published; v33.07 is the latest one.
 - Try 33.05 on the TV box and phone: is a video start faster, are the new player icons and buttons right, does the sign-in question appear when not signed in? Merge pull request #5. Send screenshots of the player.
 - Add the four GitHub secrets (`KEYSTORE_BASE64`, `KEYSTORE_PASSWORD`, `KEY_ALIAS` = `youtvplus`, `KEY_PASSWORD`) using

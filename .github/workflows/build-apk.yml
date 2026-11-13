@@ -134,9 +134,7 @@ jobs:
             search*.png
             home-*.png
             player*.png
-            shorts*.png
             logcat-player.txt
-            button-report.txt
             ui-*.xml
 
   # When a GitHub Release is published, attach the release APKs with simple names:
