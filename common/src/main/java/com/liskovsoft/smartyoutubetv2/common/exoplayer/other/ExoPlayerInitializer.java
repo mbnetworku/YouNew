@@ -109,11 +109,11 @@ public class ExoPlayerInitializer {
         // Default values
         int minBufferMs = 30_000;
         int maxBufferMs = 30_000;
-        // YouNew: start sooner. The player waited for 2.5 s of video before the first picture (5 s after a stall).
-        // It now starts with 1 s (2.5 s after a stall) and keeps filling the same large buffer while playing,
-        // so a video starts about twice as fast without more stalls later.
-        int bufferForPlaybackMs = 1_000;
-        int bufferForPlaybackAfterRebufferMs = 2_500;
+        // YouNew: back to the original start-up wait (2.5 s of video, 5 s after a stall). The 1 s / 2.5 s values of
+        // 33.05-33.11 are the only video-path change since the owner's last working version: put back as a test
+        // for the "Response code: 403" error the owner saw on Android 14 (2026-11-13).
+        int bufferForPlaybackMs = 2_500;
+        int bufferForPlaybackAfterRebufferMs = 5_000;
 
         switch (mPlayerData.getVideoBufferType()) {
             case PlayerData.BUFFER_HIGHEST:
