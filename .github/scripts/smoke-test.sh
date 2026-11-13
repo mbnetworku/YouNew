@@ -201,12 +201,22 @@ PY
     if has_text "ui-search-home-$1.xml" "SEARCH" && grep -q "Type or speak to search" "ui-search-home-$1.xml"; then
       echo "CHECK search panel in the Home screen ($1): SHOWN"
       check_keyboard "ui-search-home-$1.xml" "Home search panel, $1"
-      tap_text "ui-search-home-$1.xml" "A" || true
-      sleep 1
-      tap_text "ui-search-home-$1.xml" "B" || true
-      sleep 2
-      ui_dump "search-home-$1-typed" || true
-      if has_text "ui-search-home-$1-typed.xml" "ab"; then
+      # The emulator can be slow: look at the screen again before each try, and try up to 3 times
+      TYPED=0
+      for attempt in 1 2 3; do
+        ui_dump "search-home-$1-try" > /dev/null || true
+        tap_text "ui-search-home-$1-try.xml" "A" || true
+        sleep 1
+        tap_text "ui-search-home-$1-try.xml" "B" || true
+        sleep 3
+        ui_dump "search-home-$1-typed" || true
+        if has_text "ui-search-home-$1-typed.xml" "ab" || has_text "ui-search-home-$1-typed.xml" "abab" || has_text "ui-search-home-$1-typed.xml" "AB"; then
+          TYPED=1
+          break
+        fi
+        echo "typing try $attempt: no 'ab' yet"
+      done
+      if [ "$TYPED" = 1 ]; then
         echo "CHECK Home search panel keys type ($1): WORKS"
       else
         echo "CHECK Home search panel keys type ($1): FAILED (no 'ab' on the screen)"

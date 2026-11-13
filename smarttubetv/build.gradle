@@ -152,6 +152,11 @@ android {
     }
 
     packagingOptions {
+        // YouNew: compressed native libraries. Without this the modern build (minSdk 26) stores them uncompressed and
+        // its download is twice as big. Android 6+ installs them from the compressed file just the same.
+        jniLibs {
+            useLegacyPackaging = true
+        }
         // openvpn module fix: More than one file was found with OS independent path 'META-INF/com.android.tools/proguard/coroutines.pro'
         //exclude 'META-INF/com.android.tools/proguard/coroutines.pro'
         // Not working!
