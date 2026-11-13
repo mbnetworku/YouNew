@@ -314,10 +314,18 @@ public class ChannelPresenter extends BasePresenter<ChannelView> implements Vide
                 LoadingManager.showLoading(getContext(), true);
                 getServiceManager().loadMetadata(item, metadata -> {
                     LoadingManager.showLoading(getContext(), false);
+                    if (metadata.getChannelId() == null) {
+                        // YouNew: say so, instead of doing nothing
+                        MessageHelpers.showMessage(getContext(), R.string.younew_channel_not_opened);
+                        return;
+                    }
                     callback.onChannelId(metadata.getChannelId());
                     item.channelId = metadata.getChannelId();
                 },
-                e -> LoadingManager.showLoading(getContext(), false),
+                e -> {
+                    LoadingManager.showLoading(getContext(), false);
+                    MessageHelpers.showMessage(getContext(), R.string.younew_channel_not_opened); // YouNew: was silent
+                },
                 () -> LoadingManager.showLoading(getContext(), false));
             } else if (item.belongsToChannelUploads()) {
                 LoadingManager.showLoading(getContext(), true);

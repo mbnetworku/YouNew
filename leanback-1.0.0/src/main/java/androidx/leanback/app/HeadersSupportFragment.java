@@ -161,6 +161,7 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
         @Override
         public void onBind(ItemBridgeAdapter.ViewHolder viewHolder) {
             applyRailState(viewHolder.itemView);
+            applyRowSize(viewHolder.itemView); // YouNew: row size for this screen
         }
     };
 
@@ -195,6 +196,14 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
             }
         }
         updateListViewVisibility();
+
+        // YouNew: fit the rows to the height of the sidebar (and again when it changes, e.g. the phone is turned)
+        listView.addOnLayoutChangeListener(new View.OnLayoutChangeListener() {
+            @Override
+            public void onLayoutChange(View v, int l, int t, int r, int b, int ol, int ot, int or, int ob) {
+                fitRowsToHeight();
+            }
+        });
     }
 
     private void updateListViewVisibility() {
@@ -227,7 +236,7 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
                     mGridPadStart = grid.getPaddingStart();
                     mGridPadEnd = grid.getPaddingEnd();
                 }
-                int top = (int) (96 * density);
+                int top = mGridTopPx > 0 ? mGridTopPx : (int) (96 * density); // YouNew: the fitted gap, if known
                 grid.setPaddingRelative((int) (12 * density), top, (int) (12 * density), grid.getPaddingBottom());
                 grid.setClipToPadding(false); // the focused pill grows a little: let it draw outside the padding
                 grid.setClipChildren(false);
@@ -264,6 +273,106 @@ public class HeadersSupportFragment extends BaseRowSupportFragment {
     void setHeadersGone(boolean gone) {
         mHeadersGone = gone;
         updateListViewVisibility();
+    }
+
+    // ---- YouNew: the rows size themselves to the screen height, so every entry fits without scrolling ----
+    private int mItemHeightPx = -1;   // height of one row (without its 2 + 2 dp margins)
+    private int mIconPx;
+    private float mLabelSp;
+    private int mGridTopPx = -1;
+    private int mLastFitHeight = -1;
+    private int mLastFitCount = -1;
+
+    private static float clampF(float v, float min, float max) {
+        return Math.max(min, Math.min(max, v));
+    }
+
+    /**
+     * Works out the size of the rows from the height of the sidebar and the number of entries, and applies it.
+     * TV (about 540 dp high): the same big rows as before. Phone held sideways (about 360 dp): smaller rows and icons,
+     * so all entries are on the screen at once. The decision is made again when the height or the entries change.
+     */
+    void fitRowsToHeight() {
+        final VerticalGridView grid = getVerticalGridView();
+        if (grid == null || getView() == null || grid.getHeight() <= 0) {
+            return;
+        }
+
+        int count = getAdapter() != null ? Math.max(1, getAdapter().size()) : 8;
+        if (grid.getHeight() == mLastFitHeight && count == mLastFitCount) {
+            return;
+        }
+        mLastFitHeight = grid.getHeight();
+        mLastFitCount = count;
+
+        float density = getResources().getDisplayMetrics().density;
+        float heightDp = grid.getHeight() / density;
+
+        float topDp = clampF(heightDp * 0.15f, 52f, 96f);                // room for the YouTv Plus mark
+        float brandTopDp = clampF((topDp - 40f) * 0.5f, 6f, 28f);
+        float bottomDp = 8f;
+        float perRowDp = clampF((heightDp - topDp - bottomDp) / count, 30f, 60f); // row + its 4 dp of margins
+        float rowDp = perRowDp - 4f;
+
+        mItemHeightPx = Math.round(rowDp * density);
+        mIconPx = Math.round(clampF(rowDp * 0.62f, 16f, 34f) * density);
+        mLabelSp = clampF(rowDp * 0.365f, 10f, 19f);
+        mGridTopPx = Math.round(topDp * density);
+
+        grid.setPaddingRelative(grid.getPaddingStart(), mGridTopPx, grid.getPaddingEnd(), Math.round(bottomDp * density));
+
+        View brand = getView().findViewById(R.id.younew_brand);
+        if (brand != null && brand.getLayoutParams() instanceof ViewGroup.MarginLayoutParams) {
+            ((ViewGroup.MarginLayoutParams) brand.getLayoutParams()).topMargin = Math.round(brandTopDp * density);
+            brand.requestLayout();
+        }
+
+        for (int i = 0; i < grid.getChildCount(); i++) {
+            applyRowSize(grid.getChildAt(i));
+        }
+        grid.requestLayout();
+    }
+
+    /** Sets the height of the row, the size of its icon and the size of its text (see fitRowsToHeight). */
+    void applyRowSize(View view) {
+        if (mItemHeightPx <= 0) {
+            return;
+        }
+
+        float density = getResources().getDisplayMetrics().density;
+
+        if (view instanceof android.widget.ImageView) {
+            ViewGroup.LayoutParams lp = view.getLayoutParams();
+            if (lp != null) {
+                lp.width = mIconPx;
+                lp.height = mIconPx;
+                if (lp instanceof ViewGroup.MarginLayoutParams) {
+                    // keep the icon in the middle of the 48 dp wide pill of the rail
+                    ((ViewGroup.MarginLayoutParams) lp).setMarginStart(Math.max(0, Math.round((48f * density - mIconPx) / 2f)));
+                }
+                view.setLayoutParams(lp);
+            }
+        } else if (view instanceof android.widget.TextView) {
+            ((android.widget.TextView) view).setTextSize(android.util.TypedValue.COMPLEX_UNIT_SP, mLabelSp);
+        } else if (view instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) view;
+            boolean isRow = false;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                if (group.getChildAt(i) instanceof android.widget.ImageView) {
+                    isRow = true;
+                }
+            }
+            if (isRow) {
+                ViewGroup.LayoutParams lp = group.getLayoutParams();
+                if (lp != null && lp.height != mItemHeightPx) {
+                    lp.height = mItemHeightPx;
+                    group.setLayoutParams(lp);
+                }
+            }
+            for (int i = 0; i < group.getChildCount(); i++) {
+                applyRowSize(group.getChildAt(i));
+            }
+        }
     }
 
     // Rail mode: only icons show; text labels appear when the header list is expanded.

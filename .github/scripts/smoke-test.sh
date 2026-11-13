@@ -4,6 +4,12 @@ set -u
 PKG=com.younew.tv
 FAILED=0
 
+# True when the log holds a crash of the YouTv Plus process. A "FATAL EXCEPTION" of the system or of the emulator's
+# own screen-reading tool (UiAutomatorHandlerThread, seen on API 21) is not a crash of the app.
+app_crashed() {
+  grep -A8 "FATAL EXCEPTION" "$1" 2>/dev/null | grep -q "Process: $PKG"
+}
+
 # Reads what is on the screen (uiautomator) into ui-<label>.xml and prints every text with its position.
 ui_dump() {
   adb shell uiautomator dump /data/local/tmp/ui.xml > /dev/null 2>&1
@@ -91,7 +97,16 @@ for key in keys:
     x1, y1, x2, y2 = found[key]
     if x1 < 0 or y1 < 0 or x2 >= screen[0] or y2 >= screen[1] or x2 - x1 < 8 or y2 - y1 < 8:
         bad.append("%s at [%d,%d][%d,%d] (screen %dx%d)" % (key, x1, y1, x2, y2, screen[0], screen[1]))
-print("OK" if not bad else "NOT ALL ON SCREEN: " + "; ".join(bad))
+if bad:
+    allkeys = []
+    for n in re.findall(r'<node[^>]*>', s):
+        b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+        t = re.search(r' text="([^"]*)"', n)
+        if b and t and (len(t.group(1)) == 1 or t.group(1) in ('DELETE', 'CLEAR', 'SPACE', 'SEARCH')):
+            allkeys.append("%s%s" % (t.group(1), b.group(0)[8:-1]))
+    print("NOT ALL ON SCREEN: " + "; ".join(bad) + " | all keys: " + " ".join(allkeys[:45]))
+else:
+    print("OK")
 PY
 )
   echo "CHECK search keyboard on the screen ($2): $result"
@@ -148,6 +163,36 @@ check_home_panels() {
   check_crash "home ($1)"
   adb shell screencap -p /data/local/tmp/s.png && adb pull /data/local/tmp/s.png "home-$1.png" || true
   ui_dump "home-$1" || return 0
+  # The sidebar sizes its rows to the screen: every entry (Search, Home, Shorts, News, Live, Subscriptions,
+  # History, Settings) must be on the screen at once, without scrolling
+  SIDEBAR=$(python3 - "ui-home-$1.xml" <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+screen = None
+icons = []
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if not b:
+        continue
+    box = tuple(map(int, b.groups()))
+    if screen is None:
+        screen = box
+    if 'id/header_icon"' in n:
+        icons.append(box)
+if not icons:
+    print("skipped (no sidebar icons in the dump)")
+else:
+    out = [i for i in icons if i[1] < 0 or i[3] > screen[3]]
+    if len(icons) < 8:
+        print("NOT ALL SHOWN: %d of 8 icons on the screen (screen %dx%d)" % (len(icons), screen[2], screen[3]))
+    elif out:
+        print("CUT OFF: %d icon(s) outside the screen (screen %dx%d)" % (len(out), screen[2], screen[3]))
+    else:
+        print("OK (8 icons, the last ends at y=%d of %d)" % (max(i[3] for i in icons), screen[3]))
+PY
+)
+  echo "CHECK sidebar icons all on the screen ($1): $SIDEBAR"
+  case "$SIDEBAR" in NOT*|CUT*) FAILED=1 ;; esac
   tap_sidebar_icon "ui-home-$1.xml" 1 || true
   sleep 6
   check_crash "search panel ($1)"
@@ -253,6 +298,258 @@ PY
   echo "'$2' not found on the screen, cannot tap"
   return 1
 }
+# ---- Button audit: presses buttons like a finger would and reports, for each one, whether it reacted ----
+BUTTON_REPORT=button-report.txt
+: > "$BUTTON_REPORT"
+
+# The texts and descriptions on the screen of the last dump (ui-fp.xml), sorted, one per line
+fingerprint_file() {
+  python3 - ui-fp.xml <<'PY' 2>/dev/null
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+print("\n".join(sorted(set(v for v in re.findall(r' (?:text|content-desc)="([^"]+)"', s)))))
+PY
+}
+
+# Dumps the screen into ui-fp.xml and prints its fingerprint
+fingerprint() {
+  adb shell uiautomator dump /data/local/tmp/ui-fp.xml > /dev/null 2>&1
+  adb pull /data/local/tmp/ui-fp.xml ui-fp.xml > /dev/null 2>&1
+  fingerprint_file
+}
+
+front_window() {
+  local w
+  w=$(adb shell dumpsys window windows | grep -E "mCurrentFocus" | head -1 | sed 's/.*u0 //; s/}.*//')
+  case "$w" in
+    *com.younew.tv*) echo "$w" ;;
+    *) # no focused window for a moment (Android 11): use the resumed activity
+       adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | head -1 | sed 's/.* u0 //; s/ .*//' ;;
+  esac
+}
+
+record_button() { # $1 screen, $2 button, $3 result
+  echo "BUTTON $1 / $2: $3" | tee -a "$BUTTON_REPORT"
+}
+
+# Taps the thing whose text or description is $3 (looked up in ui-fp.xml) and records whether the screen changed.
+# Leaves the new screen in ui-fp.xml.
+press_and_record() { # $1 screen, $2 button name, $3 text or description to tap
+  local coords before after win_before win_after
+  coords=$(python3 - ui-fp.xml "$3" <<'PY'
+import sys, re, html
+s = open(sys.argv[1], errors='ignore').read()
+for m in re.finditer(r'<node[^>]*>', s):
+    n = m.group(0)
+    vals = [html.unescape(v) for v in re.findall(r' (?:text|content-desc)="([^"]*)"', n)]
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if b and sys.argv[2] in vals:
+        x1, y1, x2, y2 = map(int, b.groups())
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        break
+PY
+)
+  if [ -z "$coords" ]; then
+    record_button "$1" "$2" "NOT ON THE SCREEN (not tested)"
+    return 1
+  fi
+  before=$(fingerprint_file)
+  win_before=$(front_window)
+  adb shell input tap $coords
+  sleep 3
+  case "$2" in "Open channel") sleep 5 ;; esac # the channel is looked up first
+  check_crash "button $1 / $2"
+  after=$(fingerprint)
+  win_after=$(front_window)
+  if [ "$win_before" != "$win_after" ]; then
+    record_button "$1" "$2" "WORKS (opens another screen: $win_after)"
+  elif [ "$before" != "$after" ]; then
+    record_button "$1" "$2" "WORKS (the screen changed)"
+  else
+    record_button "$1" "$2" "NO VISIBLE REACTION"
+  fi
+  return 0
+}
+
+audit_sidebar_buttons() {
+  adb shell am force-stop "$PKG" || true
+  sleep 2
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 15
+  local names=("Search" "Home" "Shorts" "News" "Live" "Subscriptions" "History" "Settings")
+  local before after count i name
+  fingerprint > /dev/null
+  count=$(grep -o 'id/header_icon"' ui-fp.xml | wc -l)
+  if [ "$count" -lt 1 ]; then
+    record_button "Sidebar" "all icons" "NOT ON THE SCREEN (not tested)"
+    return
+  fi
+  for i in $(seq 1 "$count"); do
+    name=${names[$((i-1))]:-"icon $i"}
+    fingerprint > /dev/null
+    before=$(fingerprint_file)
+    if ! tap_sidebar_icon ui-fp.xml "$i" > /dev/null; then
+      record_button "Sidebar" "$name" "NOT ON THE SCREEN (not tested)"
+      continue
+    fi
+    sleep 6
+    check_crash "sidebar $name"
+    after=$(fingerprint)
+    if [ "$before" != "$after" ]; then
+      record_button "Sidebar" "$name" "WORKS (the screen changed)"
+    else
+      record_button "Sidebar" "$name" "NO VISIBLE REACTION"
+    fi
+  done
+}
+
+# Every page name of Settings (the page list must be on the screen); each tap must show other options
+# Shorts: open the Shorts section, open the first Short, press its buttons and swipe to the next and previous Short
+audit_shorts_player() {
+  local coords before after name
+  adb shell am force-stop "$PKG" || true
+  sleep 2
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 15
+  fingerprint > /dev/null
+  # Shorts is the third entry of the sidebar
+  if ! tap_sidebar_icon ui-fp.xml 3 > /dev/null; then
+    record_button "Shorts" "open the Shorts section" "NOT ON THE SCREEN (not tested)"
+    return
+  fi
+  sleep 12
+  fingerprint > /dev/null
+  # the first video card right of the sidebar (a title of 12 or more characters)
+  coords=$(python3 - ui-fp.xml <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+width = None
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if not b:
+        continue
+    x1, y1, x2, y2 = map(int, b.groups())
+    if width is None:
+        width = x2
+        continue
+    t = re.search(r' text="([^"]{12,})"', n)
+    if t and x1 > width * 0.12 and y1 > 60:
+        print((x1 + x2) // 2, (y1 + y2) // 2)
+        break
+PY
+)
+  if [ -z "$coords" ]; then
+    record_button "Shorts" "open a Short from the Shorts section" "NOT ON THE SCREEN (no Short cards; YouTube may not have answered)"
+    return
+  fi
+  adb shell input tap $coords
+  sleep 20
+  check_crash "Shorts opened"
+  adb shell screencap -p /data/local/tmp/shorts.png && adb pull /data/local/tmp/shorts.png shorts.png || true
+  if ! front_window | grep -q "PlaybackActivity"; then
+    record_button "Shorts" "open a Short from the Shorts section" "NO VISIBLE REACTION (front window: $(front_window))"
+    return
+  fi
+  record_button "Shorts" "open a Short from the Shorts section" "WORKS (the player opened)"
+  fingerprint > /dev/null
+  echo "Shorts screen shows: $(fingerprint_file | head -12 | tr '\n' '|')"
+  for name in "Like" "Dislike" "Subscribe" "Channel"; do
+    press_and_record "Shorts player" "$name" "$name" || true
+    adb shell input keyevent KEYCODE_BACK || true
+    sleep 3
+    if ! front_window | grep -q "PlaybackActivity"; then
+      record_button "Shorts player" "(after $name)" "the player closed on Back; the rest was not tested"
+      return
+    fi
+    fingerprint > /dev/null
+  done
+  # next / previous Short: by a swipe (finger or mouse drag) and by the keys. A Short loads slowly on an emulator,
+  # so the screen is looked at again every 3 s for up to 36 s before "no reaction" is reported.
+  wait_for_change() { # $1 = fingerprint before; returns 0 when the screen changed
+    local i
+    for i in $(seq 1 12); do
+      sleep 3
+      if [ "$1" != "$(fingerprint)" ]; then return 0; fi
+    done
+    # No change: say what the screen shows and what the app logged, to tell "no next Short loaded" from "key ignored"
+    echo "  (no change) front window: $(front_window); screen shows: $(fingerprint_file | head -14 | tr '\n' '|')"
+    echo "  (no change) app log, last lines:"
+    adb logcat -d -v threadtime 2>/dev/null | grep -iE "younew|smartyoutubetv2|SmartTube|PlaybackPresenter|VideoLoader|Suggestions|Shorts" | tail -22 | cut -c1-230 | sed 's/^/    /'
+    return 1
+  }
+  before=$(fingerprint_file)
+  adb shell input swipe 320 250 320 60 400 || true
+  if wait_for_change "$before"; then record_button "Shorts player" "swipe up (next Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "swipe up (next Short)" "NO VISIBLE REACTION (36 s)"; fi
+  check_crash "Shorts swipe up"
+  before=$(fingerprint_file)
+  adb shell input swipe 320 60 320 250 400 || true
+  if wait_for_change "$before"; then record_button "Shorts player" "swipe down (previous Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "swipe down (previous Short)" "NO VISIBLE REACTION (36 s)"; fi
+  check_crash "Shorts swipe down"
+  before=$(fingerprint_file)
+  adb shell input keyevent KEYCODE_DPAD_DOWN || true
+  if wait_for_change "$before"; then record_button "Shorts player" "Down key (next Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "Down key (next Short)" "NO VISIBLE REACTION (36 s)"; fi
+  check_crash "Shorts Down key"
+  before=$(fingerprint_file)
+  adb shell input keyevent KEYCODE_DPAD_UP || true
+  if wait_for_change "$before"; then record_button "Shorts player" "Up key (previous Short)" "WORKS (the screen changed)"; else record_button "Shorts player" "Up key (previous Short)" "NO VISIBLE REACTION (36 s)"; fi
+  check_crash "Shorts Up key"
+  adb shell screencap -p /data/local/tmp/shorts-after.png && adb pull /data/local/tmp/shorts-after.png shorts-after.png || true
+  adb shell input keyevent KEYCODE_BACK || true
+  sleep 3
+  check_crash "Shorts closed"
+}
+
+audit_settings_pages() {
+  local page
+  fingerprint > /dev/null
+  local esc
+  for page in "Accounts" "General" "Player" "Language & Location" "Subtitles" "Appearance" "About"; do
+    esc=$(printf '%s' "$page" | sed 's/&/\&amp;/g')
+    if ! grep -qF "text=\"$esc\"" ui-fp.xml; then
+      # the list of pages is longer than the short landscape screen: scroll it once
+      adb shell input swipe 150 280 150 100 300 || true
+      sleep 1
+      fingerprint > /dev/null
+    fi
+    press_and_record "Settings page" "$page" "$page" || true
+  done
+}
+
+audit_player_buttons() {
+  local desc
+  # back to the controls row (the recommended videos may be in front)
+  adb shell input keyevent KEYCODE_DPAD_UP || true
+  sleep 1
+  adb shell input keyevent KEYCODE_DPAD_UP || true
+  sleep 2
+  fingerprint > /dev/null
+  if ! grep -q 'content-desc="Like"' ui-fp.xml; then
+    adb shell input keyevent KEYCODE_DPAD_CENTER || true
+    sleep 2
+    fingerprint > /dev/null
+  fi
+  if ! grep -q 'content-desc="Like"' ui-fp.xml; then
+    record_button "Player" "all buttons" "NOT ON THE SCREEN (no video loaded? not tested)"
+    return
+  fi
+  for desc in "Like" "Dislike" "Open channel" "Enable Closed Captioning" "Video speed" "Advanced playback settings" "Add to playlist" "Unsubscribed" "Share link" "Search"; do
+    press_and_record "Player" "$desc" "$desc" || true
+    # close what opened (Back), and get the player with its controls again
+    adb shell input keyevent KEYCODE_BACK || true
+    sleep 3
+    if ! front_window | grep -q "PlaybackActivity"; then
+      adb shell am start -a android.intent.action.VIEW -d "https://www.youtube.com/watch?v=jNQXAC9IVRw" "$PKG" || true
+      sleep 25
+    fi
+    fingerprint > /dev/null
+    if ! grep -q 'content-desc="Like"' ui-fp.xml; then
+      adb shell input keyevent KEYCODE_DPAD_CENTER || true
+      sleep 2
+      fingerprint > /dev/null
+    fi
+  done
+}
+
 # Universal APK: it holds every ABI, so it runs on both the x86 and the x86_64 emulators
 APK=$(ls apk/debug/*universal*.apk | head -1)
 adb shell getprop ro.build.version.release
@@ -394,6 +691,23 @@ PY
       fi
       check_inside_screen ui-home-settings-tapped.xml "options open"
 
+      # Every Settings page: a tap must show its options
+      audit_settings_pages
+
+      # Back inside Settings goes one step back (options -> list of pages -> sidebar); it must not close the app
+      adb shell input keyevent KEYCODE_BACK || true
+      sleep 3
+      # "Resumed activity" is more reliable than "current focus" (Android 11 sometimes reports no focus for a moment)
+      if adb shell dumpsys activity activities | grep -E "mResumedActivity|topResumedActivity" | grep -q "BrowseActivity" \
+         || adb shell dumpsys window windows | grep -E "mCurrentFocus" | grep -q "BrowseActivity"; then
+        echo "CHECK Back inside Settings keeps the app open: OK"
+      else
+        echo "CHECK Back inside Settings keeps the app open: FAILED (the app was closed)"
+        FAILED=1
+        adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+        sleep 8
+      fi
+
       # The sidebar opens (Left) and pushes the panel to the right: nothing may be cut off by the screen edge
       adb shell input keyevent KEYCODE_DPAD_LEFT || true
       adb shell input keyevent KEYCODE_DPAD_LEFT || true
@@ -464,6 +778,29 @@ PY
   adb shell screencap -p /data/local/tmp/search.png && adb pull /data/local/tmp/search.png search.png || true
   if ui_dump search; then
     check_keyboard ui-search.xml "upright"
+    # The settings and search buttons at the right end of the search bar must not cover the keys
+    BELOW=$(python3 - ui-search.xml <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+bar = key = None
+for n in re.findall(r'<node[^>]*>', s):
+    b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+    if not b:
+        continue
+    box = tuple(map(int, b.groups()))
+    if bar is None and 'id/lb_search_bar"' in n:
+        bar = box
+    t = re.search(r' text="([^"]*)"', n)
+    if key is None and t and t.group(1) in ('A', 'DELETE'):
+        key = box
+if bar is None or key is None:
+    print("skipped (search bar or keys not found)")
+else:
+    print("OK" if key[1] >= bar[3] - 2 else "COVERED: keys start at y=%d, the search bar ends at y=%d" % (key[1], bar[3]))
+PY
+)
+    echo "CHECK keyboard below the search bar: $BELOW"
+    case "$BELOW" in COVERED*) FAILED=1 ;; esac
     tap_text ui-search.xml "A" || true
     sleep 1
     tap_text ui-search.xml "B" || true
@@ -516,6 +853,39 @@ PY
   fi
   adb shell input keyevent KEYCODE_BACK || true
 
+  # Endless Home: scroll down the Home list again and again (a swipe, like a finger or a mouse wheel) and count the
+  # different video titles seen. An endless list keeps showing new ones; one that ended repeats. Reported only
+  # (OK or WARNING): it needs YouTube to answer.
+  adb shell am force-stop "$PKG" || true
+  sleep 2
+  adb shell am start -n "$PKG/com.liskovsoft.smartyoutubetv2.tv.ui.browse.BrowseActivity" || true
+  sleep 15
+  : > home-titles.txt
+  for i in 1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16; do
+    adb shell uiautomator dump /data/local/tmp/ui.xml > /dev/null 2>&1
+    adb pull /data/local/tmp/ui.xml ui-home-scroll.xml > /dev/null 2>&1
+    python3 - ui-home-scroll.xml >> home-titles.txt <<'PY'
+import sys, re
+s = open(sys.argv[1], errors='ignore').read()
+for t in re.findall(r' text="([^"]{14,})"', s):
+    print(t)
+PY
+    echo "scroll $i: $(sort -u home-titles.txt | wc -l) different titles so far"
+    adb shell input swipe 400 290 400 60 400 || true
+    sleep 2
+  done
+  TITLES=$(sort -u home-titles.txt | wc -l)
+  if [ "$TITLES" -ge 40 ]; then
+    echo "CHECK endless Home: OK ($TITLES different titles after 16 scrolls)"
+  else
+    echo "CHECK endless Home: WARNING (only $TITLES different titles after 16 scrolls; YouTube may not have answered, or the list ended)"
+  fi
+  adb shell screencap -p /data/local/tmp/home-scrolled.png && adb pull /data/local/tmp/home-scrolled.png home-scrolled.png || true
+  check_crash "home scrolled"
+
+  audit_sidebar_buttons
+  audit_shorts_player
+
   # Player: open a video by its YouTube link (a short, permanent public video), like a phone sharing a link.
   # Checks: no crash, the player screen is in front, the time moves (the video plays), the buttons and the
   # recommended videos show. The network of the CI machine decides whether YouTube answers, so only a crash fails;
@@ -567,19 +937,23 @@ PY
     fi
   fi
   adb logcat -d > logcat-player.txt || true
-  if grep -q "FATAL EXCEPTION" logcat-player.txt; then
+  if app_crashed logcat-player.txt; then
     echo "CHECK player: FAILED (the app crashed)"
     grep -A40 "FATAL EXCEPTION" logcat-player.txt | head -60
     FAILED=1
   else
     echo "CHECK player: no crash"
   fi
+  audit_player_buttons
   adb shell input keyevent KEYCODE_BACK || true
   sleep 1
   adb shell input keyevent KEYCODE_BACK || true
   sleep 2
   check_crash "player closed"
 
+  echo "===== BUTTON REPORT ($(grep -c . "$BUTTON_REPORT") buttons pressed)"
+  cat "$BUTTON_REPORT"
+  echo "===== works: $(grep -c ': WORKS' "$BUTTON_REPORT"), no visible reaction: $(grep -c 'NO VISIBLE REACTION' "$BUTTON_REPORT"), not on the screen: $(grep -c 'NOT ON THE SCREEN' "$BUTTON_REPORT")"
   adb logcat -d > logcat.txt
 else
   echo "adb root not available: sign-in screen not checked"
@@ -592,7 +966,7 @@ if [ "$FAILED" != "0" ]; then
   exit 1
 fi
 
-if grep -q "FATAL EXCEPTION" logcat.txt; then
+if app_crashed logcat.txt; then
   echo "The app crashed:"
   grep -A40 "FATAL EXCEPTION" logcat.txt
   exit 1

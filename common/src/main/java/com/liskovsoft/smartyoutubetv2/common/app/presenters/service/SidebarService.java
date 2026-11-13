@@ -333,9 +333,11 @@ public class SidebarService implements ProfileChangeListener {
         // Backward compatibility
         enableSection(MediaGroup.TYPE_SETTINGS, true);
 
-        addHistoryOnce();
-
-        addSearchOnce();
+        // YouNew: the sidebar is fixed (Set-up sections is hidden), so Search and History are always there.
+        // The old "add once" mark was kept for the whole app while the sections are kept per account, so an
+        // account switched to later never got Search.
+        enableSection(MediaGroup.TYPE_SEARCH, true);
+        enableSection(MediaGroup.TYPE_HISTORY, true);
 
         cleanupPinnedItems();
     }
@@ -344,6 +346,7 @@ public class SidebarService implements ProfileChangeListener {
      * YouNew: History became a default section. Boxes that already have saved sections get it once;
      * if the user hides it later in Set-up sections, it stays hidden.
      */
+    @SuppressWarnings("unused") // YouNew: replaced by always enabling the section (see restoreState)
     private void addHistoryOnce() {
         android.content.SharedPreferences prefs = mContext.getSharedPreferences("younew_sidebar", Context.MODE_PRIVATE);
 
@@ -357,6 +360,7 @@ public class SidebarService implements ProfileChangeListener {
      * YouNew: Search became an entry of the sidebar. Boxes that already have saved sections get it once, at the top;
      * if the user hides it later in Set-up sections, it stays hidden.
      */
+    @SuppressWarnings("unused") // YouNew: replaced by always enabling the section (see restoreState)
     private void addSearchOnce() {
         android.content.SharedPreferences prefs = mContext.getSharedPreferences("younew_sidebar", Context.MODE_PRIVATE);
 

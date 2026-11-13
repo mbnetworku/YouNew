@@ -133,6 +133,30 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
         }
         searchFrame.addView(keyboard, lp);
 
+        // YouNew: the keyboard starts right under the search bar. The bar (with the settings and search buttons on
+        // its right) can be taller than the fixed 72 dp on a phone, and then those buttons covered the top keys.
+        View searchBar = root.findViewById(androidx.leanback.R.id.lb_search_bar);
+        if (searchBar != null) {
+            searchBar.addOnLayoutChangeListener((v, l, t, r, b, ol, ot, or, ob) -> {
+                int[] frame = new int[2];
+                int[] bar = new int[2];
+                searchFrame.getLocationOnScreen(frame);
+                v.getLocationOnScreen(bar);
+                int below = bar[1] + v.getHeight() - frame[1] + (int) (8 * density);
+                android.widget.FrameLayout.LayoutParams klp = (android.widget.FrameLayout.LayoutParams) keyboard.getLayoutParams();
+                if (below > klp.topMargin) {
+                    int shift = below - klp.topMargin;
+                    klp.topMargin = below;
+                    keyboard.setLayoutParams(klp);
+                    if (narrow) { // the results start under the keyboard there
+                        ViewGroup.MarginLayoutParams rlp = (ViewGroup.MarginLayoutParams) results.getLayoutParams();
+                        rlp.topMargin += shift;
+                        results.setLayoutParams(rlp);
+                    }
+                }
+            });
+        }
+
         // The search bar must not be wider than the screen
         View bar = root.findViewById(androidx.leanback.R.id.lb_search_bar_items);
         if (bar != null && bar.getLayoutParams() != null) {

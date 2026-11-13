@@ -127,6 +127,24 @@ public class SearchPanelView extends FrameLayout {
         } else {
             mKeyboard.setMaxWidthPx(visible - 2 * dp(24) - dp(52 + 12) - dp(140));
         }
+
+        // Safety net, whatever the cause: when the layout is done, if the keyboard still reaches past the screen's
+        // right edge (seen on an Android 5 emulator: keys A to E on the screen, the rest outside), pull the content
+        // back in by exactly that overflow.
+        final int basePadding = mRoot != null ? mSide + Math.max(0, getWidth() - visible) : 0;
+        mKeyboard.post(() -> {
+            if (mReleased || mRoot == null || mKeyboard == null || mKeyboard.getWidth() <= 0) {
+                return;
+            }
+
+            int[] place = new int[2];
+            mKeyboard.getLocationOnScreen(place);
+            int over = place[0] + mKeyboard.getWidth() - (getResources().getDisplayMetrics().widthPixels - dp(8));
+
+            if (over > 0) {
+                mRoot.setPadding(mRoot.getPaddingLeft(), mRoot.getPaddingTop(), basePadding + over, mRoot.getPaddingBottom());
+            }
+        });
     }
 
     /** The part of this panel's width that is on the screen. */
@@ -170,15 +188,24 @@ public class SearchPanelView extends FrameLayout {
         fitKeyboard();
     }
 
+    private final Runnable mRefit = this::refit;
+
     @Override
     protected void onAttachedToWindow() {
         super.onAttachedToWindow();
         getViewTreeObserver().addOnPreDrawListener(mMoveWatcher);
+
+        // Safety net, like the Settings panel has: the Home screen slides this panel into place and a slow device
+        // can finish after the fits above, so check once more shortly after it appeared (cheap and harmless)
+        postDelayed(mRefit, 500);
+        postDelayed(mRefit, 1_500);
+        postDelayed(mRefit, 3_000);
     }
 
     @Override
     protected void onDetachedFromWindow() {
         getViewTreeObserver().removeOnPreDrawListener(mMoveWatcher);
+        removeCallbacks(mRefit);
         super.onDetachedFromWindow();
     }
 

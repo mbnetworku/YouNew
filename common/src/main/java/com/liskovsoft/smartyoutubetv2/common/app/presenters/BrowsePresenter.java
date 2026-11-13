@@ -546,6 +546,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
 
         mLoadingMoreRows = true;
         final BrowseSection section = mCurrentSection;
+        final int[] added = {0};
 
         Disposable moreAction = getContentService().getHomeMoreRowsObserve()
                 .subscribe(
@@ -567,16 +568,32 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
 
                                 getView().updateSection(videoGroup);
                                 mBrowseProcessor.process(videoGroup);
+                                added[0]++;
                             }
                         },
                         error -> {
                             Log.e(TAG, "onRowsEnd error: %s", error.getMessage());
                             mLoadingMoreRows = false;
+                            retryMoreRowsIfEmpty(added[0]);
                         },
-                        () -> mLoadingMoreRows = false
+                        () -> {
+                            mLoadingMoreRows = false;
+                            retryMoreRowsIfEmpty(added[0]);
+                        }
                 );
 
         mActions.add(moreAction);
+    }
+
+    private int mEmptyMoreRowsTries;
+
+    /** YouNew: a batch that brought no row (network hiccup): try again a few times, so the list does not stop. */
+    private void retryMoreRowsIfEmpty(int added) {
+        if (added > 0) {
+            mEmptyMoreRowsTries = 0;
+        } else if (mEmptyMoreRowsTries++ < 3) {
+            Utils.postDelayed(this::onRowsEnd, 1_500);
+        }
     }
 
     @Override

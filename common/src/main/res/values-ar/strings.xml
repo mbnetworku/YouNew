@@ -800,4 +800,5 @@
     <string name="younew_signin_now">تسجيل الدخول الآن</string>
     <string name="younew_signin_device_only">الحفظ على هذا الجهاز فقط</string>
     <string name="younew_signin_not_now">ليس الآن</string>
+    <string name="younew_channel_not_opened">تعذر فتح القناة. تحقق من الاتصال وحاول مرة أخرى.</string>
 </resources>

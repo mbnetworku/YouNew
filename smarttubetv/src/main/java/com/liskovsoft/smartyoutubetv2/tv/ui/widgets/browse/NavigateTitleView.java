@@ -312,7 +312,7 @@ public class NavigateTitleView extends TitleView implements OnDataChange, Accoun
         MainUIData mainUIData = MainUIData.instance(getContext());
 
         mIsSearchOrbEnabled = !mainUIData.isTopButtonEnabled(MainUIData.TOP_BUTTON_SEARCH);
-        mIsAccountViewEnabled = mainUIData.isTopButtonEnabled(MainUIData.TOP_BUTTON_BROWSE_ACCOUNTS);
+        mIsAccountViewEnabled = false; // YouNew: hidden - the account is chosen, added and removed in Settings > Accounts (was: mainUIData.isTopButtonEnabled(MainUIData.TOP_BUTTON_BROWSE_ACCOUNTS))
         mIsLanguageViewEnabled = false; // YouNew: no Language button in the top bar (Settings > Language & Country does the same)
         mIsGlobalClockEnabled = GeneralData.instance(getContext()).isGlobalClockEnabled();
 

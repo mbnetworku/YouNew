@@ -809,4 +809,5 @@
     <string name="younew_signin_now">Sign in now</string>
     <string name="younew_signin_device_only">Save on this device only</string>
     <string name="younew_signin_not_now">Not now</string>
+    <string name="younew_channel_not_opened">Could not open the channel. Check the connection and try again.</string>
 </resources>
