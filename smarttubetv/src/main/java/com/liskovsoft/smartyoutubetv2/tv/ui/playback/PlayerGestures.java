@@ -41,6 +41,13 @@ public class PlayerGestures {
         String getSpeedText(float speed);
     }
 
+    /**
+     * YouNew: hidden. The swipe up/down on the left half (brightness) and the right half (volume) of the video were
+     * not wanted on the player screen (the owner: "no need for Android TV"). The code stays, so it can come back:
+     * set this to true.
+     */
+    private static final boolean LEVEL_GESTURES_ENABLED = false;
+
     private static final long LONG_PRESS_MS = 550;
     private static final long TAP_MAX_MS = 280;
     private static final float HOLD_SPEED = 2.0f;
@@ -147,7 +154,7 @@ public class PlayerGestures {
             mHandler.removeCallbacks(mLongPress);
 
             // A clear vertical move that started on the plain video: volume or brightness
-            if (mMode == MODE_NONE && !mStartedInZone && !mOverlayWasShown && Math.abs(dy) > Math.abs(dx) * 1.5f) {
+            if (LEVEL_GESTURES_ENABLED && mMode == MODE_NONE && !mStartedInZone && !mOverlayWasShown && Math.abs(dy) > Math.abs(dx) * 1.5f) {
                 startLevelGesture();
             }
         }

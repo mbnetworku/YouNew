@@ -47,6 +47,30 @@ public class SignInPrompt {
         return false;
     }
 
+    /**
+     * History without an account shows only what was watched in this app (saved on the device). Tell it once per
+     * run, and offer the sign-in that shows the whole YouTube history of the account.
+     */
+    public static void showLocalHistoryNotice(Context context) {
+        if (context == null || isSigned()) {
+            return;
+        }
+
+        AppDialogPresenter dialog = AppDialogPresenter.instance(context);
+
+        java.util.List<com.liskovsoft.smartyoutubetv2.common.app.models.playback.ui.OptionItem> text = new java.util.ArrayList<>();
+        text.add(UiOptionItem.from(context.getString(R.string.younew_history_local_only)));
+        dialog.appendStringsCategory(context.getString(R.string.header_history), text);
+
+        dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.younew_history_signin_button), option -> {
+            dialog.closeDialog();
+            YTSignInPresenter.instance(context).start();
+        }));
+        dialog.appendSingleButton(UiOptionItem.from(context.getString(R.string.younew_signin_not_now), option -> dialog.closeDialog()));
+
+        dialog.showDialog(context.getString(R.string.header_history));
+    }
+
     public static void show(Context context, @Nullable Runnable withoutAccount) {
         if (context == null) {
             return;

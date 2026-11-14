@@ -755,7 +755,7 @@
     <string name="younew_shorts_hint">▲ ▼  الفيديو القصير التالي / السابق</string>
     <string name="younew_no_subscriptions">لا توجد اشتراكات بعد.\nافتح فيديو واضغط اشتراك:\nستظهر القناة هنا.\nلا حاجة لحساب Google.</string>
     <string name="younew_search_videos">البحث عن فيديوهات</string>
-    <string name="younew_no_history">لم تشاهد أي فيديو بعد.\nالفيديوهات التي تشاهدها تظهر هنا، الأحدث أولاً،\nلتجدها وتكمل من حيث توقفت.\nلا حاجة لحساب Google.</string>
+    <string name="younew_no_history">لم تشاهد أي فيديو في هذا التطبيق بعد.\nالفيديوهات التي تشاهدها هنا تُحفظ على هذا الجهاز، الأحدث أولاً.\nسجّل الدخول بحساب Google لترى سجل مشاهدة YouTube الكامل.</string>
     <string name="younew_sign_in_on_tv">تسجيل الدخول على هذا التلفاز</string>
     <string name="younew_sign_in_on_tv_desc">تُفتح صفحة تسجيل الدخول من Google هنا: اكتب بريدك وكلمة المرور</string>
     <string name="younew_sign_in_in_browser">تسجيل الدخول في نافذة منبثقة</string>
@@ -808,4 +808,11 @@
     <string name="younew_update_p_failed">فشل التحديث. حاول مرة أخرى.</string>
     <string name="younew_playback_gave_up">تعذّر تشغيل هذا الفيديو. اضغط تشغيل للمحاولة مرة أخرى.</string>
     <string name="younew_fast_no_update">هذه نسخة Fast التجريبية. لا تحدّث نفسها.</string>
+    <string name="younew_history_local_only">لم تسجّل الدخول، لذلك يعرض السجل فقط الفيديوهات التي شاهدتها في هذا التطبيق (محفوظة على هذا الجهاز).\nسجّل الدخول بحساب Google لترى سجل مشاهدة YouTube الكامل هنا.</string>
+    <string name="younew_history_signin_button">سجّل الدخول لرؤية سجل YouTube الخاص بي</string>
+    <string name="younew_channel_new_videos">فيديوهات جديدة</string>
+    <string name="younew_loading">جارٍ التحميل…</string>
+    <string name="younew_loading_slow">ما زال التحميل جارياً… قد يكون الاتصال بطيئاً</string>
+    <string name="younew_loading_very_slow">يستغرق وقتاً طويلاً. اضغط رجوع للخروج أو انتظر.</string>
+    <string name="younew_loading_retry">جارٍ المحاولة مرة أخرى… (%1$d من %2$d)</string>
 </resources>

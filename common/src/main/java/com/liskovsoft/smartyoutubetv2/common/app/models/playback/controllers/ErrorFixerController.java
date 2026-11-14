@@ -121,6 +121,7 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
         mSabrErrorFixAttempts = 0;
         mReloadAttempts = 0; // it plays: start counting again
         mGaveUpTimeMs = 0;
+        com.liskovsoft.smartyoutubetv2.common.misc.LoadingStatus.clear();
     }
 
     /**
@@ -160,6 +161,8 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
             MessageHelpers.showLongMessage(getContext(), R.string.younew_playback_gave_up);
         }
 
+        com.liskovsoft.smartyoutubetv2.common.misc.LoadingStatus.clear();
+
         if (getPlayer() != null) {
             getPlayer().showProgressBar(false);
             getPlayer().setTitle(getContext().getString(R.string.younew_playback_gave_up));
@@ -172,6 +175,7 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
         if (delay < 0) {
             giveUpReloading();
         } else {
+            showRetryStatus();
             mVideoLoaderController.reloadVideo(delay);
         }
     }
@@ -181,8 +185,15 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
         if (delay < 0) {
             giveUpReloading();
         } else {
+            showRetryStatus();
             mVideoLoaderController.restartEngine(delay);
         }
+    }
+
+    /** The loading picture says "Trying again... (2 of 8)" while the reloads go on. */
+    private void showRetryStatus() {
+        com.liskovsoft.smartyoutubetv2.common.misc.LoadingStatus.set(
+                getContext().getString(R.string.younew_loading_retry, mReloadAttempts, MAX_RELOAD_ATTEMPTS));
     }
 
     @Override
@@ -198,6 +209,7 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
     @Override
     public void onFinish() {
         mBufferingDetector.reset();
+        com.liskovsoft.smartyoutubetv2.common.misc.LoadingStatus.clear();
     }
 
     @Override

@@ -2,12 +2,12 @@ package com.liskovsoft.smartyoutubetv2.common.app.models.errors;
 
 import android.content.Context;
 import com.liskovsoft.smartyoutubetv2.common.R;
-import com.liskovsoft.smartyoutubetv2.common.app.presenters.SearchPresenter;
+import com.liskovsoft.smartyoutubetv2.common.app.presenters.YTSignInPresenter;
 
 /**
  * YouNew: shown on History when you watch without a Google account and haven't watched anything yet.
- * History works without an account (the watched videos are saved on the box), so this screen explains it
- * instead of asking you to sign in. The button opens Search (the screen needs a button for the remote).
+ * Without an account History only has what was watched in this app (saved on the device). This screen says so and
+ * its button signs in, which brings the whole YouTube watch history of the account.
  */
 public class NoHistoryError implements ErrorFragmentData {
     private final Context mContext;
@@ -18,7 +18,7 @@ public class NoHistoryError implements ErrorFragmentData {
 
     @Override
     public void onAction() {
-        SearchPresenter.instance(mContext).startSearch(null);
+        YTSignInPresenter.instance(mContext).start();
     }
 
     @Override
@@ -28,6 +28,6 @@ public class NoHistoryError implements ErrorFragmentData {
 
     @Override
     public String getActionText() {
-        return mContext.getString(R.string.younew_search_videos);
+        return mContext.getString(R.string.younew_history_signin_button);
     }
 }

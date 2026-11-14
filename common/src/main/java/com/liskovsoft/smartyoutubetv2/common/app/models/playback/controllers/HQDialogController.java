@@ -18,6 +18,13 @@ import java.util.Set;
 
 public class HQDialogController extends BasePlayerController {
     private static final String TAG = HQDialogController.class.getSimpleName();
+    /**
+     * YouNew: the player's "Advanced playback settings" had about a dozen entries, each opening another page. Now only
+     * what is used while watching is listed: video quality, audio language, video zoom and the sleep timer. The rest
+     * (audio formats, presets, network engine, video buffer, audio delay, pitch, auto frame rate and others) is
+     * hidden, not deleted: set this to false to bring it back (most of it is also in Settings > Player).
+     */
+    private static final boolean SHORT_LIST = true;
     private static final int VIDEO_FORMATS_ID = 132;
     private static final int AUDIO_FORMATS_ID = 133;
     // NOTE: using map, because same item could be changed time to time
@@ -48,17 +55,23 @@ public class HQDialogController extends BasePlayerController {
 
         addQualityCategories();
         addAudioLanguage();
-        addPresetsCategory();
+        if (!SHORT_LIST) {
+            addPresetsCategory();
+        }
         addVideoZoomCategory();
-        addNetworkEngine();
-        addVideoBufferCategory();
-        addAudioDelayCategory();
-        addPitchEffectCategory();
+        if (!SHORT_LIST) {
+            addNetworkEngine();
+            addVideoBufferCategory();
+            addAudioDelayCategory();
+            addPitchEffectCategory();
+        }
         addSleepTimerCategory();
         //addBackgroundPlaybackCategory();
 
         appendOptions(mCategoriesInt);
-        appendOptions(mCategories);
+        if (!SHORT_LIST) {
+            appendOptions(mCategories); // added by other controllers (auto frame rate ...)
+        }
 
         mAppDialogPresenter.showDialog(getContext().getString(R.string.playback_settings), this::onDialogHide);
     }
@@ -79,11 +92,13 @@ public class HQDialogController extends BasePlayerController {
                 OptionCategory.TYPE_RADIO_LIST,
                 videoFormatsTitle,
                 UiOptionItem.from(videoFormats, this::selectFormatOption, getContext().getString(R.string.option_disabled))));
-        addCategoryInt(OptionCategory.from(
-                AUDIO_FORMATS_ID,
-                OptionCategory.TYPE_RADIO_LIST,
-                audioFormatsTitle,
-                UiOptionItem.from(audioFormats, this::selectFormatOption, getContext().getString(R.string.option_disabled))));
+        if (!SHORT_LIST) {
+            addCategoryInt(OptionCategory.from(
+                    AUDIO_FORMATS_ID,
+                    OptionCategory.TYPE_RADIO_LIST,
+                    audioFormatsTitle,
+                    UiOptionItem.from(audioFormats, this::selectFormatOption, getContext().getString(R.string.option_disabled))));
+        }
     }
 
     private void selectFormatOption(OptionItem option) {

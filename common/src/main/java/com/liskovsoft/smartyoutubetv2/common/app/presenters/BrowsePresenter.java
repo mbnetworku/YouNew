@@ -77,6 +77,7 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
     // YouNew: endless Home
     private AtomicInteger mGroupIndex = new AtomicInteger(-1);
     private boolean mLoadingMoreRows;
+    private static boolean sLocalHistoryNoticeShown;
     // YouNew: the loading arrow must never spin forever (a request that neither answers nor fails)
     private static final long PROGRESS_TIMEOUT_MS = 25_000;
     private final Runnable mProgressWatchdog = () -> {
@@ -1018,6 +1019,13 @@ public class BrowsePresenter extends BasePresenter<BrowseView> implements Sectio
                 VideoGroup videoGroup = VideoGroup.from(getCurrentSection());
                 appendLocalHistory(videoGroup);
                 getView().updateSection(videoGroup);
+
+                // YouNew: without an account this is only what was watched in this app: say so, once per run, and offer
+                // the sign-in that brings the whole YouTube history of the account
+                if (!sLocalHistoryNoticeShown) {
+                    sLocalHistoryNoticeShown = true;
+                    Utils.postDelayed(() -> com.liskovsoft.smartyoutubetv2.common.misc.SignInPrompt.showLocalHistoryNotice(getContext()), 600);
+                }
             } else if (isHistorySection()) {
                 // YouNew: nothing watched yet on this box. Explain History instead of asking to sign in.
                 getView().showProgressBar(false);

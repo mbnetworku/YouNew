@@ -17,7 +17,7 @@ public class PreviewCardView extends FrameLayout {
 
     View mOverlayView;
 
-    ProgressBar mProgressCard;
+    View mProgressCard;
 
     private String mVideoUrl;
 

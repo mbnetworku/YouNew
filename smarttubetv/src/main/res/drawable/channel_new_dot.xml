@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- YouNew: red dot on the picture of a channel with new videos -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android" android:shape="oval">
+    <solid android:color="#FF3D3D" />
+    <stroke android:width="2dp" android:color="#121212" />
+</shape>
