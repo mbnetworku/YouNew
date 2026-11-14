@@ -90,6 +90,30 @@ public class OnScreenKeyboard extends LinearLayout {
     }
 
     /** Width of the keyboard in pixels. */
+    /** Moves the remote focus onto the first key (A). Used when the search bar is clicked or touched. */
+    public boolean focusFirstKey() {
+        View first = firstFocusable(this);
+        return first != null && first.requestFocus();
+    }
+
+    private static View firstFocusable(View view) {
+        if (view.isFocusable() && view != null && !(view instanceof OnScreenKeyboard)) {
+            return view;
+        }
+
+        if (view instanceof android.view.ViewGroup) {
+            android.view.ViewGroup group = (android.view.ViewGroup) view;
+            for (int i = 0; i < group.getChildCount(); i++) {
+                View found = firstFocusable(group.getChildAt(i));
+                if (found != null) {
+                    return found;
+                }
+            }
+        }
+
+        return null;
+    }
+
     public static int getWidthPx(Context context) {
         int key = keyDp(context);
         return dp(context, 7 * key + Math.round(key * 2.7f) + 16);
