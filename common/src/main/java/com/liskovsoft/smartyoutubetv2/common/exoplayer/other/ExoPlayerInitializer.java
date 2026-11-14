@@ -29,6 +29,7 @@ import java.util.UUID;
 
 public class ExoPlayerInitializer {
     private final int mMaxBufferBytes;
+    private final boolean mFastBuild;
     private final PlayerData mPlayerData;
     private final PlayerTweaksData mPlayerTweaksData;
     private VolumeBooster mVolumeBooster;
@@ -39,6 +40,7 @@ public class ExoPlayerInitializer {
     public ExoPlayerInitializer(Context context) {
         mPlayerData = PlayerData.instance(context);
         mPlayerTweaksData = PlayerTweaksData.instance(context);
+        mFastBuild = com.liskovsoft.smartyoutubetv2.common.misc.BuildKind.isFast(context);
 
         long deviceRam = DeviceHelpers.getDeviceRam(context);
 
@@ -114,6 +116,11 @@ public class ExoPlayerInitializer {
         // for the "Response code: 403" error the owner saw on Android 14 (2026-11-13).
         int bufferForPlaybackMs = 2_500;
         int bufferForPlaybackAfterRebufferMs = 5_000;
+        if (mFastBuild) {
+            // YouNew: the Fast test build starts after 1 s of video (2.5 s after a stall) to compare the start time
+            bufferForPlaybackMs = 1_000;
+            bufferForPlaybackAfterRebufferMs = 2_500;
+        }
 
         switch (mPlayerData.getVideoBufferType()) {
             case PlayerData.BUFFER_HIGHEST:

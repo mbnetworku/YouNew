@@ -601,7 +601,12 @@ SDK_NOW=$(adb shell getprop ro.build.version.sdk | tr -d '\r')
 APK=""
 if [ "${SDK_NOW:-0}" -ge 26 ]; then APK=$(ls apk/debug/*modern-universal*.apk 2>/dev/null | head -1); fi
 if [ -z "$APK" ]; then APK=$(ls apk/debug/*universal*.apk | grep -v modern | head -1); fi
-echo "Testing with $APK (Android API $SDK_NOW)"
+# A Fast release (TEST_FAST=1): test the Fast test app instead (its release APK, own package name)
+if [ -n "$TEST_FAST" ]; then
+  APK=$(ls apk/release/*fast-universal*.apk | head -1)
+  PKG=com.younew.tv.fast
+fi
+echo "Testing with $APK (Android API $SDK_NOW, package $PKG)"
 adb shell getprop ro.build.version.release
 echo "Installing $APK"
 adb install -r "$APK" || exit 1

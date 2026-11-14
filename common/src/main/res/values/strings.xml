@@ -816,4 +816,5 @@
     <string name="younew_update_p_installing">Opening the installer…</string>
     <string name="younew_update_p_failed">The update failed. Try again.</string>
     <string name="younew_playback_gave_up">Could not play this video. Press play to try again.</string>
+    <string name="younew_fast_no_update">This is the Fast test version. It does not update itself.</string>
 </resources>

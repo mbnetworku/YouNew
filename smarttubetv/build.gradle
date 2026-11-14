@@ -28,6 +28,10 @@ apply plugin: 'com.android.application'
 // ./gradlew -PyounewModern ... = "modern" (Android 8.0 and newer; its files are named YouTvPlus-<version>-modern-<cpu>.apk).
 // The modern build needs no multidex/desugaring shims, so it starts and runs a little lighter.
 def modernBuild = project.hasProperty('younewModern')
+// YouNew: a third kind of file, for comparing: -PyounewFast builds the "Fast" test app: own app id (com.younew.tv.fast)
+// and name (YouTv Plus Fast), so it installs NEXT TO the normal app; shrunk code and resources (R8), faster video start,
+// no self-update. Its files are named YouTvPlus-<version>-fast-<cpu>.apk. It never replaces the normal releases.
+def fastBuild = project.hasProperty('younewFast')
 
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
@@ -68,6 +72,11 @@ android {
         buildConfigField "long", "TIMESTAMP", System.currentTimeMillis() + "L"
         // YouNew: read by the updater (AppUpdater) to fetch the file of the same build
         resValue "bool", "younew_modern", modernBuild ? "true" : "false"
+        resValue "bool", "younew_fast", fastBuild ? "true" : "false"
+        if (fastBuild) {
+            // the search provider of the Fast app has its own authority (<app id>.search_provider)
+            resValue "string", "search_authority", "com.younew.tv.fast.search_provider"
+        }
 
         // More info: http://myhexaville.com/2017/03/10/android-multidex/
         // Additionally, you should extend your application from MultiDexApplication
@@ -114,6 +123,13 @@ android {
 
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
 
+            if (fastBuild) {
+                // YouNew: the "Fast" test build only: remove code and resources nothing can reach
+                minifyEnabled true
+                shrinkResources true
+                proguardFiles 'proguard-fast.pro'
+            }
+
             if (keystorePropertiesFile.exists()) {
                 signingConfig signingConfigs.release
             } else {
@@ -142,12 +158,22 @@ android {
             if (modernBuild) {
                 arch = "modern-" + arch
             }
+            if (fastBuild) {
+                arch = "fast-" + arch
+            }
             def suffix = variant.buildType.name == "release" ? "" : "-" + variant.buildType.name
 
             def newApkName = sprintf("%s-%s-%s%s.apk", [project, version, arch, suffix])
 
             // gradle 4.6 migration
             output.outputFileName = new File(newApkName)
+        }
+    }
+
+    sourceSets {
+        if (fastBuild) {
+            // the names of the Fast build (YouTv Plus Fast) instead of src/stfdroid/res
+            stfdroid.res.srcDirs = ['src/stfdroidFast/res']
         }
     }
 
@@ -187,7 +213,7 @@ android {
             targetSdkVersion project.properties.compileSdkVersion
         }
         stfdroid {
-            applicationId "com.younew.tv"
+            applicationId fastBuild ? "com.younew.tv.fast" : "com.younew.tv"
             minSdkVersion modernBuild ? 26 : 21
             targetSdkVersion project.properties.compileSdkVersion
 

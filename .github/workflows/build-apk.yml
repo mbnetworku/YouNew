@@ -65,6 +65,14 @@ jobs:
           ./gradlew --no-daemon --stacktrace -PyounewModern assembleStfdroidDebug assembleStfdroidRelease
           for t in debug release; do cp smarttubetv/build/outputs/apk/stfdroid/$t/*modern*.apk "dist/$t/"; done
 
+      # The "Fast" test build (own app id and name, installs next to the normal app): only for a Fast release,
+      # that is a release tag that contains "fast" (for example v33.16-fast). Its release APK is what the emulators test.
+      - name: Build the Fast test build
+        if: contains(inputs.release_tag, 'fast')
+        run: |
+          ./gradlew --no-daemon --stacktrace -PyounewFast assembleStfdroidRelease
+          cp smarttubetv/build/outputs/apk/stfdroid/release/*fast*.apk dist/release/
+
       - name: Check the APK files
         run: |
           BT="$ANDROID_HOME/build-tools/34.0.0"
@@ -99,6 +107,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 45
+    env:
+      # a Fast release tests the Fast app (package com.younew.tv.fast); anything else tests the normal apps
+      TEST_FAST: ${{ contains(inputs.release_tag, 'fast') && '1' || '' }}
     strategy:
       fail-fast: false
       matrix:
@@ -168,30 +179,40 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           mkdir out
+          TAG="${{ inputs.release_tag || github.event.release.tag_name || github.ref_name }}"
+          FAST_TAG=0; case "$TAG" in *fast*) FAST_TAG=1 ;; esac
           for f in apk/release/YouTvPlus-*.apk; do
+            # a Fast release (tag with "fast") has only the Fast files; every other release never has them
+            case "$f" in *fast*) [ "$FAST_TAG" = 1 ] || continue ;; *) [ "$FAST_TAG" = 1 ] && continue ;; esac
             abi=$(basename "$f" .apk | sed -E 's/^YouTvPlus-[^-]+-//')
             # legacy (Android 5.0+): YouTvPlus.apk, YouTvPlus-<cpu>.apk. modern (Android 8.0+): YouTvPlus-modern.apk, YouTvPlus-modern-<cpu>.apk
             if [ "$abi" = "universal" ]; then cp "$f" out/YouTvPlus.apk
             elif [ "$abi" = "modern-universal" ]; then cp "$f" out/YouTvPlus-modern.apk
+            elif [ "$abi" = "fast-universal" ]; then cp "$f" out/YouTvPlus-fast.apk
             else cp "$f" "out/YouTvPlus-$abi.apk"; fi
           done
           ls -la out
-          TAG="${{ inputs.release_tag || github.event.release.tag_name || github.ref_name }}"
           if ! gh release view "$TAG" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            if [ "$FAST_TAG" = 1 ]; then
+              NOTES="YouTv Plus ${TAG#v} FAST TEST. A separate app to compare with the normal one: it has its own name (YouTv Plus Fast) and installs NEXT TO it, so your normal app is not touched. Shrunk code, faster video start, no self-update; sign in again inside it. Take **YouTvPlus-fast.apk**."
+            else
+              NOTES="YouTv Plus ${TAG#v}. Two versions: **Android 8 and newer** (new TV, phone, tablet): take **YouTvPlus-modern.apk**. **Android 5, 6 or 7** (old TV box): take **YouTvPlus.apk** (it also works on newer Android). Smaller files: YouTvPlus-modern-arm64-v8a.apk / YouTvPlus-modern-armeabi-v7a.apk (Android 8+) and YouTvPlus-armeabi-v7a.apk (Android 5+)."
+            fi
             gh release create "$TAG" --repo "${{ github.repository }}" --target "${{ github.sha }}" --title "YouTv Plus ${TAG#v}" \
-              --notes "YouTv Plus ${TAG#v}. Two versions: **Android 8 and newer** (new TV, phone, tablet): take **YouTvPlus-modern.apk**. **Android 5, 6 or 7** (old TV box): take **YouTvPlus.apk** (it also works on newer Android). Smaller files: YouTvPlus-modern-arm64-v8a.apk / YouTvPlus-modern-armeabi-v7a.apk (Android 8+) and YouTvPlus-armeabi-v7a.apk (Android 5+)."
+              --notes "$NOTES"
           fi
           gh release upload "$TAG" out/*.apk --clobber --repo "${{ github.repository }}"
           # Beta tags (for example v33.02-beta) are marked as pre-releases: the normal download link keeps
           # pointing at the newest production release; beta testers see them in the app (About > beta) and on the page
-          if [[ "$TAG" == *beta* ]]; then
+          # Fast test releases (tag with "fast", for example v33.16-fast) are pre-releases too
+          if [[ "$TAG" == *beta* || "$TAG" == *fast* ]]; then
             gh release edit "$TAG" --repo "${{ github.repository }}" --prerelease
           else
             gh release edit "$TAG" --repo "${{ github.repository }}" --prerelease=false
           fi
           # Also fix the releases made before this rule: every beta release is a pre-release, every other one is not
           gh release list --repo "${{ github.repository }}" --limit 50 --json tagName -q '.[].tagName' | while read -r T; do
-            if [[ "$T" == *beta* ]]; then
+            if [[ "$T" == *beta* || "$T" == *fast* ]]; then
               gh release edit "$T" --repo "${{ github.repository }}" --prerelease || true
             else
               gh release edit "$T" --repo "${{ github.repository }}" --prerelease=false || true

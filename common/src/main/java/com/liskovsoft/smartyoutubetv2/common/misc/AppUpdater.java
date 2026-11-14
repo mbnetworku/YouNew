@@ -174,7 +174,7 @@ public final class AppUpdater {
 
     /** At start-up: look for a newer version, at most every 12 hours, and only ask if there is one. */
     public static void checkInBackground(Context context) {
-        if (context == null || !isAutoCheckEnabled(context)) {
+        if (context == null || !isAutoCheckEnabled(context) || BuildKind.isFast(context)) { // the Fast test build never updates itself
             return;
         }
 
@@ -188,6 +188,11 @@ public final class AppUpdater {
 
     /** From Settings > About: look now and always say what was found. */
     public static void checkNow(Context context) {
+        if (context != null && BuildKind.isFast(context)) {
+            MessageHelpers.showLongMessage(context, R.string.younew_fast_no_update);
+            return;
+        }
+
         if (context != null) {
             check(context.getApplicationContext(), true);
         }
@@ -253,12 +258,7 @@ public final class AppUpdater {
 
     /** True in the "modern" build (Android 8.0 and newer): it updates to the modern files. */
     private static boolean isModernBuild(Context context) {
-        try {
-            int id = context.getResources().getIdentifier("younew_modern", "bool", context.getPackageName());
-            return id != 0 && context.getResources().getBoolean(id);
-        } catch (Exception e) {
-            return false;
-        }
+        return BuildKind.isModern(context);
     }
 
     /**
