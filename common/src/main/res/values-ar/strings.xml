@@ -807,4 +807,5 @@
     <string name="younew_update_p_installing">جارٍ فتح المثبّت…</string>
     <string name="younew_update_p_failed">فشل التحديث. حاول مرة أخرى.</string>
     <string name="younew_playback_gave_up">تعذّر تشغيل هذا الفيديو. اضغط تشغيل للمحاولة مرة أخرى.</string>
+    <string name="younew_fast_no_update">هذه نسخة Fast التجريبية. لا تحدّث نفسها.</string>
 </resources>
