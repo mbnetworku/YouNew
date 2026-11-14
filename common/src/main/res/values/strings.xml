@@ -765,7 +765,7 @@
     <string name="younew_shorts_hint">▲ ▼  Next / previous Short</string>
     <string name="younew_no_subscriptions">No subscriptions yet.\nOpen a video and press Subscribe:\nthe channel will appear here.\nNo Google account needed.</string>
     <string name="younew_search_videos">Search for videos</string>
-    <string name="younew_no_history">Nothing watched yet.\nThe videos you watch show up here, newest first,\nso you can find them and continue where you stopped.\nNo Google account needed.</string>
+    <string name="younew_no_history">Nothing watched in this app yet.\nThe videos you watch here are saved on this device, newest first.\nSign in with your Google account to see your whole YouTube watch history.</string>
     <string name="younew_sign_in_on_tv">Sign in on this TV</string>
     <string name="younew_sign_in_on_tv_desc">Google\'s sign-in page opens here: type your email and password</string>
     <string name="younew_sign_in_in_browser">Sign in in a pop-up window</string>
@@ -817,4 +817,6 @@
     <string name="younew_update_p_failed">The update failed. Try again.</string>
     <string name="younew_playback_gave_up">Could not play this video. Press play to try again.</string>
     <string name="younew_fast_no_update">This is the Fast test version. It does not update itself.</string>
+    <string name="younew_history_local_only">You are not signed in, so History shows only the videos you watched in this app (saved on this device).\nSign in with your Google account to see your whole YouTube watch history here.</string>
+    <string name="younew_history_signin_button">Sign in to see my YouTube history</string>
 </resources>
