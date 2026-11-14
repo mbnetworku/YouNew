@@ -25,10 +25,11 @@
         android:background="@color/black_87pc"
         android:visibility="invisible" />
 
-    <ProgressBar
+    <!-- YouNew: the app's own ring instead of the system spinner -->
+    <com.liskovsoft.smartyoutubetv2.tv.ui.widgets.YouNewSpinner
         android:id="@+id/progress_card"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
         android:layout_gravity="center"
         android:visibility="invisible" />
 
