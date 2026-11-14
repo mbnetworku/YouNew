@@ -819,4 +819,5 @@
     <string name="younew_fast_no_update">This is the Fast test version. It does not update itself.</string>
     <string name="younew_history_local_only">You are not signed in, so History shows only the videos you watched in this app (saved on this device).\nSign in with your Google account to see your whole YouTube watch history here.</string>
     <string name="younew_history_signin_button">Sign in to see my YouTube history</string>
+    <string name="younew_channel_new_videos">New videos</string>
 </resources>

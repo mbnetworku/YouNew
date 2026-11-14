@@ -69,6 +69,17 @@ public class ChannelCardPresenter extends LongClickPresenter {
             ViewUtil.setTextScrollSpeed(textView, getCardTextScrollSpeed(context));
         }
 
+        // YouNew: the mouse over a channel lights it a little (focus lights it more)
+        container.setOnHoverListener((v, event) -> {
+            int action = event.getActionMasked();
+            if (action == android.view.MotionEvent.ACTION_HOVER_ENTER && !v.isFocused()) {
+                wrapper.setBackgroundResource(R.drawable.channel_row_hover);
+            } else if (action == android.view.MotionEvent.ACTION_HOVER_EXIT && !v.isFocused()) {
+                wrapper.setBackgroundResource(0);
+            }
+            return false;
+        });
+
         container.setOnFocusChangeListener((v, hasFocus) -> {
             wrapper.setBackgroundResource(hasFocus ? R.drawable.channel_row_focused : 0);
 
@@ -102,6 +113,11 @@ public class ChannelCardPresenter extends LongClickPresenter {
         // Channels with new videos are shown in bold
         textView.setTypeface(null, video.hasNewContent ? android.graphics.Typeface.BOLD : android.graphics.Typeface.NORMAL);
         textView.setTag(R.id.channel_new_content, video.hasNewContent ? true : null);
+
+        // YouNew: new videos: red ring around the picture, red dot, and a "New videos" line under the name
+        viewHolder.view.findViewById(R.id.channel_avatar_frame).setBackgroundResource(video.hasNewContent ? R.drawable.channel_avatar_ring_new : 0);
+        viewHolder.view.findViewById(R.id.channel_new_dot).setVisibility(video.hasNewContent ? View.VISIBLE : View.GONE);
+        viewHolder.view.findViewById(R.id.channel_subtitle).setVisibility(video.hasNewContent ? View.VISIBLE : View.GONE);
 
 
         ImageView imageView = viewHolder.view.findViewById(R.id.channel_image);

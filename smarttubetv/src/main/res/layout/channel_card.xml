@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- YouNew: one channel in the Subscriptions list (YouTube TV style): round picture + name.
+<!-- YouNew: one channel in the Subscriptions list. Round picture (a red ring and a red dot when the channel has new
+     videos), the name, and a small "New videos" line under it. Rounded highlight on the focused or touched channel.
      NOTE: You can't set layout dimension for Presenter's container -->
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
              xmlns:tools="http://schemas.android.com/tools"
@@ -11,28 +12,57 @@
                   android:id="@+id/channel_card_wrapper"
                   android:orientation="horizontal"
                   android:gravity="center_vertical"
-                  android:paddingStart="12dp"
+                  android:paddingStart="10dp"
                   android:paddingEnd="12dp"
-                  android:paddingTop="8dp"
-                  android:paddingBottom="8dp"
+                  android:paddingTop="7dp"
+                  android:paddingBottom="7dp"
                   android:layout_width="@dimen/channel_card_width"
                   android:layout_height="wrap_content">
-        <ImageView
-            android:id="@+id/channel_image"
-            android:scaleType="centerCrop"
-            android:layout_width="40dp"
-            android:layout_height="40dp"
-            android:layout_marginEnd="14dp"
-            android:visibility="invisible"
-            tools:ignore="ContentDescription"/>
-        <com.liskovsoft.smartyoutubetv2.tv.ui.widgets.marqueetextviewcompat.MarqueeTextViewCompat
-            android:id="@+id/channel_title"
-            android:singleLine="true"
-            android:ellipsize="end"
-            android:textSize="18sp"
+        <FrameLayout
+            android:id="@+id/channel_avatar_frame"
+            android:layout_width="52dp"
+            android:layout_height="52dp"
+            android:layout_marginEnd="12dp">
+            <ImageView
+                android:id="@+id/channel_image"
+                android:scaleType="centerCrop"
+                android:layout_width="44dp"
+                android:layout_height="44dp"
+                android:layout_gravity="center"
+                android:visibility="invisible"
+                tools:ignore="ContentDescription"/>
+            <View
+                android:id="@+id/channel_new_dot"
+                android:layout_width="14dp"
+                android:layout_height="14dp"
+                android:layout_gravity="bottom|end"
+                android:background="@drawable/channel_new_dot"
+                android:visibility="gone"/>
+        </FrameLayout>
+        <LinearLayout
+            android:orientation="vertical"
+            android:gravity="center_vertical"
             android:layout_width="0dp"
             android:layout_weight="1"
-            android:layout_height="wrap_content"
-            android:textAlignment="viewStart"/>
+            android:layout_height="wrap_content">
+            <com.liskovsoft.smartyoutubetv2.tv.ui.widgets.marqueetextviewcompat.MarqueeTextViewCompat
+                android:id="@+id/channel_title"
+                android:singleLine="true"
+                android:ellipsize="end"
+                android:textSize="17sp"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="viewStart"/>
+            <TextView
+                android:id="@+id/channel_subtitle"
+                android:singleLine="true"
+                android:textSize="12sp"
+                android:textColor="#FF5C5C"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:textAlignment="viewStart"
+                android:text="@string/younew_channel_new_videos"
+                android:visibility="gone"/>
+        </LinearLayout>
     </LinearLayout>
 </FrameLayout>
