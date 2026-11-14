@@ -463,8 +463,16 @@ public class MotherActivity extends FragmentActivity {
         mIsBackPressed = false;
     }
 
+    /**
+     * YouNew: a screen can switch the swipe-from-the-left-edge "back" off. The player screen does: there the left
+     * and right swipes are not wanted (the back arrow and the Back key close it).
+     */
+    protected boolean isEdgeSlideEnabled() {
+        return true;
+    }
+
     private void initEdgeSlide() {
-        if (VERSION.SDK_INT < 21 || !Helpers.isTouchSupported(this) || Utils.isSystemGestureArrowEnabled(this)) {
+        if (VERSION.SDK_INT < 21 || !Helpers.isTouchSupported(this) || Utils.isSystemGestureArrowEnabled(this) || !isEdgeSlideEnabled()) {
             return;
         }
 

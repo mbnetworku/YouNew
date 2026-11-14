@@ -29,6 +29,12 @@ import com.liskovsoft.smartyoutubetv2.tv.ui.common.LeanbackActivity;
  * <a href="https://developer.android.com/training/game-controllers/controller-input.html">docs</href>.
  */
 public class PlaybackActivity extends LeanbackActivity {
+    /** YouNew: no swipe-from-the-edge "back" on the player screen (no left and right sliders there). */
+    @Override
+    protected boolean isEdgeSlideEnabled() {
+        return false;
+    }
+
     private static final String TAG = PlaybackActivity.class.getSimpleName();
     private static final float GAMEPAD_TRIGGER_INTENSITY_ON = 0.5f;
     // Off-condition slightly smaller for button debouncing.
