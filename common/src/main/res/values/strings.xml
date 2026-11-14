@@ -820,4 +820,8 @@
     <string name="younew_history_local_only">You are not signed in, so History shows only the videos you watched in this app (saved on this device).\nSign in with your Google account to see your whole YouTube watch history here.</string>
     <string name="younew_history_signin_button">Sign in to see my YouTube history</string>
     <string name="younew_channel_new_videos">New videos</string>
+    <string name="younew_loading">Loading…</string>
+    <string name="younew_loading_slow">Still loading… the connection may be slow</string>
+    <string name="younew_loading_very_slow">This is taking long. Press Back to leave, or wait.</string>
+    <string name="younew_loading_retry">Trying again… (%1$d of %2$d)</string>
 </resources>
