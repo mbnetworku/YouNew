@@ -119,6 +119,14 @@ public class LoungeService {
             } catch (Exception e) {
                 Log.e(TAG, e.getMessage());
                 // Continue to listen whichever is happening.
+                // YouNew: but not at full speed: a connection that fails at once, again and again, was retried
+                // without any pause.
+                try {
+                    Thread.sleep(3_000);
+                } catch (InterruptedException ie) {
+                    Log.e(TAG, "Oops. Stopping. Listening thread interrupted.");
+                    break;
+                }
             }
         }
     }
@@ -147,6 +155,21 @@ public class LoungeService {
         }
     }
 
+    private static OkHttpClient sListenClient;
+
+    private static synchronized OkHttpClient getListenClient() {
+        if (sListenClient == null) {
+            OkHttpClient.Builder builder = new OkHttpClient.Builder();
+
+            // No command during one minute could be a sign of hanged connection.
+            builder.readTimeout(60_000, TimeUnit.MILLISECONDS);
+
+            sListenClient = builder.build();
+        }
+
+        return sListenClient;
+    }
+
     private void startListeningInt(OnCommand callback) throws IOException {
         Log.d(TAG, "Opening session...");
 
@@ -170,12 +193,8 @@ public class LoungeService {
                 mSessionId,
                 mGSessionId);
         Request request = new Builder().url(url).build();
-        OkHttpClient.Builder builder = new OkHttpClient.Builder();
-
-        // No command during one minute could be a sign of hanged connection.
-        builder.readTimeout(60_000, TimeUnit.MILLISECONDS);
-
-        OkHttpClient client = builder.build();
+        // YouNew: one client for all passes (a new one every time brought its own connection pool and threads)
+        OkHttpClient client = getListenClient();
 
         Log.d(TAG, "Starting read session...");
 

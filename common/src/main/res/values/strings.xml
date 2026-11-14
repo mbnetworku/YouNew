@@ -815,4 +815,5 @@
     <string name="younew_update_p_downloading_unknown">Downloading…</string>
     <string name="younew_update_p_installing">Opening the installer…</string>
     <string name="younew_update_p_failed">The update failed. Try again.</string>
+    <string name="younew_playback_gave_up">Could not play this video. Press play to try again.</string>
 </resources>

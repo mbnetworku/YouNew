@@ -65,6 +65,9 @@ internal object RetrofitOkHttpHelper {
 
     private fun createClient(): OkHttpClient {
         val builder = OkHttpManager.instance().client.newBuilder()
+        // YouNew: API calls only (this client is not used for media): one whole call may not last longer than a minute,
+        // however slowly the answer trickles in (the 20 s timeouts apply to each step only)
+        builder.callTimeout(60, java.util.concurrent.TimeUnit.SECONDS)
         addCommonHeaders(builder)
         //addCronetInterceptor(builder)
         return builder.build()

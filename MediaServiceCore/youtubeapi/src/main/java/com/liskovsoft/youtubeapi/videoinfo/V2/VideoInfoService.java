@@ -108,6 +108,10 @@ public class VideoInfoService extends VideoInfoServiceBase {
     private VideoInfo firstPlayable(String videoId, String clickTrackingParams) {
         VideoInfo result = firstInfoWith(videoId, clickTrackingParams, info -> !info.isUnplayable());
 
+        if (Thread.currentThread().isInterrupted()) {
+            return null; // abandoned: no second pass
+        }
+
         return result != null ? result : firstInfoWith(videoId, clickTrackingParams, info -> info.getRegularFormats() != null);
     }
 
@@ -120,6 +124,13 @@ public class VideoInfoService extends VideoInfoServiceBase {
         AppClient nextClient = beginClient;
 
         do {
+            // YouNew: the caller gave up (Rx disposal interrupts the thread, e.g. the user moved on from a prefetched
+            // card): stop trying the other clients. The global lock of FormatInfoWrapper is held until we return.
+            if (Thread.currentThread().isInterrupted()) {
+                Log.d(TAG, "Video info request abandoned. videoId: %s", videoId);
+                return null;
+            }
+
             VideoInfo result = getVideoInfoWithRentFix(nextClient, videoId, clickTrackingParams);
 
             if (result != null && infoTester.test(result)) {
