@@ -133,6 +133,29 @@ public abstract class SearchTagsFragmentBase extends SearchSupportFragment
         }
         searchFrame.addView(keyboard, lp);
 
+        // YouNew: clicking (or touching, or pressing OK on) the search bar goes to the on-screen keyboard: the first
+        // key gets the focus. Before, it opened Android's own keyboard (often none on a TV box), covering the screen.
+        android.widget.EditText editor = root.findViewById(androidx.leanback.R.id.lb_search_text_editor);
+        if (editor != null) {
+            editor.setOnTouchListener((v, event) -> {
+                if (event.getActionMasked() == android.view.MotionEvent.ACTION_UP) {
+                    keyboard.setVisibility(View.VISIBLE);
+                    keyboard.focusFirstKey();
+                }
+                return true; // no caret, no system keyboard
+            });
+            editor.setOnKeyListener((v, keyCode, event) -> {
+                if (keyCode == android.view.KeyEvent.KEYCODE_DPAD_CENTER) {
+                    if (event.getAction() == android.view.KeyEvent.ACTION_UP) {
+                        keyboard.setVisibility(View.VISIBLE);
+                        keyboard.focusFirstKey();
+                    }
+                    return true;
+                }
+                return false;
+            });
+        }
+
         // YouNew: the keyboard starts right under the search bar. The bar (with the settings and search buttons on
         // its right) can be taller than the fixed 72 dp on a phone, and then those buttons covered the top keys.
         View searchBar = root.findViewById(androidx.leanback.R.id.lb_search_bar);
