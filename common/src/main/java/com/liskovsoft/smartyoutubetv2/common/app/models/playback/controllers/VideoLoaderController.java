@@ -336,7 +336,7 @@ public class VideoLoaderController extends BasePlayerController {
         player.showBackground(bgImageUrl); // remove bg (if video playing) or set another bg
     }
 
-    private void reloadVideo(int delayMs) {
+    public void reloadVideo(int delayMs) {
         if (getPlayer() == null) {
             return;
         }
@@ -358,7 +358,7 @@ public class VideoLoaderController extends BasePlayerController {
         }
     }
 
-    private void restartEngine(int delayMs) {
+    public void restartEngine(int delayMs) {
         if (getPlayer() != null) {
             Log.d(TAG, "Restarting the engine...");
             Utils.postDelayed(mRestartEngine, delayMs);

@@ -390,3 +390,27 @@ For a consumer client app, the design is **partially ready**:
 | Confirmed findings | 6 (C-01 … C-06) |
 | Potential risks | 5 (P-01 … P-05) |
 | Unknowns listed | 9 (section 15) |
+
+---
+
+## 18. Fixes applied after this audit (version 33.16)
+
+The audit itself was read-only. After it, the owner asked for the issues to be fixed, and these changes were made. They are **built and run through the emulator smoke tests, but not tested on a real device**, and the emulators cannot decode video, so the playback loop (C-01) was not exercised end to end.
+
+| ID | Change | Files | Status |
+|---|---|---|---|
+| C-01 | Automatic reloads after a playback error now wait 1, 2, 4, 8, 16, 20 s (plus up to 25 % random jitter) and stop after 8 attempts per video, with one message ("Could not play this video. Press play to try again."). The counter restarts when the video plays, when another video is opened, or when the user tries again later (an error more than 10 s after the app gave up). | `ErrorFixerController.java` (`nextReloadDelayMs`, `giveUpReloading`, `reloadVideoLimited`, `restartEngineLimited`), `VideoLoaderController.java` (`reloadVideo(int)` and `restartEngine(int)` made public), strings `younew_playback_gave_up` (EN/AR) | Fixed in code |
+| C-02 | When the caller of a video-data request gives up (Rx disposal interrupts the thread), the client loop stops at once and no second pass runs, so the global lock is released after the request in progress, not after up to 20. The lock itself and the cancellation of the HTTP call in flight are **unchanged**. | `VideoInfoService.java` (`firstPlayable`, `firstInfoWith`) | Partly fixed (the long case); depends on the thread being interrupted by RxJava (Unknown 2, section 15) |
+| C-04 | API calls (the Retrofit client only, not media) have a 60 s whole-call timeout. | `RetrofitOkHttpHelper.kt` (`createClient`) | Fixed in code |
+| P-01 | A full pool no longer runs a task on the main thread: from the main thread the task goes to an overflow thread (`Schedulers.io()`); from other threads the old caller-runs behaviour stays. Changed in both identical copies of the file (C-06). | `SharedModules/.../rx/RxHelper.java`, `MediaServiceCore/SharedModules/.../rx/RxHelper.java` (`sOverflowPolicy`) | Fixed in code |
+| P-03 | The remote-control loop waits 3 s after a failed pass, and one shared `OkHttpClient` is used for all passes. | `LoungeService.java` (`startListening`, `getListenClient`) | Fixed in code |
+
+Not changed, with the reason:
+
+| ID | Why it was left |
+|---|---|
+| C-03 (no metrics) | Needs a design decision (local counters or none); remote telemetry was rejected for privacy. |
+| C-05 (rate limiter disabled) | Re-enabling a fixed sleep on the caller thread would be worse than the problem; C-01 now provides backoff. |
+| C-06 (two copies of the shared code) | Only a documentation point; the P-01 change was applied to both copies so they stay identical. |
+| P-02 (endless Home memory) | Removing old rows can make the list jump; it needs a memory measurement on a real TV box first. |
+| P-04, P-05 (main-thread timer callbacks, 10 s loader sleep) | Informational; no evidence of harm, and changing them risks the PoToken and live-stream code. |

@@ -34,6 +34,26 @@ public class RxHelper {
     private static final String TAG = RxHelper.class.getSimpleName();
     private static @Nullable Scheduler sCachedScheduler;
 
+    /**
+     * YouNew: what to do with a task when the pool and its queue are full. The original policy (CallerRunsPolicy) runs
+     * it on the thread that asked, which slows the producer down (good) - but the producer is often the Android main
+     * thread, and the task is usually a blocking network call (up to 20 s per step): the screen would freeze.
+     * So on the main thread the task goes to an overflow thread instead; on any other thread it still runs on the
+     * caller, which keeps the slow-down.
+     */
+    private static final java.util.concurrent.RejectedExecutionHandler sOverflowPolicy = (runnable, executor) -> {
+        if (executor.isShutdown()) {
+            return;
+        }
+
+        if (android.os.Looper.myLooper() == android.os.Looper.getMainLooper()) {
+            Log.e(TAG, "Background pool is full. Running the task on an overflow thread, not on the main thread");
+            Schedulers.io().scheduleDirect(runnable);
+        } else {
+            runnable.run();
+        }
+    };
+
     private static Scheduler getCachedScheduler() {
         if (sCachedScheduler == null) {
             // OLD CODE
@@ -52,7 +72,7 @@ public class RxHelper {
                     60L,
                     TimeUnit.SECONDS,
                     new LinkedBlockingQueue<>(queueCapacity),
-                    new ThreadPoolExecutor.CallerRunsPolicy()
+                    sOverflowPolicy
             );
             executor.allowCoreThreadTimeOut(true);
             sCachedScheduler = Schedulers.from(executor);

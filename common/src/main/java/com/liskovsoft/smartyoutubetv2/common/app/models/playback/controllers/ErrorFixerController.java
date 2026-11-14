@@ -20,11 +20,23 @@ import com.liskovsoft.smartyoutubetv2.common.utils.Utils;
 import com.liskovsoft.youtubeapi.service.YouTubeServiceManager;
 
 import java.util.List;
+import java.util.Random;
 
 public class ErrorFixerController extends BasePlayerController implements OnLongBuffering {
     private static final String TAG = ErrorFixerController.class.getSimpleName();
     private static final long STREAM_END_THRESHOLD_MS = 180_000;
     private static final int MAX_SABR_ERROR_FIX_ATTEMPTS = 3;
+    // YouNew: automatic reloads after a playback error. Before, they ran every second for ever (a video that
+    // cannot play, e.g. HTTP 403 on every client, was requested again and again). Now the wait doubles
+    // (1, 2, 4, 8, 16, 20 s ... plus a little random jitter) and after MAX_RELOAD_ATTEMPTS the app stops and says so.
+    private static final int MAX_RELOAD_ATTEMPTS = 8;
+    private static final int RELOAD_BASE_DELAY_MS = 1_000;
+    private static final int RELOAD_MAX_DELAY_MS = 20_000;
+    private static final long GAVE_UP_QUIET_MS = 10_000; // an error later than this after giving up = the user tried again
+    private final Random mRandom = new Random();
+    private String mReloadVideoId;
+    private int mReloadAttempts;
+    private long mGaveUpTimeMs;
     private final BufferingDetector mBufferingDetector = new BufferingDetector(this);
     private VideoLoaderController mVideoLoaderController;
     private String mSabrErrorFixVideoId;
@@ -107,6 +119,70 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
     public void onPlay() {
         mBufferingDetector.onStopBuffering();
         mSabrErrorFixAttempts = 0;
+        mReloadAttempts = 0; // it plays: start counting again
+        mGaveUpTimeMs = 0;
+    }
+
+    /**
+     * The wait before the next automatic reload of the current video, or -1 when the limit is reached.
+     * Counted per video: a different video, or an error long after the app gave up (the user pressed play again),
+     * starts again from the first attempt.
+     */
+    private int nextReloadDelayMs() {
+        Video video = getVideo();
+        String id = video != null ? video.videoId : null;
+        long now = System.currentTimeMillis();
+
+        if (!Helpers.equals(id, mReloadVideoId) || (mGaveUpTimeMs != 0 && now - mGaveUpTimeMs > GAVE_UP_QUIET_MS)) {
+            mReloadVideoId = id;
+            mReloadAttempts = 0;
+            mGaveUpTimeMs = 0;
+        }
+
+        if (mReloadAttempts >= MAX_RELOAD_ATTEMPTS) {
+            if (mGaveUpTimeMs == 0) {
+                mGaveUpTimeMs = now;
+            }
+            return -1;
+        }
+
+        int delay = Math.min(RELOAD_MAX_DELAY_MS, RELOAD_BASE_DELAY_MS << Math.min(mReloadAttempts, 5));
+        mReloadAttempts++;
+
+        return delay + mRandom.nextInt(delay / 4 + 1);
+    }
+
+    /** Stops the automatic reloads: one message, and the player stays open (the user can press play to try again). */
+    private void giveUpReloading() {
+        Log.e(TAG, "Giving up reloading the video after %s attempts", MAX_RELOAD_ATTEMPTS);
+
+        if (mGaveUpTimeMs != 0 && System.currentTimeMillis() - mGaveUpTimeMs < 1_000) {
+            MessageHelpers.showLongMessage(getContext(), R.string.younew_playback_gave_up);
+        }
+
+        if (getPlayer() != null) {
+            getPlayer().showProgressBar(false);
+            getPlayer().setTitle(getContext().getString(R.string.younew_playback_gave_up));
+            getPlayer().showOverlay(true);
+        }
+    }
+
+    private void reloadVideoLimited() {
+        int delay = nextReloadDelayMs();
+        if (delay < 0) {
+            giveUpReloading();
+        } else {
+            mVideoLoaderController.reloadVideo(delay);
+        }
+    }
+
+    private void restartEngineLimited() {
+        int delay = nextReloadDelayMs();
+        if (delay < 0) {
+            giveUpReloading();
+        } else {
+            mVideoLoaderController.restartEngine(delay);
+        }
     }
 
     @Override
@@ -318,10 +394,10 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
         }
 
         if (restartEngine) {
-            mVideoLoaderController.restartEngine();
+            restartEngineLimited();
         } else {
             // Need at least to reload the video because the player becomes idle after error
-            mVideoLoaderController.reloadVideo();
+            reloadVideoLimited();
         }
     }
 
@@ -405,13 +481,13 @@ public class ErrorFixerController extends BasePlayerController implements OnLong
         if (Helpers.containsAny(message, "Unexpected token", "Syntax error", "invalid argument") || // temporal fix
                 Helpers.equalsAny(className, "PoTokenException", "BadWebViewException")) {
             YouTubeServiceManager.instance().switchNextClient();
-            mVideoLoaderController.reloadVideo();
+            reloadVideoLimited();
         } else if (Helpers.containsAny(message, "is not defined")) {
             YouTubeServiceManager.instance().invalidateCache();
-            mVideoLoaderController.reloadVideo();
+            reloadVideoLimited();
         } else {
             Log.e(TAG, "Probably no internet connection");
-            mVideoLoaderController.reloadVideo();
+            reloadVideoLimited();
         }
     }
 
